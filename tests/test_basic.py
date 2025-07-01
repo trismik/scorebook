@@ -1,0 +1,23 @@
+"""Basic tests for the scorebook package."""
+
+from scorebook import __version__
+
+
+def test_version():
+    """Test that the version matches pyproject.toml."""
+    import toml
+
+    # Read version from pyproject.toml
+    with open("pyproject.toml", "r") as f:
+        pyproject = toml.load(f)
+    expected_version = pyproject["tool"]["poetry"]["version"]
+
+    # Verify package version matches
+    assert __version__ == expected_version
+
+
+def test_import():
+    """Test that the package can be imported."""
+    import scorebook
+
+    assert scorebook is not None
