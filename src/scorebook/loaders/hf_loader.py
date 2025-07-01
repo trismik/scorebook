@@ -1,6 +1,11 @@
-from datasets import load_dataset, Dataset, DatasetDict
+"""Huggingface dataset loader for Scorebook."""
 
-def from_huggingface(dataset: str, split: str = None) -> Dataset:
+from typing import Optional
+
+from datasets import Dataset, DatasetDict, load_dataset
+
+
+def from_huggingface(dataset: str, split: Optional[str] = None) -> Dataset:
     """Load a dataset from the Hugging Face Hub.
 
     Args:

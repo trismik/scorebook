@@ -1,9 +1,13 @@
-from datasets import Dataset
-from pathlib import Path
+"""JSON dataset loader for Scorebook."""
+
 import json
+from pathlib import Path
+from typing import Optional
+
+from datasets import Dataset
 
 
-def from_json(file_path: str, split: str = None) -> Dataset:
+def from_json(file_path: str, split: Optional[str] = None) -> Dataset:
     """Load a dataset from a JSON file.
 
     Args:

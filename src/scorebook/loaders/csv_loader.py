@@ -1,6 +1,10 @@
-from datasets import Dataset
+"""CSV dataset loader for Scorebook."""
+
 from pathlib import Path
+
 import pandas as pd
+from datasets import Dataset
+
 
 def from_csv(file_path: str) -> Dataset:
     """Load a dataset from a CSV file.
