@@ -14,10 +14,3 @@ def test_version():
 
     # Verify package version matches
     assert __version__ == expected_version
-
-
-def test_import():
-    """Test that the package can be imported."""
-    import scorebook
-
-    assert scorebook is not None
