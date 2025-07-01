@@ -1,0 +1,67 @@
+[project]
+name = "scorebook"
+dynamic = ["version"]
+description = "A Python project for LLM evaluation."
+authors = [
+    { name = "Marco Basaldella", email = "marco@trismik.com" }
+]
+readme = "README.md"
+requires-python = ">=3.9"
+
+[tool.poetry]
+version = "0.0.1"  # base version
+packages = [{ include = "scorebook", from = "src" }]
+
+[tool.poetry.group.main.dependencies]
+# Add your main dependencies here
+# httpx = "^0.27.2"
+# nest-asyncio = "^1.6.0"
+# tqdm = "^4.67.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.2"
+python-dotenv = "^1.0.1"
+pytest-asyncio = "^0.24.0"
+pre-commit = "^3.6.2"
+black = "^24.3.0"
+isort = "^5.13.2"
+Flake8-pyproject = "^1.2.3"
+flake8 = "^7.0.0"
+mypy = "^1.15.0"
+autoflake = "^2.3.1"
+toml = "^0.10.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "class"
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+install_types = true
+
+[tool.flake8] # note that this depends on Flake8-pyproject
+ignore = ["D202", "W503", "W504"]
