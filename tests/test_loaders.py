@@ -2,7 +2,7 @@ from pathlib import Path
 
 from datasets import Dataset
 
-from scorebook.loaders import from_csv, from_huggingface, from_json
+from scorebook.datasets import from_csv, from_huggingface, from_json
 
 
 def test_load_flat_dataset():

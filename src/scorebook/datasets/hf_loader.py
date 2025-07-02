@@ -29,8 +29,8 @@ def from_huggingface(dataset: str, split: Optional[str] = None) -> Dataset:
     if isinstance(ds, Dataset):
         return ds
     elif isinstance(ds, DatasetDict):
-        if "train" in ds:
-            return ds["train"]
+        if "test" in ds:
+            return ds["test"]
         raise ValueError(f"Split not specified and no 'train' split found in dataset '{dataset}'.")
     else:
         raise ValueError(f"Unexpected dataset type for '{dataset}': {type(ds)}")

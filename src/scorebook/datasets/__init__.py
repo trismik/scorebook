@@ -6,8 +6,8 @@ This subpackage provides functions to load datasets from:
 - The Hugging Face Hub
 """
 
-from .csv_loader import from_csv
-from .hf_loader import from_huggingface
-from .json_loader import from_json
+from scorebook.datasets.csv_loader import from_csv
+from scorebook.datasets.hf_loader import from_huggingface
+from scorebook.datasets.json_loader import from_json
 
 __all__ = ["from_csv", "from_json", "from_huggingface"]
