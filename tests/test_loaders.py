@@ -10,7 +10,7 @@ def test_load_flat_dataset():
     data_flat = from_json(str(json_dataset_path))
     assert isinstance(data_flat, Dataset)
     assert len(data_flat) == 5
-    assert "text" in data_flat.column_names
+    assert "input" in data_flat.column_names
     assert "label" in data_flat.column_names
 
 
@@ -19,7 +19,7 @@ def test_load_split_dataset():
     data_split = from_json(str(json_dataset_dict_path), split="train")
     assert isinstance(data_split, Dataset)
     assert len(data_split) == 5
-    assert "text" in data_split.column_names
+    assert "input" in data_split.column_names
     assert "label" in data_split.column_names
 
 
@@ -28,7 +28,7 @@ def test_load_csv_dataset():
     data_csv = from_csv(str(csv_dataset_path))
     assert isinstance(data_csv, Dataset)
     assert len(data_csv) == 5
-    assert "text" in data_csv.column_names
+    assert "input" in data_csv.column_names
     assert "label" in data_csv.column_names
 
 
