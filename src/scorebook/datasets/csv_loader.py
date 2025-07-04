@@ -36,8 +36,6 @@ def from_csv(
             data = [row for row in reader]
     except csv.Error as e:
         raise ValueError(f"Failed to parse CSV file {file_path}: {e}") from e
-    except Exception as e:
-        raise ValueError(f"Unexpected error reading CSV file {file_path}: {e}") from e
 
     if not data:
         raise ValueError(f"CSV file {file_path} is empty or contains only headers.")
