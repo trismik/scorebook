@@ -9,7 +9,6 @@ from datasets import Dataset
 
 def from_csv(
     file_path: str,
-    *,
     open_kwargs: Optional[Dict[str, Any]] = None,
     reader_kwargs: Optional[Dict[str, Any]] = None,
 ) -> Dataset:
@@ -22,6 +21,10 @@ def from_csv(
 
     Returns:
         A Hugging Face Dataset.
+
+    Raises:
+        FileNotFoundError: If the file does not exist at the given path.
+        ValueError: If the CSV file cannot be parsed or is empty.
     """
     open_kwargs = open_kwargs or {}
     reader_kwargs = reader_kwargs or {}
