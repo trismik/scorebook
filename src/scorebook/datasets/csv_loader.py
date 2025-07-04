@@ -31,7 +31,7 @@ def from_csv(
         raise FileNotFoundError(f"File not found: {file_path}")
 
     try:
-        with open(path, newline="", encoding="utf-8", **open_kwargs) as csvfile:
+        with open(path, **open_kwargs) as csvfile:
             reader = csv.DictReader(csvfile, **reader_kwargs)
             data = [row for row in reader]
     except csv.Error as e:
