@@ -10,6 +10,33 @@ from datasets import Dataset
 def from_json(file_path: str, split: Optional[str] = None) -> Dataset:
     """Load a dataset from a JSON file.
 
+    The JSON file must follow one of two formats:
+
+    1. **List of items (no splits)**:
+        A JSON array where each element is a dictionary representing one item.
+        Example:
+
+        [
+            {"input": "What is 2+2?", "label": "4"},
+            {"input": "Capital of France?", "label": "Paris"}
+        ]
+
+
+    2. **Dataset Dict structure**:
+        A JSON object where each key is a split name (e.g. "train", "test", "validation"),
+        and the value is a list of items.
+        The dataset within the "train" split is returned by default.
+        Example:
+
+        {
+            "train": [
+                {"input": "What is 2+2?", "label": "4"}
+            ],
+            "test": [
+                {"input": "Capital of France?", "label": "Paris"}
+            ]
+        }
+
     Args:
         file_path: Path to the JSON file.
         split: Optional key for split if the JSON contains a dict of splits.
