@@ -2,21 +2,20 @@
 
 import csv
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from datasets import Dataset
 
 
 def from_csv(
-    file_path: str,
-    open_kwargs: Optional[Dict[str, Any]] = None,
-    reader_kwargs: Optional[Dict[str, Any]] = None,
+    file_path: str, encoding: str = "utf-8", newline: str = "", **reader_kwargs: Any
 ) -> Dataset:
     """Load a dataset from a CSV file.
 
     Args:
         file_path: Path to the CSV file.
-        open_kwargs: Dict of kwargs passed to `open()`.
+        encoding: Encoding of the CSV file.
+        newline: Newline character of the CSV file.
         reader_kwargs: Dict of kwargs passed to `csv.DictReader`.
 
     Returns:
@@ -26,7 +25,6 @@ def from_csv(
         FileNotFoundError: If the file does not exist at the given path.
         ValueError: If the CSV file cannot be parsed or is empty.
     """
-    open_kwargs = open_kwargs or {}
     reader_kwargs = reader_kwargs or {}
 
     path = Path(file_path)
@@ -34,7 +32,7 @@ def from_csv(
         raise FileNotFoundError(f"File not found: {file_path}")
 
     try:
-        with open(path, **open_kwargs) as csvfile:
+        with open(path, encoding=encoding, newline=newline) as csvfile:
             reader = csv.DictReader(csvfile, **reader_kwargs)
             data = [row for row in reader]
     except csv.Error as e:
