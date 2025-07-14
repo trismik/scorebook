@@ -12,18 +12,19 @@ class Precision(MetricBase):
     positive predictions made by the model (true positives + false positives).
     """
 
+    name = "Precision"
+
     def __init__(self) -> None:
         """Initialize the Precision metric."""
-        super().__init__("Precision")
+        super().__init__()
 
-    def evaluate(
-        self, predictions: List[Any], references: List[Any]
-    ) -> Union[float, dict[str, float]]:
+    @staticmethod
+    def score(predictions: List[Any], references: List[Any]) -> Union[float, dict[str, float]]:
         """Calculate precision score.
 
         Args:
             predictions: List of predicted values (0/1 or False/True)
-            labels: List of true values (0/1 or False/True)
+            references: List of true values (0/1 or False/True)
 
         Returns:
             Float value representing the precision score

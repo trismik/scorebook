@@ -1,28 +1,18 @@
 """Base class for evaluation metrics."""
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 
 
 class MetricBase(ABC):
     """Base class for all evaluation metrics."""
 
+    name: Optional[str] = None
+
     def __init__(self, name: str):
-        """
-        Create a new metric instance.
-
-        :param name: the name of the metric
-        """
-        self._name = name
-
-    @property
-    def name(self) -> str:
-        """Get the name of the metric.
-
-        Returns:
-            The name of the metric.
-        """
-        return self.name
+        """Initialize the metric."""
+        if self.name is None:
+            raise ValueError("Metric classes must define a 'name' class attribute")
 
     @abstractmethod
     def evaluate(
