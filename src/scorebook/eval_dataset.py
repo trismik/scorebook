@@ -81,7 +81,6 @@ class EvalDataset:
         """Instantiate an EvalDataset from a list of dictionaries.
 
         Args:
-            cls: The class reference (automatically passed for staticmethod).
             name: The name of the evaluation dataset.
             label: The field used as the evaluation label (ground truth).
             data: List of dictionaries containing the dataset examples.
