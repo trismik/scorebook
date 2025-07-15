@@ -102,6 +102,7 @@ class EvalDataset:
         file_path: str,
         label: str,
         metrics: List[MetricBase],
+        name: Optional[str] = None,
         encoding: str = "utf-8",
         newline: str = "",
         **reader_kwargs: Any,
@@ -136,8 +137,9 @@ class EvalDataset:
         if not data:
             raise ValueError(f"CSV file {file_path} is empty or contains only headers.")
 
+        name = name if name else path.stem
         return cls(
-            name=path.stem,
+            name=name,
             label=label,
             metrics=metrics,
             hf_dataset=HuggingFaceDataset.from_list(data),
@@ -145,7 +147,12 @@ class EvalDataset:
 
     @classmethod
     def from_json(
-        cls, file_path: str, label: str, metrics: List[MetricBase], split: Optional[str] = None
+        cls,
+        file_path: str,
+        label: str,
+        metrics: List[MetricBase],
+        name: Optional[str] = None,
+        split: Optional[str] = None,
     ) -> "EvalDataset":
         """Instantiate an EvalDataset from a JSON file.
 
@@ -198,7 +205,8 @@ class EvalDataset:
         else:
             raise ValueError(f"Unsupported JSON structure in {file_path}. Expected list or dict.")
 
-        return cls(name=path.stem, label=label, metrics=metrics, hf_dataset=hf_dataset)
+        name = name if name else path.stem
+        return cls(name=name, label=label, metrics=metrics, hf_dataset=hf_dataset)
 
     @classmethod
     def from_huggingface(
