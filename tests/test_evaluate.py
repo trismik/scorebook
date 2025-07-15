@@ -9,7 +9,7 @@ from scorebook.metrics import Precision
 
 def test_evaluate():
     mmlu_pro = EvalDataset.from_huggingface(
-        "TIGER-Lab/MMLU-Pro", label="answer", split="validation"
+        "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Precision], split="validation"
     )
     assert isinstance(mmlu_pro, EvalDataset)
 

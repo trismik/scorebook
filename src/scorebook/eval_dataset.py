@@ -8,6 +8,7 @@ from datasets import Dataset as HuggingFaceDataset
 from datasets import DatasetDict as HuggingFaceDatasetDict
 from datasets import load_dataset
 
+from scorebook.metrics import MetricBase, get_metrics
 from scorebook.utils import validate_path
 
 
@@ -18,15 +19,15 @@ class EvalDataset:
         self,
         name: str,
         label: str,
-        metrics: Optional[List[str]] = None,
-        hf_dataset: Optional[HuggingFaceDataset] = None,
+        metrics: List[MetricBase],
+        hf_dataset: HuggingFaceDataset,
     ):
         """
         Create a new scorebook evaluation dataset instance.
 
         :param name: The name of the evaluation dataset.
         :param label: The label field of the dataset.
-        :param metrics: The metrics associated with the dataset.
+        :param metrics: The specified metrics associated with the dataset.
         :param hf_dataset: The dataset as a hugging face dataset object.
         """
         self.name: str = name
@@ -77,24 +78,30 @@ class EvalDataset:
         return list(map(str, self._hf_dataset.column_names))
 
     @classmethod
-    def from_list(cls, name: str, label: str, data: List[Dict[str, Any]]) -> "EvalDataset":
+    def from_list(
+        cls, name: str, label: str, metrics: List[MetricBase], data: List[Dict[str, Any]]
+    ) -> "EvalDataset":
         """Instantiate an EvalDataset from a list of dictionaries.
 
         Args:
             name: The name of the evaluation dataset.
             label: The field used as the evaluation label (ground truth).
+            metrics: The specified metrics associated with the dataset.
             data: List of dictionaries containing the dataset examples.
 
         Returns:
             A scorebook EvalDataset wrapping a Hugging Face dataset.
         """
-        return cls(name=name, label=label, hf_dataset=HuggingFaceDataset.from_list(data))
+        return cls(
+            name=name, label=label, metrics=metrics, hf_dataset=HuggingFaceDataset.from_list(data)
+        )
 
     @classmethod
     def from_csv(
         cls,
         file_path: str,
         label: str,
+        metrics: List[MetricBase],
         encoding: str = "utf-8",
         newline: str = "",
         **reader_kwargs: Any,
@@ -104,6 +111,7 @@ class EvalDataset:
         Args:
             file_path: Path to the CSV file.
             label: The field used as the evaluation label (ground truth).
+            metrics: The specified metrics associated with the dataset.
             encoding: Encoding of the CSV file.
             newline: Newline character of the CSV file.
             reader_kwargs: Dict of kwargs passed to `csv.DictReader`.
@@ -128,10 +136,17 @@ class EvalDataset:
         if not data:
             raise ValueError(f"CSV file {file_path} is empty or contains only headers.")
 
-        return cls(name=path.stem, label=label, hf_dataset=HuggingFaceDataset.from_list(data))
+        return cls(
+            name=path.stem,
+            label=label,
+            metrics=metrics,
+            hf_dataset=HuggingFaceDataset.from_list(data),
+        )
 
     @classmethod
-    def from_json(cls, file_path: str, label: str, split: Optional[str] = None) -> "EvalDataset":
+    def from_json(
+        cls, file_path: str, label: str, metrics: List[MetricBase], split: Optional[str] = None
+    ) -> "EvalDataset":
         """Instantiate an EvalDataset from a JSON file.
 
         The JSON file must follow one of two supported formats:
@@ -151,6 +166,7 @@ class EvalDataset:
         Args:
             file_path: Path to the JSON file on disk.
             label: The field used as the evaluation label (ground truth).
+            metrics: The specified metrics associated with the dataset.
             split: If the JSON uses a split structure, this is the split name to load.
 
         Returns:
@@ -182,11 +198,16 @@ class EvalDataset:
         else:
             raise ValueError(f"Unsupported JSON structure in {file_path}. Expected list or dict.")
 
-        return cls(name=path.stem, label=label, hf_dataset=hf_dataset)
+        return cls(name=path.stem, label=label, metrics=metrics, hf_dataset=hf_dataset)
 
     @classmethod
     def from_huggingface(
-        cls, path: str, label: str, split: Optional[str] = None, name: Optional[str] = None
+        cls,
+        path: str,
+        label: str,
+        metrics: List[MetricBase],
+        split: Optional[str] = None,
+        name: Optional[str] = None,
     ) -> "EvalDataset":
         """Instantiate an EvalDataset from a dataset available on Hugging Face Hub.
 
@@ -198,6 +219,7 @@ class EvalDataset:
         Args:
             path: The path of the dataset on the Hugging Face Hub.
             label: The field used as the evaluation label (ground truth).
+            metrics: The specified metrics associated with the dataset.
             split: Optional name of the split to load.
             name: Optional dataset configuration name.
 
@@ -229,4 +251,17 @@ class EvalDataset:
         else:
             raise ValueError(f"Unexpected dataset type for '{path}': {type(ds)}")
 
-        return cls(name=path, label=label, hf_dataset=hf_dataset)
+        return cls(name=path, label=label, metrics=metrics, hf_dataset=hf_dataset)
+
+    @staticmethod
+    def _normalize_metrics(
+        metrics: Union[str, MetricBase, List[Union[str, MetricBase]]]
+    ) -> List[MetricBase]:
+
+        if not isinstance(metrics, list):
+            metrics = [metrics]
+
+        # TODO: handle other types
+        metric_types = get_metrics()
+        metrics = [m for m in metrics if m in metric_types]
+        return metrics
