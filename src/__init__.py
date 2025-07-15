@@ -13,6 +13,6 @@ Example:
     dataset = EvalDataset.from_json("data.json", label="answer")
     results = evaluate(model_fn, dataset, metrics=["precision"])
 
-For more information, visit: <repository-url>
+For more information, visit: github.com/trismik/scorebook
 
 """

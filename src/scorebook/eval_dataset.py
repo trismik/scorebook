@@ -2,7 +2,7 @@
 
 import csv
 import json
-from typing import Any, Dict, Iterator, List, Optional, Type, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 from datasets import Dataset as HuggingFaceDataset
 from datasets import DatasetDict as HuggingFaceDatasetDict
@@ -76,10 +76,8 @@ class EvalDataset:
             raise ValueError("Dataset is not initialized")
         return list(map(str, self._hf_dataset.column_names))
 
-    @staticmethod
-    def from_list(
-        cls: Type["EvalDataset"], name: str, label: str, data: List[Dict[str, Any]]
-    ) -> "EvalDataset":
+    @classmethod
+    def from_list(cls, name: str, label: str, data: List[Dict[str, Any]]) -> "EvalDataset":
         """Instantiate an EvalDataset from a list of dictionaries.
 
         Args:
