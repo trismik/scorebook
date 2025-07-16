@@ -11,7 +11,7 @@ class Accuracy(MetricBase):
     Accuracy = correct predictions / total predictions
     """
 
-    name = "Accuracy"
+    name = "accuracy"
 
     def __init__(self) -> None:
         """Initialize the Accuracy metric."""

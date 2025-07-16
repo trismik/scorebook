@@ -295,6 +295,7 @@ class EvalDataset:
             if isinstance(metric, type) and issubclass(metric, MetricBase):
                 normalized.add(metric)
             elif isinstance(metric, str):
+                metric = metric.lower()
                 metric_type = metric_names.get(metric)
                 if metric_type is None:
                     raise ValueError(

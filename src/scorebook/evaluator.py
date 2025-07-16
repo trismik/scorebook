@@ -13,6 +13,7 @@ The main entry point is the `evaluate()` function which handles running
 models on datasets and computing metric scores.
 """
 
+from dataclasses import asdict
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from scorebook.eval_dataset import EvalDataset
@@ -25,6 +26,7 @@ def evaluate(
     sweep: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
     item_limit: Optional[int] = None,
+    return_type: str = "dict",
 ) -> Dict:
     """
     Evaluate model predictions using specified metrics on given datasets.
@@ -73,6 +75,9 @@ def evaluate(
     # TODO: Implement experiment id
     if experiment_id:
         pass
+
+    if return_type == "dict":
+        results = {ds_name: asdict(ds_results) for ds_name, ds_results in results.items()}
 
     return results
 

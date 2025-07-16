@@ -16,7 +16,7 @@ class Precision(MetricBase):
     Precision = TP / (TP + FP)
     """
 
-    name = "Precision"
+    name = "precision"
 
     def __init__(self) -> None:
         """Initialize the Precision metric."""
