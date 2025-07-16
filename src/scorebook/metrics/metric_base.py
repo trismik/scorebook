@@ -15,7 +15,7 @@ class MetricBase(ABC):
             raise ValueError("Metric classes must define a 'name' class attribute")
 
     @abstractmethod
-    def evaluate(
+    def score(
         self, predictions: List[Any], references: List[Any]
     ) -> Union[float, dict[str, float]]:
         """Evaluate predictions against references.

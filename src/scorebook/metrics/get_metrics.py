@@ -8,6 +8,7 @@ to retrieve all implemented metric classes.
 
 from typing import List, Type
 
+from scorebook.metrics.accuracy import Accuracy
 from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.precision import Precision
 
@@ -20,4 +21,4 @@ def get_metrics() -> List[Type[MetricBase]]:
         List[Type[MetricBase]]: A list of metric classes that inherit from MetricBase.
     """
 
-    return [Precision]
+    return [Precision, Accuracy]

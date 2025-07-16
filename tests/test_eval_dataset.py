@@ -59,3 +59,14 @@ def test_invalid_split():
         EvalDataset.from_json(
             str(json_dataset_path), label="label", split="testing", metrics=Precision
         )
+
+
+def test_metric_types():
+    dataset_path = Path(__file__).parent / "data" / "Dataset.csv"
+    data_csv = EvalDataset.from_csv(
+        str(dataset_path), label="label", metrics=[Precision, "Accuracy"]
+    )
+    assert isinstance(data_csv, EvalDataset)
+    assert len(data_csv) == 5
+    assert "input" in data_csv.column_names
+    assert "label" in data_csv.column_names

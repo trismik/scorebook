@@ -2,7 +2,7 @@
 
 import csv
 import json
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Type, Union
 
 from datasets import Dataset as HuggingFaceDataset
 from datasets import DatasetDict as HuggingFaceDatasetDict
@@ -19,7 +19,7 @@ class EvalDataset:
         self,
         name: str,
         label: str,
-        metrics: List[MetricBase],
+        metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]],
         hf_dataset: HuggingFaceDataset,
     ):
         """
@@ -32,7 +32,7 @@ class EvalDataset:
         """
         self.name: str = name
         self.label: str = label
-        self.metrics: List[str] = metrics or []
+        self.metrics: List[Type[MetricBase]] = self._normalize_metrics(metrics)
         self._hf_dataset: Optional[HuggingFaceDataset] = hf_dataset
 
     def __len__(self) -> int:
@@ -79,7 +79,11 @@ class EvalDataset:
 
     @classmethod
     def from_list(
-        cls, name: str, label: str, metrics: List[MetricBase], data: List[Dict[str, Any]]
+        cls,
+        name: str,
+        label: str,
+        metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]],
+        data: List[Dict[str, Any]],
     ) -> "EvalDataset":
         """Instantiate an EvalDataset from a list of dictionaries.
 
@@ -101,7 +105,7 @@ class EvalDataset:
         cls,
         file_path: str,
         label: str,
-        metrics: List[MetricBase],
+        metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]],
         name: Optional[str] = None,
         encoding: str = "utf-8",
         newline: str = "",
@@ -113,6 +117,7 @@ class EvalDataset:
             file_path: Path to the CSV file.
             label: The field used as the evaluation label (ground truth).
             metrics: The specified metrics associated with the dataset.
+            name: Optional name for the eval dataset, if not provided, the path is used
             encoding: Encoding of the CSV file.
             newline: Newline character of the CSV file.
             reader_kwargs: Dict of kwargs passed to `csv.DictReader`.
@@ -150,7 +155,7 @@ class EvalDataset:
         cls,
         file_path: str,
         label: str,
-        metrics: List[MetricBase],
+        metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]],
         name: Optional[str] = None,
         split: Optional[str] = None,
     ) -> "EvalDataset":
@@ -174,6 +179,7 @@ class EvalDataset:
             file_path: Path to the JSON file on disk.
             label: The field used as the evaluation label (ground truth).
             metrics: The specified metrics associated with the dataset.
+            name: Optional name for the eval dataset, if not provided, the path is used
             split: If the JSON uses a split structure, this is the split name to load.
 
         Returns:
@@ -213,7 +219,7 @@ class EvalDataset:
         cls,
         path: str,
         label: str,
-        metrics: List[MetricBase],
+        metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]],
         split: Optional[str] = None,
         name: Optional[str] = None,
     ) -> "EvalDataset":
@@ -263,13 +269,43 @@ class EvalDataset:
 
     @staticmethod
     def _normalize_metrics(
-        metrics: Union[str, MetricBase, List[Union[str, MetricBase]]]
-    ) -> List[MetricBase]:
+        metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]]
+    ) -> List[Type[MetricBase]]:
+        """
+        Normalize metrics input into a list of unique MetricBase types.
 
+        Args:
+            metrics: Single or list of metric names (str) or MetricBase types
+
+        Returns:
+            List of unique MetricBase types
+
+        Raises:
+            ValueError: If any metric is invalid or not found
+        """
         if not isinstance(metrics, list):
             metrics = [metrics]
 
-        # TODO: handle other types
         metric_types = get_metrics()
-        metrics = [m for m in metrics if m in metric_types]
-        return metrics
+        metric_names = {m.name: m for m in metric_types}
+
+        # Using a set to ensure uniqueness
+        normalized = set()
+        for metric in metrics:
+            if isinstance(metric, type) and issubclass(metric, MetricBase):
+                normalized.add(metric)
+            elif isinstance(metric, str):
+                metric_type = metric_names.get(metric)
+                if metric_type is None:
+                    raise ValueError(
+                        f"Invalid metric name: '{metric}'."
+                        f"Available metrics: {list(metric_names.keys())}"
+                    )
+                normalized.add(metric_type)
+            else:
+                raise ValueError(
+                    f"Invalid metric type: {type(metric)}. "
+                    f"Must be string name or MetricBase subclass"
+                )
+
+        return list(normalized)
