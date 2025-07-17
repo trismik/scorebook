@@ -10,8 +10,8 @@ This package provides tools for:
 Example:
     from scorebook import EvalDataset, evaluate
 
-    dataset = EvalDataset.from_json("data.json", label="answer")
-    results = evaluate(model_fn, dataset, metrics=["precision"])
+    dataset = EvalDataset.from_json("data.json", label="answer", metrics=["precision", "accuracy])
+    results = evaluate(model_fn, dataset)
 
 For more information, visit: github.com/trismik/scorebook
 
