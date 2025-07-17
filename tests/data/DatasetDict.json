@@ -1,0 +1,16 @@
+{
+  "train": [
+    {"input": "Bananas are great", "label": 1},
+    {"input": "Fruit makes me sick", "label": 0},
+    {"input": "Oranges are tasty", "label": 1},
+    {"input": "I never eat apples", "label": 0},
+    {"input": "Fruit is healthy", "label": 1}
+  ],
+  "test": [
+    {"input": "I love apples", "label": 1},
+    {"input": "I hate fruit", "label": 0},
+    {"input": "I eat fruit every day", "label": 1},
+    {"input": "Bananas are gross", "label": 0},
+    {"input": "I prefer chips to oranges", "label": 0}
+  ]
+}

@@ -1,0 +1,7 @@
+[
+  {"input": "Apples are my favorite fruit", "label": 1},
+  {"input": "I can't stand bananas", "label": 0},
+  {"input": "Oranges are okay", "label": 1},
+  {"input": "Fruit gives me a rash", "label": 0},
+  {"input": "Grapes are delicious", "label": 1}
+]
