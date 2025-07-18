@@ -1,17 +1,17 @@
 """Base class for evaluation metrics."""
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Union
+from typing import Any, List, Union
 
 
 class MetricBase(ABC):
     """Base class for all evaluation metrics."""
 
-    name: Optional[str] = None
+    name: str
 
-    def __init__(self, name: str):
+    def __init__(self) -> None:
         """Initialize the metric."""
-        if self.name is None:
+        if not hasattr(self, "name"):
             raise ValueError("Metric classes must define a 'name' class attribute")
 
     @staticmethod

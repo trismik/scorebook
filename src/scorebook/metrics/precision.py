@@ -8,8 +8,10 @@ number of positive predictions made by the model.
 from typing import Any, List
 
 from scorebook.metrics.metric_base import MetricBase
+from scorebook.metrics.metric_registry import MetricRegistry
 
 
+@MetricRegistry.register("precision")
 class Precision(MetricBase):
     """Precision metric for binary classification.
 

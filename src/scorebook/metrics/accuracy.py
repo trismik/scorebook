@@ -3,8 +3,10 @@
 from typing import Any, List
 
 from scorebook.metrics.metric_base import MetricBase
+from scorebook.metrics.metric_registry import MetricRegistry
 
 
+@MetricRegistry.register("accuracy")
 class Accuracy(MetricBase):
     """Accuracy metric for evaluating model predictions of any type.
 

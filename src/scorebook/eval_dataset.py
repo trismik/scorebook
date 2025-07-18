@@ -8,7 +8,7 @@ from datasets import Dataset as HuggingFaceDataset
 from datasets import DatasetDict as HuggingFaceDatasetDict
 from datasets import load_dataset
 
-from scorebook.metrics import MetricBase, get_metrics
+from scorebook.metrics import MetricBase, MetricRegistry
 from scorebook.utils import validate_path
 
 
@@ -32,7 +32,7 @@ class EvalDataset:
         """
         self.name: str = name
         self.label: str = label
-        self.metrics: List[Type[MetricBase]] = self._normalize_metrics(metrics)
+        self.metrics: List[MetricBase] = self._resolve_metrics(metrics)
         self._hf_dataset: Optional[HuggingFaceDataset] = hf_dataset
 
     def __len__(self) -> int:
@@ -268,45 +268,24 @@ class EvalDataset:
         return cls(name=path, label=label, metrics=metrics, hf_dataset=hf_dataset)
 
     @staticmethod
-    def _normalize_metrics(
-        metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]]
-    ) -> List[Type[MetricBase]]:
+    def _resolve_metrics(
+        metrics: Union[
+            str, Type[MetricBase], MetricBase, List[Union[str, Type[MetricBase], MetricBase]]
+        ]
+    ) -> List[MetricBase]:
         """
-        Normalize metrics input into a list of unique MetricBase types.
+        Convert metric names/classes into a list of MetricBase instances using MetricRegistry.
 
-        Args:
-            metrics: Single or list of metric names (str) or MetricBase types
-
-        Returns:
-            List of unique MetricBase types
-
-        Raises:
-            ValueError: If any metric is invalid or not found
+        Used to normalize metrics to a metric type.
         """
         if not isinstance(metrics, list):
             metrics = [metrics]
 
-        metric_types = get_metrics()
-        metric_names = {m.name: m for m in metric_types}
-
-        # Using a set to ensure uniqueness
-        normalized = set()
-        for metric in metrics:
-            if isinstance(metric, type) and issubclass(metric, MetricBase):
-                normalized.add(metric)
-            elif isinstance(metric, str):
-                metric = metric.lower()
-                metric_type = metric_names.get(metric)
-                if metric_type is None:
-                    raise ValueError(
-                        f"Invalid metric name: '{metric}'."
-                        f"Available metrics: {list(metric_names.keys())}"
-                    )
-                normalized.add(metric_type)
+        resolved: List[MetricBase] = []
+        for m in metrics:
+            if isinstance(m, MetricBase):
+                resolved.append(m)  # Already an instance
             else:
-                raise ValueError(
-                    f"Invalid metric type: {type(metric)}. "
-                    f"Must be string name or MetricBase subclass"
-                )
+                resolved.append(MetricRegistry.get(m))  # Use registry for str or class
 
-        return list(normalized)
+        return resolved
