@@ -6,18 +6,12 @@ from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.metric_registry import MetricRegistry
 
 
-@MetricRegistry.register("accuracy")
+@MetricRegistry.register()
 class Accuracy(MetricBase):
     """Accuracy metric for evaluating model predictions of any type.
 
     Accuracy = correct predictions / total predictions
     """
-
-    name = "accuracy"
-
-    def __init__(self) -> None:
-        """Initialize the Accuracy metric."""
-        super().__init__()
 
     @staticmethod
     def score(predictions: List[Any], references: List[Any]) -> float:

@@ -7,12 +7,10 @@ from typing import Any, List, Union
 class MetricBase(ABC):
     """Base class for all evaluation metrics."""
 
-    name: str
-
-    def __init__(self) -> None:
-        """Initialize the metric."""
-        if not hasattr(self, "name"):
-            raise ValueError("Metric classes must define a 'name' class attribute")
+    @property
+    def name(self) -> str:
+        """Return the metric name based on the class name."""
+        return self.__class__.__name__.lower()
 
     @staticmethod
     @abstractmethod

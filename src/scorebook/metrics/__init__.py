@@ -15,4 +15,4 @@ from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.metric_registry import MetricRegistry
 from scorebook.metrics.precision import Precision
 
-__all__ = ["MetricBase", "Precision", "Accuracy", "metric_registry.py", "MetricRegistry"]
+__all__ = ["MetricBase", "Precision", "Accuracy", "MetricRegistry"]

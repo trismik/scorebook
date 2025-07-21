@@ -15,14 +15,14 @@ def test_registry_registration():
     assert "precision" in MetricRegistry.list_metrics()
 
     # Test registering a new metric
-    @MetricRegistry.register("test_metric")
+    @MetricRegistry.register()
     class TestMetric(MetricBase):
-        name = "test_metric"
-
-        def score(self, predictions, references):
+        @staticmethod
+        def score(predictions, references):
             return 0.0
 
-    assert "test_metric" in MetricRegistry.list_metrics()
+    # The metric should be registered with its lowercase class name
+    assert "testmetric" in MetricRegistry.list_metrics()
 
 
 def test_get_metric_by_name():
@@ -67,26 +67,28 @@ def test_list_metrics():
 
 
 def test_prevent_metric_overwrite():
-    """Test that metrics with the same name cannot be registered twice."""
+    """Test that metrics with the same class name cannot be registered twice."""
 
     # First registration should succeed
-    @MetricRegistry.register("duplicate_metric")
-    class FirstMetric(MetricBase):
-        name = "duplicate_metric"
-
-        def score(self, predictions, references):
+    @MetricRegistry.register()
+    class DuplicateMetric(MetricBase):
+        @staticmethod
+        def score(predictions, references):
             return 0.0
 
-    # Second registration with same name should raise ValueError
-    with pytest.raises(ValueError, match="Metric 'duplicate_metric' is already registered"):
+    print(DuplicateMetric)
 
-        @MetricRegistry.register("duplicate_metric")
-        class SecondMetric(MetricBase):
-            name = "duplicate_metric"
+    # Second registration with same class name should raise ValueError
+    with pytest.raises(ValueError, match="Metric 'duplicatemetric' is already registered"):
 
-            def score(self, predictions, references):
+        @MetricRegistry.register()
+        class DuplicateMetric(MetricBase):  # Same class name as above
+            @staticmethod
+            def score(predictions, references):
                 return 1.0
 
     # Verify that the original metric is still registered and wasn't overwritten
-    metric = MetricRegistry.get("duplicate_metric")
-    assert isinstance(metric, FirstMetric)
+    metric = MetricRegistry.get("duplicatemetric")
+    assert isinstance(metric, DuplicateMetric)
+    # Optionally verify the behavior of the original implementation
+    assert metric.score([], []) == 0.0

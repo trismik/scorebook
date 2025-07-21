@@ -11,18 +11,12 @@ from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.metric_registry import MetricRegistry
 
 
-@MetricRegistry.register("precision")
+@MetricRegistry.register()
 class Precision(MetricBase):
     """Precision metric for binary classification.
 
     Precision = TP / (TP + FP)
     """
-
-    name = "precision"
-
-    def __init__(self) -> None:
-        """Initialize the Precision metric."""
-        super().__init__()
 
     @staticmethod
     def score(predictions: List[Any], references: List[Any]) -> float:

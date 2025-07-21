@@ -6,7 +6,7 @@ that can be used to assess model performance. It provides a single access point
 to retrieve all implemented metric classes.
 """
 
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Type, Union
 
 from scorebook.metrics.metric_base import MetricBase
 
@@ -42,12 +42,9 @@ class MetricRegistry:
     _registry: Dict[str, Type[MetricBase]] = {}
 
     @classmethod
-    def register(cls, name: Optional[str] = None) -> Callable[[Type[MetricBase]], Type[MetricBase]]:
+    def register(cls) -> Callable[[Type[MetricBase]], Type[MetricBase]]:
         """
         Register a metric class in the registry.
-
-        Args:
-            name: Optional name for the metric. Defaults to the class name in lowercase.
 
         Returns:
             A decorator that registers the class and returns it.
@@ -57,7 +54,7 @@ class MetricRegistry:
         """
 
         def decorator(metric_cls: Type[MetricBase]) -> Type[MetricBase]:
-            key = name or metric_cls.__name__.lower()
+            key = metric_cls.__name__.lower()
             if key in cls._registry:
                 raise ValueError(f"Metric '{key}' is already registered")
             cls._registry[key] = metric_cls
