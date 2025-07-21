@@ -51,10 +51,15 @@ class MetricRegistry:
 
         Returns:
             A decorator that registers the class and returns it.
+
+        Raises:
+            ValueError: If a metric with the given name is already registered.
         """
 
         def decorator(metric_cls: Type[MetricBase]) -> Type[MetricBase]:
             key = name or metric_cls.__name__.lower()
+            if key in cls._registry:
+                raise ValueError(f"Metric '{key}' is already registered")
             cls._registry[key] = metric_cls
             return metric_cls
 
