@@ -14,24 +14,35 @@ class Accuracy(MetricBase):
     """
 
     @staticmethod
-    def score(predictions: List[Any], references: List[Any]) -> float:
+    def score(predictions: List[Any], references: List[Any], score_type: str = "aggregate") -> Any:
         """Calculate accuracy score between predictions and references.
-
-        Accuracy is calculated as the number of correct predictions divided by the total number
-        of predictions.
 
         Args:
             predictions: List of model predictions.
             references: List of ground truth reference values.
+            score_type: One of "aggregate" (overall accuracy), "item" (per-item correctness),
+                       or "all" (both aggregate and item scores)
 
         Returns:
-            Float value representing the accuracy score (between 0.0 and 1.0).
+            If score_type is "aggregate": Float value representing the accuracy score
+            If score_type is "item": List of booleans indicating correctness of each prediction
+            If score_type is "all": Dictionary with both aggregate score and item scores
 
         Raises:
-            ValueError: If predictions and references have different lengths.
+            ValueError: If predictions and references have different lengths or invalid score_type.
         """
         if len(predictions) != len(references):
             raise ValueError("Predictions and references must have the same length")
 
-        correct_predictions = sum(p == r for p, r in zip(predictions, references))
-        return float(correct_predictions / len(predictions))
+        if score_type not in ["aggregate", "item", "all"]:
+            raise ValueError("score_type must be 'aggregate', 'item', or 'all'")
+
+        item_scores = [p == r for p, r in zip(predictions, references)]
+        aggregate_score = float(sum(item_scores) / len(predictions))
+
+        scores = {
+            "item": item_scores,
+            "aggregate": aggregate_score,
+            "all": {"aggregate": aggregate_score, "items": item_scores},
+        }
+        return scores[score_type]

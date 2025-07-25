@@ -27,20 +27,49 @@ def evaluate(
     experiment_id: Optional[str] = None,
     item_limit: Optional[int] = None,
     return_type: str = "dict",
+    score_type: str = "aggregate",
 ) -> Dict:
     """
     Evaluate model predictions using specified metrics on given datasets.
 
+    This function runs the provided inference function on one or more evaluation datasets,
+    computes metric scores, and returns the evaluation results. It supports batch processing,
+    parameter sweeping, and different result formatting options.
+
     Args:
-        inference_fn: Function that takes a dataset item and returns a prediction
-        datasets: One or more eval datasets to run evaluation on
-        sweep: Optional parameter sweep configuration
-        experiment_id: Optional experiment identifier
-        item_limit: Optional limit on number of items to evaluate per dataset
+        inference_fn: Function that takes a dataset item and returns a prediction.
+        datasets: One or more evaluation datasets to run evaluation on. Can be:
+                 - A single EvalDataset instance
+                 - A list of EvalDataset instances
+                 - A string identifier (for future dataset registry support)
+                 - A list of string identifiers
+        sweep: Optional dictionary containing parameter sweep configuration.
+        experiment_id: Optional string identifier for tracking multiple evaluation runs.
+        item_limit: Optional integer limiting the number of items to evaluate per dataset.
+        return_type: Format of the return value. Currently only "dict" is supported.
+        score_type: Type of score aggregation to return. Options:
+                   - "aggregate": Return aggregated metrics
+                   - "item": Return per-item scores
+                   - "all": Return both aggregate and per-item scores
 
     Returns:
-        Dictionary mapping dataset names to their evaluation results
+        Dictionary mapping dataset names to their evaluation results. For each dataset,
+        returns a dictionary containing:
+        - items: List of EvalResult objects with predictions and ground truth
+        - metrics: Dictionary mapping metric names to their computed scores
+
+    Example:
+        ```python
+        dataset = EvalDataset.from_huggingface("dataset_name", label="answer", metrics=[Precision])
+        def inference_fn(item):
+            # Model inference logic here
+            return prediction
+
+        results = evaluate(inference_fn, dataset, item_limit=100)
+        ```
     """
+    if score_type not in ["aggregate", "item", "all"]:
+        raise ValueError("score_type must be 'aggregate', 'item', or 'all'")
 
     normalized_datasets = {dataset.name: dataset for dataset in _normalize_datasets(datasets)}
 
@@ -69,7 +98,7 @@ def evaluate(
         labels = [item.label for item in dataset_results.items]
 
         for metric in normalized_datasets[dataset_name].metrics:
-            score = metric.score(outputs, labels)
+            score = metric.score(outputs, labels, score_type=score_type)
             dataset_results.metrics[metric.name] = score
 
     # TODO: Implement experiment id

@@ -1,7 +1,7 @@
 """Base class for evaluation metrics."""
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Union
+from typing import Any, List
 
 
 class MetricBase(ABC):
@@ -14,12 +14,13 @@ class MetricBase(ABC):
 
     @staticmethod
     @abstractmethod
-    def score(predictions: List[Any], references: List[Any]) -> Union[float, dict[str, float]]:
+    def score(predictions: List[Any], references: List[Any], score_type: str = "aggregate") -> Any:
         """Evaluate predictions against references.
 
         Args:
             predictions: Model predictions to evaluate.
             references: Ground truth references to compare against.
+            score_type: aggregate, item, all
 
         Returns:
             Metric score as a float.

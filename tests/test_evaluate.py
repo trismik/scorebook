@@ -1,3 +1,4 @@
+import csv
 import re
 from pathlib import Path
 from typing import Dict
@@ -60,6 +61,32 @@ def create_simple_inference_fn(expected_output: str = "1"):
         return expected_output
 
     return inference_fn
+
+
+def save_results_to_csv(results: Dict, output_path: str):
+    """Save evaluation results to a CSV file."""
+    with open(output_path, "w", newline="") as f:
+        writer = csv.writer(f)
+
+        # Write header
+        writer.writerow(["Dataset", "Question", "Prediction", "Ground Truth", "Result"])
+
+        # Write results for each dataset
+        for dataset_name, dataset_results in results.items():
+            for item in dataset_results["items"]:
+                writer.writerow(
+                    [
+                        dataset_name,
+                        item["dataset_item"].get("question", ""),
+                        item["output"],
+                        item["dataset_item"].get("label", ""),
+                        (
+                            "correct"
+                            if item["output"] == item["dataset_item"].get("label")
+                            else "incorrect"
+                        ),
+                    ]
+                )
 
 
 def test_evaluate_single_dataset():
@@ -185,3 +212,65 @@ def test_evaluate_return_type():
     # Test default return type
     default_results = evaluate(create_simple_inference_fn("1"), dataset)
     assert isinstance(default_results, dict)
+
+
+def test_evaluate_score_types():
+    """Test evaluation with different score type options."""
+    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset = EvalDataset.from_csv(
+        dataset_path, label="label", metrics=[Precision], name="test_dataset"
+    )
+
+    # Test aggregate scores
+    aggregate_results = evaluate(create_simple_inference_fn("1"), dataset, score_type="aggregate")
+    assert isinstance(aggregate_results["test_dataset"]["metrics"]["precision"], float)
+
+    # Test item-level scores
+    item_results = evaluate(create_simple_inference_fn("1"), dataset, score_type="item")
+    assert isinstance(item_results["test_dataset"]["metrics"]["precision"], list)
+    assert all(isinstance(x, str) for x in item_results["test_dataset"]["metrics"]["precision"])
+
+    # Test combined scores
+    all_results = evaluate(create_simple_inference_fn("1"), dataset, score_type="all")
+    assert isinstance(all_results["test_dataset"]["metrics"]["precision"], dict)
+    assert "aggregate" in all_results["test_dataset"]["metrics"]["precision"]
+    assert "items" in all_results["test_dataset"]["metrics"]["precision"]
+
+
+def test_evaluate_with_csv_export():
+    """Test evaluation with results export to CSV."""
+    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset = EvalDataset.from_csv(
+        dataset_path, label="label", metrics=[Precision, Accuracy], name="test_dataset"
+    )
+
+    # Run evaluation
+    results = evaluate(create_simple_inference_fn("1"), dataset)
+
+    # Save results to CSV
+    output_path = str(Path(__file__).parent / "results" / "evaluation_results.csv")
+    Path(output_path).parent.mkdir(exist_ok=True)
+
+    save_results_to_csv(results, output_path)
+
+    # Verify CSV was created and contains data
+    assert Path(output_path).exists()
+    with open(output_path, "r") as f:
+        reader = csv.reader(f)
+        headers = next(reader)
+        assert headers == ["Dataset", "Question", "Prediction", "Ground Truth", "Result"]
+
+        # Verify we have data rows
+        data_rows = list(reader)
+        assert len(data_rows) > 0
+
+
+def test_evaluate_invalid_score_type():
+    """Test evaluation with invalid score type."""
+    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset = EvalDataset.from_csv(
+        dataset_path, label="label", metrics=[Precision], name="test_dataset"
+    )
+
+    with pytest.raises(ValueError):
+        evaluate(create_simple_inference_fn("1"), dataset, score_type="invalid")
