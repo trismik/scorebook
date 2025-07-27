@@ -40,7 +40,7 @@ def test_evaluate():
         else:
             return None
 
-    results = evaluate(inference_function, mmlu_pro, Precision, item_limit=2)
+    results = evaluate(inference_function, mmlu_pro, Precision, item_limit=10)
     print("\n=== RESULTS ===")
     for ds, dataset_results in results.items():
         print(f"DATASET: {ds}\n")
