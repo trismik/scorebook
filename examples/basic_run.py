@@ -63,4 +63,4 @@ if __name__ == "__main__":
         output = output[0]["generated_text"][-1]["content"]
         return output
 
-    results = evaluate(inference_function, mmlu_pro, Accuracy, item_limit=10)
+    results = evaluate(inference_function, mmlu_pro, item_limit=10)

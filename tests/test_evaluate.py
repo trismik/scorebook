@@ -12,7 +12,7 @@ from scorebook.metrics import Accuracy, Precision
 
 def test_evaluate():
     mmlu_pro = EvalDataset.from_huggingface(
-        "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Precision], split="validation"
+        "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
     )
     assert isinstance(mmlu_pro, EvalDataset)
 
@@ -40,18 +40,20 @@ def test_evaluate():
         else:
             return None
 
-    results = evaluate(inference_function, mmlu_pro, Precision, item_limit=10)
+    results = evaluate(inference_function, mmlu_pro, item_limit=10)
     print("\n=== RESULTS ===")
     for ds, dataset_results in results.items():
         print(f"DATASET: {ds}\n")
         for item in dataset_results["items"]:
-            print(f"          Question: {item['dataset_item'].get('question')}")
+            print(f"          Question: {item['item'].get('question')}")
             print(f"     Output Answer: {item['output']}")
-            print(f"    Correct Answer: {item['dataset_item'].get('answer')}\n")
+            print(f"    Correct Answer: {item['label']}")
+            print("    Item Metrics:", ", ".join(f"{k}: {v}" for k, v in item["scores"].items()))
+            print()
 
-        print("Metrics:")
-        for metric_name, score in dataset_results["metrics"].items():
-            print(f"    {metric_name}: {score}\n")
+        print("Aggregate Metrics:")
+        for metric_name, score in dataset_results["scores"].items():
+            print(f"    {metric_name}: {score:.4f}\n")
 
 
 def create_simple_inference_fn(expected_output: str = "1"):
@@ -69,24 +71,20 @@ def save_results_to_csv(results: Dict, output_path: str):
         writer = csv.writer(f)
 
         # Write header
-        writer.writerow(["Dataset", "Question", "Prediction", "Ground Truth", "Result"])
+        writer.writerow(["Dataset", "Question", "Prediction", "Ground Truth", "Metric Scores"])
 
         # Write results for each dataset
         for dataset_name, dataset_results in results.items():
             for item in dataset_results["items"]:
-                writer.writerow(
-                    [
-                        dataset_name,
-                        item["dataset_item"].get("question", ""),
-                        item["output"],
-                        item["dataset_item"].get("label", ""),
-                        (
-                            "correct"
-                            if item["output"] == item["dataset_item"].get("label")
-                            else "incorrect"
-                        ),
-                    ]
-                )
+                # Get question and label from the dataset item
+                question = item["item"].get("question", "")
+                label = item["label"]
+                output = item["output"]
+
+                # Format metric scores as a string
+                metric_scores = ", ".join(f"{k}: {v}" for k, v in item["scores"].items())
+
+                writer.writerow([dataset_name, question, output, label, metric_scores])
 
 
 def test_evaluate_single_dataset():
@@ -104,9 +102,9 @@ def test_evaluate_single_dataset():
 
     dataset_results = results["test_dataset"]
     assert "items" in dataset_results
-    assert "metrics" in dataset_results
+    assert "scores" in dataset_results
     assert len(dataset_results["items"]) == 5
-    assert "precision" in dataset_results["metrics"]
+    assert "precision" in dataset_results["scores"]
 
 
 def test_evaluate_multiple_datasets():
@@ -149,9 +147,9 @@ def test_evaluate_with_multiple_metrics():
 
     results = evaluate(create_simple_inference_fn("1"), dataset)
 
-    metrics = results["test_dataset"]["metrics"]
-    assert "precision" in metrics
-    assert "accuracy" in metrics
+    metric_scores = results["test_dataset"]["scores"]
+    assert "precision" in metric_scores
+    assert "accuracy" in metric_scores
 
 
 def test_evaluate_with_none_predictions():
@@ -223,18 +221,28 @@ def test_evaluate_score_types():
 
     # Test aggregate scores
     aggregate_results = evaluate(create_simple_inference_fn("1"), dataset, score_type="aggregate")
-    assert isinstance(aggregate_results["test_dataset"]["metrics"]["precision"], float)
+    assert isinstance(aggregate_results["test_dataset"]["scores"], dict)
+    assert "precision" in aggregate_results["test_dataset"]["scores"]
+    assert isinstance(aggregate_results["test_dataset"]["scores"]["precision"], float)
 
     # Test item-level scores
     item_results = evaluate(create_simple_inference_fn("1"), dataset, score_type="item")
-    assert isinstance(item_results["test_dataset"]["metrics"]["precision"], list)
-    assert all(isinstance(x, str) for x in item_results["test_dataset"]["metrics"]["precision"])
+    assert isinstance(item_results["test_dataset"]["scores"], list)
+    assert len(item_results["test_dataset"]["scores"]) > 0
+    assert isinstance(item_results["test_dataset"]["scores"][0], dict)
+    assert "precision" in item_results["test_dataset"]["scores"][0]
+    assert isinstance(item_results["test_dataset"]["scores"][0]["precision"], str)
 
     # Test combined scores
     all_results = evaluate(create_simple_inference_fn("1"), dataset, score_type="all")
-    assert isinstance(all_results["test_dataset"]["metrics"]["precision"], dict)
-    assert "aggregate" in all_results["test_dataset"]["metrics"]["precision"]
-    assert "items" in all_results["test_dataset"]["metrics"]["precision"]
+    assert isinstance(all_results["test_dataset"]["scores"], dict)
+    assert "aggregate" in all_results["test_dataset"]["scores"]
+    assert "items" in all_results["test_dataset"]["scores"]
+    assert isinstance(all_results["test_dataset"]["scores"]["aggregate"], dict)
+    assert isinstance(all_results["test_dataset"]["scores"]["items"], list)
+    assert "precision" in all_results["test_dataset"]["scores"]["aggregate"]
+    assert isinstance(all_results["test_dataset"]["scores"]["items"][0], dict)
+    assert "precision" in all_results["test_dataset"]["scores"]["items"][0]
 
 
 def test_evaluate_with_csv_export():
@@ -245,20 +253,42 @@ def test_evaluate_with_csv_export():
     )
 
     # Run evaluation
-    results = evaluate(create_simple_inference_fn("1"), dataset)
+    results = evaluate(create_simple_inference_fn("1"), dataset, return_type="object")
 
     # Save results to CSV
     output_path = str(Path(__file__).parent / "results" / "evaluation_results.csv")
-    Path(output_path).parent.mkdir(exist_ok=True)
-
-    save_results_to_csv(results, output_path)
+    eval_result = results["test_dataset"]
+    eval_result.to_csv(output_path)
 
     # Verify CSV was created and contains data
     assert Path(output_path).exists()
     with open(output_path, "r") as f:
         reader = csv.reader(f)
+
+        # Check dataset name
+        first_row = next(reader)
+        assert first_row[0] == "Dataset Name:"
+        assert first_row[1] == "test_dataset"
+
+        # Skip empty row
+        next(reader)
+
+        # Check aggregate scores section
+        assert next(reader)[0] == "Aggregate Scores:"
+        metrics_found = []
+        while True:
+            row = next(reader)
+            if not row:  # Empty row
+                break
+            metrics_found.append(row[0])
+        assert "precision" in metrics_found
+        assert "accuracy" in metrics_found
+
+        # Check item results section
+        assert next(reader)[0] == "Item Results:"
         headers = next(reader)
-        assert headers == ["Dataset", "Question", "Prediction", "Ground Truth", "Result"]
+        assert "precision" in headers
+        assert "accuracy" in headers
 
         # Verify we have data rows
         data_rows = list(reader)

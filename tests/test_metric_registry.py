@@ -72,7 +72,7 @@ def test_prevent_metric_overwrite():
     @MetricRegistry.register()
     class DuplicateMetric(MetricBase):
         @staticmethod
-        def score(predictions, references):
+        def score(output=None, label=None, evaluated_items=None):
             return 0.0
 
     print(DuplicateMetric)
@@ -83,11 +83,11 @@ def test_prevent_metric_overwrite():
         @MetricRegistry.register()
         class DuplicateMetric(MetricBase):  # Same class name as above
             @staticmethod
-            def score(predictions, references):
+            def score(output=None, label=None, evaluated_items=None):
                 return 1.0
 
     # Verify that the original metric is still registered and wasn't overwritten
     metric = MetricRegistry.get("duplicatemetric")
     assert isinstance(metric, DuplicateMetric)
     # Optionally verify the behavior of the original implementation
-    assert metric.score([], []) == 0.0
+    assert metric.score(output=[], label=[]) == 0.0

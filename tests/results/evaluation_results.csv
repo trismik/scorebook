@@ -1,6 +1,13 @@
-Dataset,Question,Prediction,Ground Truth,Result
-test_dataset,,1,1,correct
-test_dataset,,1,0,incorrect
-test_dataset,,1,1,correct
-test_dataset,,1,0,incorrect
-test_dataset,,1,1,correct
+Dataset Name:,test_dataset
+
+Aggregate Scores:
+precision,0.6000
+accuracy,0.6000
+
+Item Results:
+input,label,Output,Label,precision,accuracy
+Apples are my favorite fruit,1,1,1,true_positive,True
+I can't stand bananas,0,1,0,false_positive,False
+Oranges are okay,1,1,1,true_positive,True
+Fruit gives me a rash,0,1,0,false_positive,False
+Grapes are delicious,1,1,1,true_positive,True

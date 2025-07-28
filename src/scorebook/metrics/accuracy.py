@@ -1,9 +1,10 @@
 """Accuracy metric implementation for Scorebook."""
 
-from typing import Any, List
+from typing import Any, List, Optional
 
 from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.metric_registry import MetricRegistry
+from scorebook.types import EvaluatedItem
 
 
 @MetricRegistry.register()
@@ -14,35 +15,32 @@ class Accuracy(MetricBase):
     """
 
     @staticmethod
-    def score(predictions: List[Any], references: List[Any], score_type: str = "aggregate") -> Any:
+    def score(
+        *,
+        output: Optional[Any] = None,
+        label: Optional[Any] = None,
+        evaluated_items: Optional[List[EvaluatedItem]] = None,
+    ) -> Any:
         """Calculate accuracy score between predictions and references.
 
         Args:
-            predictions: List of model predictions.
-            references: List of ground truth reference values.
-            score_type: One of "aggregate" (overall accuracy), "item" (per-item correctness),
-                       or "all" (both aggregate and item scores)
+            output: Single prediction output
+            label: Single ground truth label
+            evaluated_items: List of evaluated items containing outputs and labels
 
         Returns:
-            If score_type is "aggregate": Float value representing the accuracy score
-            If score_type is "item": List of booleans indicating correctness of each prediction
-            If score_type is "all": Dictionary with both aggregate score and item scores
+            If scoring an individual item, returns the score as a bool for the item
+            If scoring a list of evaluated items, returns the aggregate score as a float
 
         Raises:
-            ValueError: If predictions and references have different lengths or invalid score_type.
+            ValueError: If neither or both parameter sets are provided
         """
-        if len(predictions) != len(references):
-            raise ValueError("Predictions and references must have the same length")
+        # return aggregate score
+        if evaluated_items:
+            return len([item for item in evaluated_items if item.scores["accuracy"]]) / len(
+                evaluated_items
+            )
 
-        if score_type not in ["aggregate", "item", "all"]:
-            raise ValueError("score_type must be 'aggregate', 'item', or 'all'")
-
-        item_scores = [p == r for p, r in zip(predictions, references)]
-        aggregate_score = float(sum(item_scores) / len(predictions))
-
-        scores = {
-            "item": item_scores,
-            "aggregate": aggregate_score,
-            "all": {"aggregate": aggregate_score, "items": item_scores},
-        }
-        return scores[score_type]
+        # return item score
+        else:
+            return output == label

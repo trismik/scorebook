@@ -1,9 +1,10 @@
 """Precision metric implementation for Scorebook."""
 
-from typing import Any, List
+from typing import Any, List, Optional
 
 from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.metric_registry import MetricRegistry
+from scorebook.types import EvaluatedItem
 from scorebook.utils.mappers import to_binary_classification
 
 
@@ -15,45 +16,42 @@ class Precision(MetricBase):
     """
 
     @staticmethod
-    def score(predictions: List[Any], references: List[Any], score_type: str = "aggregate") -> Any:
+    def score(
+        *,
+        output: Optional[Any] = None,
+        label: Optional[Any] = None,
+        evaluated_items: Optional[List[EvaluatedItem]] = None,
+    ) -> Any:
         """Calculate precision score between predictions and references.
 
         Args:
-            predictions: List of model binary predictions.
-            references: List of ground truth binary reference values.
-            score_type: One of "aggregate", "item", or "all"
+            output: Single prediction output
+            label: Single ground truth label
+            evaluated_items: List of evaluated items containing outputs and labels
 
         Returns:
-            If score_type is "aggregate": Float precision score
-            If score_type is "item": List of classification results
-                ("true_positive", "false_positive", "true_negative", "false_negative")
-            If score_type is "all": Dictionary with both aggregate score and item results
+            If scoring an individual item, returns the score as a string for the item
+            If scoring a list of evaluated items, returns the aggregate score as a float
 
         Raises:
-            ValueError: If predictions and references have different lengths or invalid score_type.
+            ValueError: If neither or both parameter sets are provided
         """
-        if len(predictions) != len(references):
-            raise ValueError("Predictions and references must have the same length")
-
-        if score_type not in ["aggregate", "item", "all"]:
-            raise ValueError("score_type must be 'aggregate', 'item', or 'all'")
-
-        item_scores = [
-            to_binary_classification(pred, ref) for pred, ref in zip(predictions, references)
-        ]
-
         # Calculate aggregate precision score
-        true_positives = sum(1 for result in item_scores if result == "true_positive")
-        false_positives = sum(1 for result in item_scores if result == "false_positive")
+        if evaluated_items:
 
-        aggregate_score = 0.0
-        if true_positives + false_positives > 0:
-            aggregate_score = true_positives / (true_positives + false_positives)
+            aggregate_score = 0.0
+            true_positives = sum(
+                1 for item in evaluated_items if item.scores["precision"] == "true_positive"
+            )
+            false_positives = sum(
+                1 for item in evaluated_items if item.scores["precision"] == "false_positive"
+            )
 
-        scores = {
-            "item": item_scores,
-            "aggregate": aggregate_score,
-            "all": {"aggregate": aggregate_score, "items": item_scores},
-        }
+            if true_positives + false_positives > 0:
+                aggregate_score = true_positives / (true_positives + false_positives)
 
-        return scores[score_type]
+            return aggregate_score
+
+        # Classify as TP, FP, TN, FN
+        else:
+            return to_binary_classification(output, label)
