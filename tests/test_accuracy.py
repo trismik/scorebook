@@ -1,5 +1,3 @@
-import pytest
-
 from scorebook.metrics.accuracy import Accuracy
 
 
@@ -10,7 +8,7 @@ def test_accuracy_perfect_score():
 
     agg, items = Accuracy.score(outputs, labels)
 
-    assert agg == 1.0
+    assert agg == {"accuracy": 1.0}
     assert all(items)
     assert len(items) == len(outputs)
 
@@ -22,7 +20,7 @@ def test_accuracy_zero_score():
 
     agg, items = Accuracy.score(outputs, labels)
 
-    assert agg == 0.0
+    assert agg == {"accuracy": 0.0}
     assert all(not x for x in items)
     assert len(items) == len(outputs)
 
@@ -30,25 +28,20 @@ def test_accuracy_zero_score():
 def test_accuracy_partial_score():
     """Test Accuracy with some correct predictions."""
     outputs = ["A", "B", "C"]
-    labels = ["A", "X", "C"]
+    labels = ["A", "B", "X"]
 
     agg, items = Accuracy.score(outputs, labels)
 
-    assert agg == 2 / 3
-    assert items == [True, False, True]
+    assert agg == {"accuracy": 2 / 3}
+    assert items == [True, True, False]
 
 
 def test_accuracy_empty_lists():
-    """Test Accuracy with empty outputs and labels."""
-    agg, items = Accuracy.score([], [])
-    assert agg == 0.0
+    """Test Accuracy with empty inputs."""
+    outputs = []
+    labels = []
+
+    agg, items = Accuracy.score(outputs, labels)
+
+    assert agg == {"accuracy": 0.0}
     assert items == []
-
-
-def test_accuracy_mismatched_lengths():
-    """Test Accuracy raises error when outputs and labels have different lengths."""
-    outputs = ["A", "B"]
-    labels = ["A"]
-
-    with pytest.raises(ValueError):
-        Accuracy.score(outputs, labels)

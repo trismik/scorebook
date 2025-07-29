@@ -1,5 +1,7 @@
 """Example run."""
 
+import argparse
+import json
 import string
 from pathlib import Path
 from typing import Any
@@ -10,6 +12,17 @@ from scorebook import EvalDataset, evaluate
 from scorebook.metrics import Accuracy
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Run evaluation and save results.")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=str(Path(__file__).parent / "results"),
+        help="Directory to save evaluation outputs (CSV and JSON). Defaults to ./results.",
+    )
+    args = parser.parse_args()
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     mmlu_pro = EvalDataset.from_huggingface(
         "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
@@ -64,27 +77,10 @@ if __name__ == "__main__":
         output = output[0]["generated_text"][-1]["content"]
         return output
 
-    # Evaluate Phi-4-mimi-instruct using the MMLU-Pro Dataset.
-    results = evaluate(inference_function, mmlu_pro, item_limit=10, return_type="object")
-    mmlu_pro_eval_results = results["TIGER-Lab/MMLU-Pro"]
+    # Evaluate Phi-4-mini-instruct using the MMLU-Pro Dataset.
+    results = evaluate(inference_function, mmlu_pro, item_limit=10)
+    print(results)
 
-    # Save evaluation to a csv file.
-    output_path = str(Path(__file__).parent / "results" / "basic_run_results.csv")
-    mmlu_pro_eval_results.to_csv(output_path)
-
-    # Save evaluation to a json file
-    output_path = str(Path(__file__).parent / "results" / "basic_run_results.json")
-    mmlu_pro_eval_results.to_json(output_path)
-
-    # Print evaluation results
-    print("\nAResults:")
-    print(mmlu_pro_eval_results)
-
-    # Print aggregate scores:
-    print("\nAggregate Scores:")
-    print(mmlu_pro_eval_results.aggregate_scores)
-
-    # Print item scores:
-    print("\nItem Scores:")
-    for item_score in mmlu_pro_eval_results.item_scores:
-        print(f"\n{item_score}")
+    with open(output_dir / "output.json", "w") as output_file:
+        json.dump(results, output_file)
+        print(f"Results saved in {output_dir / 'output.json'}")

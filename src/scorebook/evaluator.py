@@ -100,11 +100,11 @@ def evaluate(
 
         metric_scores = {}
         for metric in normalized_datasets[eval_dataset_name].metrics:
-            aggregate_score, item_scores = metric.score(
+            aggregate_scores, item_scores = metric.score(
                 inference_results["outputs"], inference_results["labels"]
             )
             metric_scores[metric.name] = {
-                "aggregate_score": aggregate_score,
+                "aggregate_scores": aggregate_scores,
                 "item_scores": item_scores,
             }
 
@@ -116,9 +116,20 @@ def evaluate(
         pass
 
     if return_type == "dict":
-        return {
-            eval_result.eval_dataset.name: eval_result.to_dict() for eval_result in eval_results
+        return_formats = {
+            "all": {
+                eval_result.eval_dataset.name: eval_result.to_dict() for eval_result in eval_results
+            },
+            "aggregate": {
+                eval_result.eval_dataset.name: eval_result.aggregate_scores
+                for eval_result in eval_results
+            },
+            "item": {
+                eval_result.eval_dataset.name: eval_result.item_scores
+                for eval_result in eval_results
+            },
         }
+        return return_formats.get(score_type, {})
 
     else:
         return {eval_result.eval_dataset.name: eval_result for eval_result in eval_results}

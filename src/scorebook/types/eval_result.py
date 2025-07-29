@@ -54,7 +54,19 @@ class EvalResult:
     @property
     def aggregate_scores(self) -> Dict[str, Any]:
         """Return the aggregated scores across all evaluated items."""
-        return {metric: scores["aggregate_score"] for metric, scores in self.metric_scores.items()}
+        result: Dict[str, Any] = {}
+        if not self.metric_scores:
+            return result
+
+        for metric, scores in self.metric_scores.items():
+            # Flatten the aggregate scores from each metric into the result
+            result.update(
+                {
+                    key if key == metric else f"{metric}_{key}": value
+                    for key, value in scores["aggregate_scores"].items()
+                }
+            )
+        return result
 
     def to_dict(self) -> Dict[str, Any]:
         """Return a dictionary representing the evaluation results in the Option 2 structure."""

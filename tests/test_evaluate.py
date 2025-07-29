@@ -128,10 +128,23 @@ def test_evaluate_return_type():
     obj_results = evaluate(create_simple_inference_fn("1"), dataset, return_type="object")
     assert isinstance(obj_results["test_dataset"], EvalResult)
 
-    # Test dict return type
+    # Test dict return type with different score_types
+    # Test aggregate (default)
     dict_results = evaluate(create_simple_inference_fn("1"), dataset, return_type="dict")
-    assert "aggregate" in dict_results["test_dataset"]
-    assert "per_sample" in dict_results["test_dataset"]
+    assert "accuracy" in dict_results["test_dataset"]
+
+    # Test all
+    dict_results_all = evaluate(
+        create_simple_inference_fn("1"), dataset, return_type="dict", score_type="all"
+    )
+    assert "aggregate" in dict_results_all["test_dataset"]
+    assert "per_sample" in dict_results_all["test_dataset"]
+
+    # Test item
+    dict_results_item = evaluate(
+        create_simple_inference_fn("1"), dataset, return_type="dict", score_type="item"
+    )
+    assert isinstance(dict_results_item["test_dataset"], list)
 
 
 def test_evaluate_with_csv_export(tmp_path):

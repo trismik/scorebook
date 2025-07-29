@@ -1,6 +1,6 @@
 """Precision metric implementation for Scorebook."""
 
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.metric_registry import MetricRegistry
@@ -14,6 +14,6 @@ class Precision(MetricBase):
     """
 
     @staticmethod
-    def score(outputs: List[Any], labels: List[Any]) -> Tuple[Any, List[Any]]:
+    def score(outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
         """Not implemented."""
         raise NotImplementedError("Precision not implemented")
