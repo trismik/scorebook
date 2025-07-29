@@ -1,9 +1,7 @@
 """Base class for evaluation metrics."""
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
-
-from scorebook.types import EvaluatedItem
+from typing import Any, List, Tuple
 
 
 class MetricBase(ABC):
@@ -16,21 +14,15 @@ class MetricBase(ABC):
 
     @staticmethod
     @abstractmethod
-    def score(
-        *,
-        output: Optional[Any] = None,
-        label: Optional[Any] = None,
-        evaluated_items: Optional[List[EvaluatedItem]] = None,
-    ) -> Any:
-        """Score either a single item or a list of evaluated items.
-
-        Must provide either (output, label) OR evaluated_items, but not both.
+    def score(outputs: List[Any], labels: List[Any]) -> Tuple[Any, List[Any]]:
+        """Calculate the metric score for a list of outputs and labels.
 
         Args:
-            output: Single prediction output
-            label: Single ground truth label
-            evaluated_items: List of evaluated items containing outputs and labels
+            outputs: A list of inference outputs.
+            labels: A list of ground truth labels.
 
-        Raises:
-            ValueError: If neither or both parameter sets are provided
+        Returns:
+            An aggregate metric score for all items.
+            Individual scores for each item.
         """
+        raise NotImplementedError("MetricBase is an abstract class")

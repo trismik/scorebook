@@ -1,6 +1,7 @@
 """Example run."""
 
 import string
+from pathlib import Path
 from typing import Any
 
 import transformers
@@ -63,4 +64,27 @@ if __name__ == "__main__":
         output = output[0]["generated_text"][-1]["content"]
         return output
 
-    results = evaluate(inference_function, mmlu_pro, item_limit=10)
+    # Evaluate Phi-4-mimi-instruct using the MMLU-Pro Dataset.
+    results = evaluate(inference_function, mmlu_pro, item_limit=10, return_type="object")
+    mmlu_pro_eval_results = results["TIGER-Lab/MMLU-Pro"]
+
+    # Save evaluation to a csv file.
+    output_path = str(Path(__file__).parent / "results" / "basic_run_results.csv")
+    mmlu_pro_eval_results.to_csv(output_path)
+
+    # Save evaluation to a json file
+    output_path = str(Path(__file__).parent / "results" / "basic_run_results.json")
+    mmlu_pro_eval_results.to_json(output_path)
+
+    # Print evaluation results
+    print("\nAResults:")
+    print(mmlu_pro_eval_results)
+
+    # Print aggregate scores:
+    print("\nAggregate Scores:")
+    print(mmlu_pro_eval_results.aggregate_scores)
+
+    # Print item scores:
+    print("\nItem Scores:")
+    for item_score in mmlu_pro_eval_results.item_scores:
+        print(f"\n{item_score}")

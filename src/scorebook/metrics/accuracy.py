@@ -1,10 +1,9 @@
 """Accuracy metric implementation for Scorebook."""
 
-from typing import Any, List, Optional
+from typing import Any, List, Tuple
 
 from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.metric_registry import MetricRegistry
-from scorebook.types import EvaluatedItem
 
 
 @MetricRegistry.register()
@@ -15,32 +14,29 @@ class Accuracy(MetricBase):
     """
 
     @staticmethod
-    def score(
-        *,
-        output: Optional[Any] = None,
-        label: Optional[Any] = None,
-        evaluated_items: Optional[List[EvaluatedItem]] = None,
-    ) -> Any:
+    def score(outputs: List[Any], labels: List[Any]) -> Tuple[Any, List[Any]]:
         """Calculate accuracy score between predictions and references.
 
         Args:
-            output: Single prediction output
-            label: Single ground truth label
-            evaluated_items: List of evaluated items containing outputs and labels
+            outputs: A list of inference outputs.
+            labels: A list of ground truth labels.
 
         Returns:
-            If scoring an individual item, returns the score as a bool for the item
-            If scoring a list of evaluated items, returns the aggregate score as a float
-
-        Raises:
-            ValueError: If neither or both parameter sets are provided
+            The aggregate accuracy score for all items (correct predictions / total predictions).
+            The item scores for each output-label pair (true/false).
         """
-        # return aggregate score
-        if evaluated_items:
-            return len([item for item in evaluated_items if item.scores["accuracy"]]) / len(
-                evaluated_items
-            )
+        if len(outputs) != len(labels):
+            raise ValueError("Number of outputs must match number of labels")
 
-        # return item score
-        else:
-            return output == label
+        if not outputs:  # Handle empty lists
+            return 0.0, []
+
+        # Calculate item scores
+        item_scores = [output == label for output, label in zip(outputs, labels)]
+
+        # Calculate aggregate score
+        correct_predictions = sum(item_scores)
+        total_predictions = len(outputs)
+        aggregate_score = correct_predictions / total_predictions
+
+        return aggregate_score, item_scores

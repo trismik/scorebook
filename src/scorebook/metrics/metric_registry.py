@@ -6,11 +6,9 @@ that can be used to assess model performance. It provides a single access point
 to retrieve all implemented metric classes.
 """
 
-from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Type, Union
 
 from scorebook.metrics.metric_base import MetricBase
-from scorebook.types import EvaluatedItem
 
 
 class MetricRegistry:
@@ -56,26 +54,6 @@ class MetricRegistry:
         """
 
         def decorator(metric_cls: Type[MetricBase]) -> Type[MetricBase]:
-
-            # Add the validation decorator to the score method
-            original_score = metric_cls.score
-
-            @wraps(original_score)
-            def validated_score(
-                *,
-                output: Optional[Any] = None,
-                label: Optional[Any] = None,
-                evaluated_items: Optional[List[EvaluatedItem]] = None,
-            ) -> Any:
-                # Metric param validation logic
-                if (output is not None or label is not None) and evaluated_items is not None:
-                    raise ValueError("Cannot provide both output/label and evaluated_items")
-                if output is None and label is None and evaluated_items is None:
-                    raise ValueError("Must provide either output/label or evaluated_items")
-
-                return original_score(output=output, label=label, evaluated_items=evaluated_items)
-
-            metric_cls.score = staticmethod(validated_score)
 
             key = metric_cls.__name__.lower()
             if key in cls._registry:

@@ -13,11 +13,10 @@ The main entry point is the `evaluate()` function which handles running
 models on datasets and computing metric scores.
 """
 
-from dataclasses import asdict
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from scorebook.eval_dataset import EvalDataset
-from scorebook.types import EvalResult, EvaluatedItem
+from scorebook.types.eval_dataset import EvalDataset
+from scorebook.types.eval_result import EvalResult
 
 
 def evaluate(
@@ -77,61 +76,52 @@ def evaluate(
     if sweep:
         pass
 
-    # First pass: collect predictions for all datasets
-    eval_results: List[EvalResult] = []
+    # Step 1 - Collect output from the inference function for each dataset item.
+    dataset_results: Dict[str, Dict[str, List[Any]]] = (
+        {}
+    )  # {dataset_name: {'outputs': [], 'labels': []}}
     for eval_dataset_name, eval_dataset in normalized_datasets.items():
 
-        evaluated_items: List[EvaluatedItem] = []
+        inference_results: Dict[str, List[Any]] = {"outputs": [], "labels": []}
         for idx, item in enumerate(eval_dataset.items):
 
             if item_limit and idx >= item_limit:
                 break
 
-            output = inference_fn(item)
-            label = item.get(eval_dataset.label)
-            scores = {
-                metric.name: metric.score(output=output, label=label)
-                for metric in eval_dataset.metrics
-            }
-            evaluated_items.append(
-                EvaluatedItem(item=item, output=output, label=label, scores=scores)
-            )
+            output, label = inference_fn(item), item.get(eval_dataset.label)
+            inference_results["outputs"].append(output)
+            inference_results["labels"].append(label)
 
-        eval_results.append(
-            EvalResult(
-                dataset=eval_dataset_name, items=evaluated_items, metrics=eval_dataset.metrics
+        dataset_results[eval_dataset_name] = inference_results
+
+    # Step 2 - Calculate scores for each metric in each dataset and create eval results.
+    eval_results: List[EvalResult] = []
+    for eval_dataset_name, inference_results in dataset_results.items():
+
+        metric_scores = {}
+        for metric in normalized_datasets[eval_dataset_name].metrics:
+            aggregate_score, item_scores = metric.score(
+                inference_results["outputs"], inference_results["labels"]
             )
-        )
+            metric_scores[metric.name] = {
+                "aggregate_score": aggregate_score,
+                "item_scores": item_scores,
+            }
+
+        eval_dataset = normalized_datasets.get(eval_dataset_name)
+        eval_results.append(EvalResult(eval_dataset, inference_results["outputs"], metric_scores))
 
     # TODO: Implement experiment id
     if experiment_id:
         pass
 
     if return_type == "dict":
-        results = {}
-        for eval_result in eval_results:
-            if score_type == "aggregate":
-                results[eval_result.dataset] = {
-                    "items": [asdict(item) for item in eval_result.items],
-                    "scores": eval_result.aggregate_scores,
-                }
-            elif score_type == "item":
-                results[eval_result.dataset] = {
-                    "items": [asdict(item) for item in eval_result.items],
-                    "scores": eval_result.item_scores,
-                }
-            elif score_type == "all":
-                results[eval_result.dataset] = {
-                    "items": [asdict(item) for item in eval_result.items],
-                    "scores": {
-                        "aggregate": eval_result.aggregate_scores,
-                        "items": eval_result.item_scores,
-                    },
-                }
-        return results
+        return {
+            eval_result.eval_dataset.name: eval_result.to_dict() for eval_result in eval_results
+        }
 
     else:
-        return {eval_result.dataset: eval_result for eval_result in eval_results}
+        return {eval_result.eval_dataset.name: eval_result for eval_result in eval_results}
 
 
 def _normalize_datasets(
