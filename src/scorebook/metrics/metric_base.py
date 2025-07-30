@@ -1,32 +1,28 @@
 """Base class for evaluation metrics."""
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Tuple
 
 
 class MetricBase(ABC):
     """Base class for all evaluation metrics."""
 
-    name: Optional[str] = None
-
-    def __init__(self, name: str):
-        """Initialize the metric."""
-        if self.name is None:
-            raise ValueError("Metric classes must define a 'name' class attribute")
+    @property
+    def name(self) -> str:
+        """Return the metric name based on the class name."""
+        return self.__class__.__name__.lower()
 
     @staticmethod
     @abstractmethod
-    def score(predictions: List[Any], references: List[Any]) -> Union[float, dict[str, float]]:
-        """Evaluate predictions against references.
+    def score(outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+        """Calculate the metric score for a list of outputs and labels.
 
         Args:
-            predictions: Model predictions to evaluate.
-            references: Ground truth references to compare against.
+            outputs: A list of inference outputs.
+            labels: A list of ground truth labels.
 
         Returns:
-            Metric score as a float.
-
-        Raises:
-            ValueError: If the inputs are invalid.
+            Aggregate metric scores for all items.
+            Individual scores for each item.
         """
-        raise NotImplementedError
+        raise NotImplementedError("MetricBase is an abstract class")

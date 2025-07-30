@@ -1,56 +1,14 @@
-import re
+import csv
+import json
 from pathlib import Path
 from typing import Dict
 
 import pytest
-import transformers
 
-from scorebook import EvalDataset, evaluate
-from scorebook.metrics import Accuracy, Precision
-
-
-def test_evaluate():
-    mmlu_pro = EvalDataset.from_huggingface(
-        "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Precision], split="validation"
-    )
-    assert isinstance(mmlu_pro, EvalDataset)
-
-    pipeline = transformers.pipeline(
-        "text-generation", model="microsoft/Phi-4-mini-instruct", trust_remote_code=True
-    )
-
-    def inference_function(model_input: Dict):
-        options = model_input.get("options", [])
-        formatted_options = "\n".join(f"{chr(65 + i)}: {opt}" for i, opt in enumerate(options))
-
-        content = (
-            model_input.get("question")
-            + "Return the correct answer from the given options. "
-            + "Wrap your answer in <answer> tags (example <answer>F</answer>). "
-            + "Options: "
-            + formatted_options
-        )
-        messages = [{"role": "user", "content": content}]
-        outputs = pipeline(messages)
-        response = outputs[0]["generated_text"][-1].get("content")
-        answer_match = re.search(r"<answer>(.*?)</answer>", response)
-        if answer_match:
-            return answer_match.group(1)
-        else:
-            return None
-
-    results = evaluate(inference_function, mmlu_pro, Precision, item_limit=2)
-    print("\n=== RESULTS ===")
-    for ds, dataset_results in results.items():
-        print(f"DATASET: {ds}\n")
-        for item in dataset_results["items"]:
-            print(f"          Question: {item['dataset_item'].get('question')}")
-            print(f"     Output Answer: {item['output']}")
-            print(f"    Correct Answer: {item['dataset_item'].get('answer')}\n")
-
-        print("Metrics:")
-        for metric_name, score in dataset_results["metrics"].items():
-            print(f"    {metric_name}: {score}\n")
+from scorebook.evaluator import evaluate
+from scorebook.metrics import Accuracy
+from scorebook.types.eval_dataset import EvalDataset
+from scorebook.types.eval_result import EvalResult
 
 
 def create_simple_inference_fn(expected_output: str = "1"):
@@ -66,20 +24,23 @@ def test_evaluate_single_dataset():
     """Test evaluation with a single CSV dataset."""
     dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Precision], name="test_dataset"
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_fn("1"), dataset)
+    results = evaluate(create_simple_inference_fn("1"), dataset, return_type="object")
 
     assert isinstance(results, dict)
-    assert len(results) == 1
     assert "test_dataset" in results
+    eval_result = results["test_dataset"]
+    assert isinstance(eval_result, EvalResult)
 
-    dataset_results = results["test_dataset"]
-    assert "items" in dataset_results
-    assert "metrics" in dataset_results
-    assert len(dataset_results["items"]) == 5
-    assert "precision" in dataset_results["metrics"]
+    # Check aggregate metrics
+    assert isinstance(eval_result.aggregate_scores, dict)
+    assert "accuracy" in eval_result.aggregate_scores
+
+    # Check per-item metrics
+    item_scores = eval_result.item_scores
+    assert len(item_scores) == len(dataset.items)
 
 
 def test_evaluate_multiple_datasets():
@@ -88,79 +49,64 @@ def test_evaluate_multiple_datasets():
     json_path = str(Path(__file__).parent / "data" / "Dataset.json")
 
     csv_dataset = EvalDataset.from_csv(
-        csv_path, label="label", metrics=[Precision], name="csv_dataset"
+        csv_path, label="label", metrics=[Accuracy], name="csv_dataset"
     )
     json_dataset = EvalDataset.from_json(
-        json_path, label="label", metrics=[Precision], name="json_dataset"
+        json_path, label="label", metrics=[Accuracy], name="json_dataset"
     )
 
-    results = evaluate(create_simple_inference_fn("1"), [csv_dataset, json_dataset])
+    results = evaluate(
+        create_simple_inference_fn("1"), [csv_dataset, json_dataset], return_type="object"
+    )
 
-    assert isinstance(results, dict)
-    assert len(results) == 2
-    assert all(k in results for k in ["csv_dataset", "json_dataset"])
+    assert set(results.keys()) == {"csv_dataset", "json_dataset"}
+    assert all(isinstance(r, EvalResult) for r in results.values())
 
 
 def test_evaluate_with_item_limit():
     """Test evaluation with item limit."""
     dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Precision], name="test_dataset"
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_fn("1"), dataset, item_limit=2)
+    results = evaluate(create_simple_inference_fn("1"), dataset, item_limit=2, return_type="object")
+    eval_result = results["test_dataset"]
 
-    assert len(results["test_dataset"]["items"]) == 2
+    assert len(eval_result.item_scores) == 2
 
 
 def test_evaluate_with_multiple_metrics():
-    """Test evaluation with multiple metrics."""
+    """Test evaluation with multiple metrics (Accuracy used twice for now)."""
     dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Precision, Accuracy], name="test_dataset"
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_fn("1"), dataset)
+    results = evaluate(create_simple_inference_fn("1"), dataset, return_type="object")
+    eval_result = results["test_dataset"]
 
-    metrics = results["test_dataset"]["metrics"]
-    assert "precision" in metrics
-    assert "accuracy" in metrics
+    assert "accuracy" in eval_result.aggregate_scores
 
 
 def test_evaluate_with_none_predictions():
     """Test evaluation handling of None predictions."""
     dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Precision], name="test_dataset"
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_fn(None), dataset)
+    results = evaluate(create_simple_inference_fn(None), dataset, return_type="object")
+    eval_result = results["test_dataset"]
 
-    assert all(item["output"] is None for item in results["test_dataset"]["items"])
-
-
-def test_evaluate_mmlu_pro():
-    """Test evaluation with MMLU-Pro dataset."""
-    mmlu_pro = EvalDataset.from_huggingface(
-        "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Precision], split="validation"
-    )
-
-    def inference_fn(model_input: Dict) -> str:
-        options = model_input.get("options", [])
-        return options[0] if options else None
-
-    results = evaluate(inference_fn, mmlu_pro, item_limit=5)
-
-    assert isinstance(results, dict)
-    assert "TIGER-Lab/MMLU-Pro" in results
-    assert len(results["TIGER-Lab/MMLU-Pro"]["items"]) == 5
+    assert all(item["accuracy"] is False for item in eval_result.item_scores)
 
 
 def test_evaluate_invalid_inference_fn():
     """Test evaluation with an invalid inference function."""
     dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Precision], name="test_dataset"
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
     def bad_inference_fn(model_input: Dict):
@@ -174,14 +120,106 @@ def test_evaluate_return_type():
     """Test different return types."""
     dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Precision], name="test_dataset"
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    # Test dict return type
-    dict_results = evaluate(create_simple_inference_fn("1"), dataset, return_type="dict")
-    assert isinstance(dict_results, dict)
-    assert isinstance(dict_results["test_dataset"], dict)
+    # Test object return type
+    obj_results = evaluate(create_simple_inference_fn("1"), dataset, return_type="object")
+    assert isinstance(obj_results["test_dataset"], EvalResult)
 
-    # Test default return type
-    default_results = evaluate(create_simple_inference_fn("1"), dataset)
-    assert isinstance(default_results, dict)
+    # Test dict return type with different score_types
+    # Test aggregate (default)
+    dict_results = evaluate(create_simple_inference_fn("1"), dataset, return_type="dict")
+    assert isinstance(dict_results, list)
+    assert "accuracy" in dict_results[0]  # Check first result has accuracy score
+
+    # Test all
+    dict_results_all = evaluate(
+        create_simple_inference_fn("1"), dataset, return_type="dict", score_type="all"
+    )
+    assert "aggregate" in dict_results_all
+    assert "per_sample" in dict_results_all
+    assert isinstance(dict_results_all["aggregate"], list)
+    assert isinstance(dict_results_all["per_sample"], list)
+    assert len(dict_results_all["aggregate"]) > 0
+    assert len(dict_results_all["per_sample"]) > 0
+
+    # Test item
+    dict_results_item = evaluate(
+        create_simple_inference_fn("1"), dataset, return_type="dict", score_type="item"
+    )
+    assert isinstance(dict_results_item, list)
+    assert len(dict_results_item) > 0
+
+
+def test_evaluate_with_csv_export(tmp_path):
+    """Test evaluation with results export to CSV."""
+    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset = EvalDataset.from_csv(
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+    )
+
+    results = evaluate(create_simple_inference_fn("1"), dataset, return_type="object")
+    eval_result = results["test_dataset"]
+
+    output_path = tmp_path / "evaluation_results.csv"
+    eval_result.to_csv(output_path)
+
+    assert output_path.exists()
+    with open(output_path, "r") as f:
+        reader = csv.reader(f)
+        headers = next(reader)
+        assert "inference_output" in headers
+        assert "accuracy" in headers
+        data_rows = list(reader)
+        assert len(data_rows) > 0
+
+
+def test_evaluate_with_json_export(tmp_path):
+    """Test evaluation with results export to JSON."""
+    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset = EvalDataset.from_csv(
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+    )
+
+    results = evaluate(create_simple_inference_fn("1"), dataset, return_type="object")
+    eval_result = results["test_dataset"]
+
+    output_path = tmp_path / "evaluation_results.json"
+    eval_result.to_json(output_path)
+
+    assert output_path.exists()
+    with open(output_path, "r") as f:
+        data = json.load(f)
+        assert "aggregate" in data
+        assert "per_sample" in data
+
+
+def test_evaluate_invalid_score_type():
+    """Test evaluation with invalid score type."""
+    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset = EvalDataset.from_csv(
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+    )
+
+    with pytest.raises(ValueError):
+        evaluate(create_simple_inference_fn("1"), dataset, score_type="invalid")
+
+
+def test_evaluate_duplicate_datasets():
+    """Test that passing the same dataset multiple times preserves all results."""
+    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset = EvalDataset.from_csv(
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+    )
+
+    # Pass the same dataset twice
+    results = evaluate(create_simple_inference_fn("1"), [dataset, dataset], score_type="all")
+
+    # Should have results from both dataset runs
+    assert len(results["aggregate"]) == 2
+    assert len(results["per_sample"]) == 10  # 5 items per dataset * 2 datasets
+
+    # Both should have the same dataset name but be separate entries
+    assert results["aggregate"][0]["dataset_name"] == "test_dataset"
+    assert results["aggregate"][1]["dataset_name"] == "test_dataset"

@@ -1,16 +1,35 @@
 """Example run."""
 
+import argparse
+import json
 import string
+from pathlib import Path
+from typing import Any
 
 import transformers
 
-from scorebook.datasets import from_huggingface
-from scorebook.metrics.precision import Precision
+from scorebook import EvalDataset, evaluate
+from scorebook.metrics import Accuracy
 
 if __name__ == "__main__":
-    dataset = from_huggingface("TIGER-Lab/MMLU-Pro")
 
-    metric = Precision()
+    parser = argparse.ArgumentParser(description="Run evaluation and save results.")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=str(Path.cwd() / "results"),
+        help=(
+            "Directory to save evaluation outputs (CSV and JSON). "
+            "Defaults to ./results in the current working directory."
+        ),
+    )
+    args = parser.parse_args()
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    mmlu_pro = EvalDataset.from_huggingface(
+        "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
+    )
 
     pipeline = transformers.pipeline(
         "text-generation",
@@ -19,46 +38,52 @@ if __name__ == "__main__":
         device_map="auto",
     )
 
-    item = dataset[0]
+    def inference_function(eval_item: dict) -> Any:
+        """Pre-processes dataset items, inferencing and post-processing result."""
 
-    prompt = f"{item['question']}\nOptions:\n" + "\n".join(
-        [f"{letter} : {choice}" for letter, choice in zip(string.ascii_uppercase, item["options"])]
-    )
+        prompt = f"{eval_item['question']}\nOptions:\n" + "\n".join(
+            [
+                f"{letter} : {choice}"
+                for letter, choice in zip(string.ascii_uppercase, eval_item["options"])
+            ]
+        )
 
-    # The system message contains the instructions for the model. We ask the
-    # model to adhere strictly to the instructions; the ability of a model to
-    # do that is based on the quality and size of the model. We suggest to
-    # always do a post-processing step to ensure the model adheres to the
-    # instructions.
-    messages = [
-        {
-            "role": "system",
-            "content": """
-Answer the question you are given using only a single letter \
-(for example, 'A'). \
-Do not use punctuation. \
-Do not show your reasoning. \
-Do not provide any explanation. \
-Follow the instructions exactly and \
-always answer using a single uppercase letter.
+        # The system message contains the instructions for the model. We ask the
+        # model to adhere strictly to the instructions; the ability of a model to
+        # do that is based on the quality and size of the model. We suggest to
+        # always do a post-processing step to ensure the model adheres to the
+        # instructions.
+        messages = [
+            {
+                "role": "system",
+                "content": """
+                    Answer the question you are given using only a single letter \
+                    (for example, 'A'). \
+                    Do not use punctuation. \
+                    Do not show your reasoning. \
+                    Do not provide any explanation. \
+                    Follow the instructions exactly and \
+                    always answer using a single uppercase letter.
 
-For example, if the question is "What is the capital of France?" and the \
-choices are "A. Paris", "B. London", "C. Rome", "D. Madrid",
-- the answer should be "A"
-- the answer should NOT be "Paris" or "A. Paris" or "A: Paris"
+                    For example, if the question is "What is the capital of France?" and the \
+                    choices are "A. Paris", "B. London", "C. Rome", "D. Madrid",
+                    - the answer should be "A"
+                    - the answer should NOT be "Paris" or "A. Paris" or "A: Paris"
 
-Please adhere strictly to the instructions.
-    """.strip(),
-        },
-        {"role": "user", "content": prompt},
-    ]
+                    Please adhere strictly to the instructions.
+                """.strip(),
+            },
+            {"role": "user", "content": prompt},
+        ]
 
-    output = pipeline(messages)
-    output = output[0]["generated_text"][-1]["content"]
+        output = pipeline(messages)
+        output = output[0]["generated_text"][-1]["content"]
+        return output
 
-    print(f"Prediction: {output}")
-    print(f"Reference: {item['answer']}")
+    # Evaluate Phi-4-mini-instruct using the MMLU-Pro Dataset.
+    results = evaluate(inference_function, mmlu_pro, item_limit=10)
+    print(results)
 
-    score = metric.evaluate([output], [item["answer"]])
-
-    print(score)
+    with open(output_dir / "output.json", "w") as output_file:
+        json.dump(results, output_file, indent=4)
+        print(f"Results saved in {output_dir / 'output.json'}")
