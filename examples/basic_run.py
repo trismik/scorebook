@@ -81,7 +81,7 @@ if __name__ == "__main__":
         return output
 
     # Evaluate Phi-4-mini-instruct using the MMLU-Pro Dataset.
-    results = evaluate(inference_function, mmlu_pro, item_limit=10)
+    results = evaluate(inference_function, mmlu_pro, item_limit=10, score_type="all")
     print(results)
 
     with open(output_dir / "output.json", "w") as output_file:

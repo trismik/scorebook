@@ -41,7 +41,6 @@ def test_evaluate_single_dataset():
     # Check per-item metrics
     item_scores = eval_result.item_scores
     assert len(item_scores) == len(dataset.items)
-    assert "inference_output" in item_scores[0]
 
 
 def test_evaluate_multiple_datasets():
@@ -100,7 +99,7 @@ def test_evaluate_with_none_predictions():
     results = evaluate(create_simple_inference_fn(None), dataset, return_type="object")
     eval_result = results["test_dataset"]
 
-    assert all(item["inference_output"] is None for item in eval_result.item_scores)
+    assert all(item["accuracy"] is False for item in eval_result.item_scores)
 
 
 def test_evaluate_invalid_inference_fn():
@@ -151,7 +150,6 @@ def test_evaluate_return_type():
     )
     assert isinstance(dict_results_item, list)
     assert len(dict_results_item) > 0
-    assert "inference_output" in dict_results_item[0]
 
 
 def test_evaluate_with_csv_export(tmp_path):

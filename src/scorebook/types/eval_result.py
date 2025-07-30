@@ -41,8 +41,6 @@ class EvalResult:
             result = {
                 "item_id": idx,
                 "dataset_name": self.eval_dataset.name,
-                **item,  # Dataset item fields
-                "inference_output": self.inference_outputs[idx],
                 **{
                     metric: self.metric_scores[metric]["item_scores"][idx]
                     for metric in metric_names
