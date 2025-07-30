@@ -27,7 +27,7 @@ def evaluate(
     item_limit: Optional[int] = None,
     return_type: str = "dict",
     score_type: str = "aggregate",
-) -> Dict:
+) -> Union[Dict, List]:
     """
     Evaluate model predictions using specified metrics on given datasets.
 
@@ -116,20 +116,20 @@ def evaluate(
         pass
 
     if return_type == "dict":
-        return_formats = {
-            "all": {
-                eval_result.eval_dataset.name: eval_result.to_dict() for eval_result in eval_results
-            },
-            "aggregate": {
-                eval_result.eval_dataset.name: eval_result.aggregate_scores
-                for eval_result in eval_results
-            },
-            "item": {
-                eval_result.eval_dataset.name: eval_result.item_scores
-                for eval_result in eval_results
-            },
-        }
-        return return_formats.get(score_type, {})
+        if score_type == "all":
+            # Combine results from all eval_results into single aggregate and per_sample lists
+            combined_results: Dict[str, List[Dict[str, Any]]] = {"aggregate": [], "per_sample": []}
+            for eval_result in eval_results:
+                result_dict = eval_result.to_dict()
+                combined_results["aggregate"].extend(result_dict["aggregate"])
+                combined_results["per_sample"].extend(result_dict["per_sample"])
+            return combined_results
+        else:
+            return_formats = {
+                "aggregate": [eval_result.aggregate_scores for eval_result in eval_results],
+                "item": [item for eval_result in eval_results for item in eval_result.item_scores],
+            }
+            return return_formats.get(score_type, {})
 
     else:
         return {eval_result.eval_dataset.name: eval_result for eval_result in eval_results}

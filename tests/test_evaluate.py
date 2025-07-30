@@ -131,20 +131,27 @@ def test_evaluate_return_type():
     # Test dict return type with different score_types
     # Test aggregate (default)
     dict_results = evaluate(create_simple_inference_fn("1"), dataset, return_type="dict")
-    assert "accuracy" in dict_results["test_dataset"]
+    assert isinstance(dict_results, list)
+    assert "accuracy" in dict_results[0]  # Check first result has accuracy score
 
     # Test all
     dict_results_all = evaluate(
         create_simple_inference_fn("1"), dataset, return_type="dict", score_type="all"
     )
-    assert "aggregate" in dict_results_all["test_dataset"]
-    assert "per_sample" in dict_results_all["test_dataset"]
+    assert "aggregate" in dict_results_all
+    assert "per_sample" in dict_results_all
+    assert isinstance(dict_results_all["aggregate"], list)
+    assert isinstance(dict_results_all["per_sample"], list)
+    assert len(dict_results_all["aggregate"]) > 0
+    assert len(dict_results_all["per_sample"]) > 0
 
     # Test item
     dict_results_item = evaluate(
         create_simple_inference_fn("1"), dataset, return_type="dict", score_type="item"
     )
-    assert isinstance(dict_results_item["test_dataset"], list)
+    assert isinstance(dict_results_item, list)
+    assert len(dict_results_item) > 0
+    assert "inference_output" in dict_results_item[0]
 
 
 def test_evaluate_with_csv_export(tmp_path):
@@ -188,7 +195,6 @@ def test_evaluate_with_json_export(tmp_path):
         data = json.load(f)
         assert "aggregate" in data
         assert "per_sample" in data
-        assert "results" in data["per_sample"][0]
 
 
 def test_evaluate_invalid_score_type():

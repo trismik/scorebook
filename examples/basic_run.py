@@ -17,8 +17,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output-dir",
         type=str,
-        default=str(Path(__file__).parent / "results"),
-        help="Directory to save evaluation outputs (CSV and JSON). Defaults to ./results.",
+        default=str(Path.cwd() / "results"),
+        help=(
+            "Directory to save evaluation outputs (CSV and JSON). "
+            "Defaults to ./results in the current working directory."
+        ),
     )
     args = parser.parse_args()
     output_dir = Path(args.output_dir)
@@ -82,5 +85,5 @@ if __name__ == "__main__":
     print(results)
 
     with open(output_dir / "output.json", "w") as output_file:
-        json.dump(results, output_file)
+        json.dump(results, output_file, indent=4)
         print(f"Results saved in {output_dir / 'output.json'}")

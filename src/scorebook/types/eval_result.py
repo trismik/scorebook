@@ -40,6 +40,7 @@ class EvalResult:
 
             result = {
                 "item_id": idx,
+                "dataset_name": self.eval_dataset.name,
                 **item,  # Dataset item fields
                 "inference_output": self.inference_outputs[idx],
                 **{
@@ -54,7 +55,7 @@ class EvalResult:
     @property
     def aggregate_scores(self) -> Dict[str, Any]:
         """Return the aggregated scores across all evaluated items."""
-        result: Dict[str, Any] = {}
+        result: Dict[str, Any] = {"dataset_name": self.eval_dataset.name}
         if not self.metric_scores:
             return result
 
@@ -69,22 +70,15 @@ class EvalResult:
         return result
 
     def to_dict(self) -> Dict[str, Any]:
-        """Return a dictionary representing the evaluation results in the Option 2 structure."""
+        """Return a dictionary representing the evaluation results."""
         return {
             "aggregate": [
                 {
-                    "dataset_name": self.eval_dataset.name,
                     **getattr(self.eval_dataset, "hyperparams", {}),
                     **self.aggregate_scores,
                 }
             ],
-            "per_sample": [
-                {
-                    "dataset_name": self.eval_dataset.name,
-                    **getattr(self.eval_dataset, "hyperparams", {}),
-                    "results": self.item_scores,
-                }
-            ],
+            "per_sample": [item for item in self.item_scores],
         }
 
     def to_csv(self, file_path: str) -> None:
