@@ -13,7 +13,7 @@ The main entry point is the `evaluate()` function which handles running
 models on datasets and computing metric scores.
 """
 
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from scorebook.types.eval_dataset import EvalDataset
 from scorebook.types.eval_result import EvalResult
@@ -70,17 +70,17 @@ def evaluate(
     if score_type not in ["aggregate", "item", "all"]:
         raise ValueError("score_type must be 'aggregate', 'item', or 'all'")
 
-    normalized_datasets = {dataset.name: dataset for dataset in _normalize_datasets(datasets)}
+    normalized_datasets = _normalize_datasets(datasets)
 
     # TODO: Implement sweep
     if sweep:
         pass
 
     # Step 1 - Collect output from the inference function for each dataset item.
-    dataset_results: Dict[str, Dict[str, List[Any]]] = (
-        {}
-    )  # {dataset_name: {'outputs': [], 'labels': []}}
-    for eval_dataset_name, eval_dataset in normalized_datasets.items():
+    dataset_results: List[Tuple[str, Dict[str, List[Any]]]] = (
+        []
+    )  # [(dataset_name, {'outputs': [], 'labels': []})]
+    for eval_dataset in normalized_datasets:
 
         inference_results: Dict[str, List[Any]] = {"outputs": [], "labels": []}
         for idx, item in enumerate(eval_dataset.items):
@@ -92,14 +92,15 @@ def evaluate(
             inference_results["outputs"].append(output)
             inference_results["labels"].append(label)
 
-        dataset_results[eval_dataset_name] = inference_results
+        dataset_results.append((eval_dataset.name, inference_results))
 
     # Step 2 - Calculate scores for each metric in each dataset and create eval results.
     eval_results: List[EvalResult] = []
-    for eval_dataset_name, inference_results in dataset_results.items():
+    for idx, (eval_dataset_name, inference_results) in enumerate(dataset_results):
+        eval_dataset = normalized_datasets[idx]
 
         metric_scores = {}
-        for metric in normalized_datasets[eval_dataset_name].metrics:
+        for metric in eval_dataset.metrics:
             aggregate_scores, item_scores = metric.score(
                 inference_results["outputs"], inference_results["labels"]
             )
@@ -108,7 +109,6 @@ def evaluate(
                 "item_scores": item_scores,
             }
 
-        eval_dataset = normalized_datasets.get(eval_dataset_name)
         eval_results.append(EvalResult(eval_dataset, inference_results["outputs"], metric_scores))
 
     # TODO: Implement experiment id

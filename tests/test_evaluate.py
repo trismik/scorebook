@@ -204,3 +204,22 @@ def test_evaluate_invalid_score_type():
 
     with pytest.raises(ValueError):
         evaluate(create_simple_inference_fn("1"), dataset, score_type="invalid")
+
+
+def test_evaluate_duplicate_datasets():
+    """Test that passing the same dataset multiple times preserves all results."""
+    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset = EvalDataset.from_csv(
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+    )
+
+    # Pass the same dataset twice
+    results = evaluate(create_simple_inference_fn("1"), [dataset, dataset], score_type="all")
+
+    # Should have results from both dataset runs
+    assert len(results["aggregate"]) == 2
+    assert len(results["per_sample"]) == 10  # 5 items per dataset * 2 datasets
+
+    # Both should have the same dataset name but be separate entries
+    assert results["aggregate"][0]["dataset_name"] == "test_dataset"
+    assert results["aggregate"][1]["dataset_name"] == "test_dataset"
