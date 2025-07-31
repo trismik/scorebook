@@ -1,4 +1,5 @@
 import asyncio
+import time
 from pathlib import Path
 from typing import Dict
 
@@ -146,8 +147,6 @@ def test_evaluate_async_performance():
     dataset = EvalDataset.from_list(name="perf_test", label="label", metrics=[Accuracy], data=data)
 
     async_inference_fn = create_async_inference_fn("1", delay=0.001)  # 1ms delay
-
-    import time
 
     start_time = time.time()
     results = evaluate(async_inference_fn, dataset, return_type="object")
