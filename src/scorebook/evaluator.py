@@ -13,13 +13,14 @@ The main entry point is the `evaluate()` function which handles running
 models on datasets and computing metric scores.
 """
 
+import asyncio
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from scorebook.types.eval_dataset import EvalDataset
 from scorebook.types.eval_result import EvalResult
 
 
-def evaluate(
+async def _evaluate_async(
     inference_fn: Callable,
     datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     sweep: Optional[Dict[str, Any]] = None,
@@ -88,7 +89,13 @@ def evaluate(
             if item_limit and idx >= item_limit:
                 break
 
-            output, label = inference_fn(item), item.get(eval_dataset.label)
+            # Handle both sync and async inference functions
+            if asyncio.iscoroutinefunction(inference_fn):
+                output = await inference_fn(item)
+            else:
+                output = inference_fn(item)
+
+            label = item.get(eval_dataset.label)
             inference_results["outputs"].append(output)
             inference_results["labels"].append(label)
 
@@ -133,6 +140,46 @@ def evaluate(
 
     else:
         return {eval_result.eval_dataset.name: eval_result for eval_result in eval_results}
+
+
+def evaluate(
+    inference_fn: Callable,
+    datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
+    sweep: Optional[Dict[str, Any]] = None,
+    experiment_id: Optional[str] = None,
+    item_limit: Optional[int] = None,
+    return_type: str = "dict",
+    score_type: str = "aggregate",
+) -> Union[Dict, List]:
+    """Wrap the async evaluate function for synchronous usage.
+
+    This function provides backward compatibility for existing code while
+    supporting both synchronous and asynchronous inference functions.
+
+    Args:
+        inference_fn: Function that takes a dataset item and returns a prediction.
+                     Can be either synchronous or asynchronous.
+        datasets: One or more evaluation datasets to run evaluation on.
+        sweep: Optional dictionary containing parameter sweep configuration.
+        experiment_id: Optional string identifier for tracking multiple evaluation runs.
+        item_limit: Optional integer limiting the number of items to evaluate per dataset.
+        return_type: Format of the return value. Currently only "dict" is supported.
+        score_type: Type of score aggregation to return.
+
+    Returns:
+        Dictionary mapping dataset names to their evaluation results.
+    """
+    return asyncio.run(
+        _evaluate_async(
+            inference_fn=inference_fn,
+            datasets=datasets,
+            sweep=sweep,
+            experiment_id=experiment_id,
+            item_limit=item_limit,
+            return_type=return_type,
+            score_type=score_type,
+        )
+    )
 
 
 def _normalize_datasets(
