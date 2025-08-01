@@ -4,7 +4,7 @@ import argparse
 import json
 import string
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -42,23 +42,14 @@ Please adhere strictly to the instructions.
     return f"System: {system_prompt}\n\nUser: {prompt}\n\nAssistant:"
 
 
-def postprocess_openai_response(response: Dict) -> str:
+def postprocess_openai_response(response: Any) -> str:
     """Post-process OpenAI response to extract the answer letter."""
     # Extract the text from the OpenAI response object
-    if hasattr(response, "output") and response.output:
-        # Get the first message output
-        message = response.output[0]
-        if hasattr(message, "content") and message.content:
-            # Get the text content
-            text_content = message.content[0]
-            if hasattr(text_content, "text"):
-                raw_response = text_content.text.strip()
-            else:
-                raw_response = str(text_content).strip()
-        else:
-            raw_response = str(message).strip()
-    else:
-        raw_response = str(response).strip()
+    try:
+        # Access the first choice's message content
+        raw_response = response.output[0].content[0].text
+    except (KeyError, IndexError, AttributeError):
+        raw_response = ""
 
     # Extract single letter from response
     # Look for uppercase letters A-Z
