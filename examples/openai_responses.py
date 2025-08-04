@@ -61,8 +61,8 @@ def postprocess_openai_response(response: Any) -> str:
     if raw_response and raw_response[0].upper() in string.ascii_uppercase:
         return str(raw_response[0].upper())
 
-    # Last resort: return 'A' as default
-    return " "
+    # Last resort: return an empty string as default
+    return ""
 
 
 if __name__ == "__main__":

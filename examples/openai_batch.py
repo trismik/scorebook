@@ -90,8 +90,8 @@ if __name__ == "__main__":
         if raw_response and raw_response[0].upper() in string.ascii_uppercase:
             return str(raw_response[0].upper())
 
-        # Last resort: return 'A' as default
-        return " "
+        # Last resort: return an empty string as default
+        return ""
 
     # Load MMLU-Pro dataset
     mmlu_pro = EvalDataset.from_huggingface(
