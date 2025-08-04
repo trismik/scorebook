@@ -156,7 +156,7 @@ def _upload_batch(prompts: List[str], client: Any) -> str:
     with open(file_path, "rb") as upload_file:
         response = client.files.create(file=upload_file, purpose="batch")
 
-    return response.id
+    return str(response.id)
 
 
 def _start_batch(file_id: str, client: Any) -> str:
@@ -165,7 +165,7 @@ def _start_batch(file_id: str, client: Any) -> str:
         endpoint="/v1/chat/completions",
         completion_window="24h",
     )
-    return batch_response.id
+    return str(batch_response.id)
 
 
 async def _get_batch(batch_id: str, client: Any) -> Any:

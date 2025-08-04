@@ -95,7 +95,7 @@ if __name__ == "__main__":
         "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
     )
 
-    async def openai_inference_function(eval_items: list[dict]) -> list[str]:
+    async def openai_inference_function(eval_items: list[dict]) -> Any:
         """Async inference function that uses OpenAI API."""
         result = await responses(
             items=eval_items,
