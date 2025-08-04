@@ -37,7 +37,7 @@ async def _evaluate_async(
     parameter sweeping, and different result formatting options.
 
     Args:
-        inference_fn: Function that takes a dataset item and returns a prediction.
+        inference_fn: Function that takes a list of dataset items and returns a list of predictions.
         datasets: One or more evaluation datasets to run evaluation on. Can be:
                  - A single EvalDataset instance
                  - A list of EvalDataset instances
@@ -61,9 +61,9 @@ async def _evaluate_async(
     Example:
         ```python
         dataset = EvalDataset.from_huggingface("dataset_name", label="answer", metrics=[Precision])
-        def inference_fn(item):
-            # Model inference logic here
-            return prediction
+        def inference_fn(items):
+            # Model inference logic here - process all items at once
+            return [prediction for item in items]
 
         results = evaluate(inference_fn, dataset, item_limit=100)
         ```
@@ -77,28 +77,26 @@ async def _evaluate_async(
     if sweep:
         pass
 
-    # Step 1 - Collect output from the inference function for each dataset item.
+    # Step 1 - Collect output from the inference function for each dataset.
     dataset_results: List[Tuple[str, Dict[str, List[Any]]]] = (
         []
     )  # [(dataset_name, {'outputs': [], 'labels': []})]
     for eval_dataset in normalized_datasets:
 
-        inference_results: Dict[str, List[Any]] = {"outputs": [], "labels": []}
-        for idx, item in enumerate(eval_dataset.items):
+        # Collect all items and labels for this dataset
+        items = eval_dataset.items
+        if item_limit:
+            items = items[:item_limit]
 
-            if item_limit and idx >= item_limit:
-                break
+        labels = [item.get(eval_dataset.label) for item in items]
 
-            # Handle both sync and async inference functions
-            if asyncio.iscoroutinefunction(inference_fn):
-                output = await inference_fn(item)
-            else:
-                output = inference_fn(item)
+        # Call inference function with all items at once
+        if asyncio.iscoroutinefunction(inference_fn):
+            outputs = await inference_fn(items)
+        else:
+            outputs = inference_fn(items)
 
-            label = item.get(eval_dataset.label)
-            inference_results["outputs"].append(output)
-            inference_results["labels"].append(label)
-
+        inference_results: Dict[str, List[Any]] = {"outputs": outputs, "labels": labels}
         dataset_results.append((eval_dataset.name, inference_results))
 
     # Step 2 - Calculate scores for each metric in each dataset and create eval results.
@@ -157,7 +155,7 @@ def evaluate(
     supporting both synchronous and asynchronous inference functions.
 
     Args:
-        inference_fn: Function that takes a dataset item and returns a prediction.
+        inference_fn: Function that takes a list of dataset items and returns a list of predictions.
                      Can be either synchronous or asynchronous.
         datasets: One or more evaluation datasets to run evaluation on.
         sweep: Optional dictionary containing parameter sweep configuration.
