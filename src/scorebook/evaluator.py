@@ -76,11 +76,11 @@ async def _evaluate_async(
     hyper_param_configs: List[Dict[str, Any]] = expand_dict(hyperparameters or {})
 
     # [(dataset_name, {'outputs': [], 'labels': []}), 'hyperparameters': {}]
-    dataset_results: List[Tuple[str, Dict[str, List[Any]], Dict[str, Any]]] = []
+    dataset_results: List[Tuple[EvalDataset, Dict[str, List[Any]], Dict[str, Any]]] = []
 
     # Step 1 - Collect output from the inference function for each dataset.
-    for hyperparameters in hyper_param_configs:
-        for eval_dataset in normalized_datasets:
+    for eval_dataset in normalized_datasets:
+        for hyperparameters in hyper_param_configs:
 
             # Collect all items and labels for this dataset
             items = eval_dataset.items
@@ -96,12 +96,11 @@ async def _evaluate_async(
                 outputs = inference_fn(items, hyperparameters)
 
             inference_results: Dict[str, List[Any]] = {"outputs": outputs, "labels": labels}
-            dataset_results.append((eval_dataset.name, inference_results, hyperparameters))
+            dataset_results.append((eval_dataset, inference_results, hyperparameters))
 
     # Step 2 - Calculate scores for each metric in each dataset and create eval results.
     eval_results: List[EvalResult] = []
-    for idx, (eval_dataset_name, inference_results, hyperparameters) in enumerate(dataset_results):
-        eval_dataset = normalized_datasets[idx]
+    for eval_dataset, inference_results, hyperparameters in dataset_results:
 
         metric_scores = {}
         for metric in eval_dataset.metrics:
