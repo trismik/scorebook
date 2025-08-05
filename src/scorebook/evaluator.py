@@ -18,12 +18,13 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from scorebook.types.eval_dataset import EvalDataset
 from scorebook.types.eval_result import EvalResult
+from scorebook.utils import expand_dict
 
 
 async def _evaluate_async(
     inference_fn: Callable,
     datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
-    sweep: Optional[Dict[str, Any]] = None,
+    hyperparameters: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
     item_limit: Optional[int] = None,
     return_type: str = "dict",
@@ -43,7 +44,7 @@ async def _evaluate_async(
                  - A list of EvalDataset instances
                  - A string identifier (for future dataset registry support)
                  - A list of string identifiers
-        sweep: Optional dictionary containing parameter sweep configuration.
+        hyperparameters: Optional dictionary containing hyperparameter sweep configuration.
         experiment_id: Optional string identifier for tracking multiple evaluation runs.
         item_limit: Optional integer limiting the number of items to evaluate per dataset.
         return_type: Format of the return value. Currently only "dict" is supported.
@@ -72,36 +73,34 @@ async def _evaluate_async(
         raise ValueError("score_type must be 'aggregate', 'item', or 'all'")
 
     normalized_datasets = _normalize_datasets(datasets)
+    hyper_param_configs: List[Dict[str, Any]] = expand_dict(hyperparameters or {})
 
-    # TODO: Implement sweep
-    if sweep:
-        pass
+    # [(dataset_name, {'outputs': [], 'labels': []}), 'hyperparameters': {}]
+    dataset_results: List[Tuple[str, Dict[str, List[Any]], Dict[str, Any]]] = []
 
     # Step 1 - Collect output from the inference function for each dataset.
-    dataset_results: List[Tuple[str, Dict[str, List[Any]]]] = (
-        []
-    )  # [(dataset_name, {'outputs': [], 'labels': []})]
-    for eval_dataset in normalized_datasets:
+    for hyperparameters in hyper_param_configs:
+        for eval_dataset in normalized_datasets:
 
-        # Collect all items and labels for this dataset
-        items = eval_dataset.items
-        if item_limit:
-            items = items[:item_limit]
+            # Collect all items and labels for this dataset
+            items = eval_dataset.items
+            if item_limit:
+                items = items[:item_limit]
 
-        labels = [item.get(eval_dataset.label) for item in items]
+            labels = [item.get(eval_dataset.label) for item in items]
 
-        # Call inference function with all items at once
-        if asyncio.iscoroutinefunction(inference_fn):
-            outputs = await inference_fn(items)
-        else:
-            outputs = inference_fn(items)
+            # Call inference function with all items at once
+            if asyncio.iscoroutinefunction(inference_fn):
+                outputs = await inference_fn(items, hyperparameters)
+            else:
+                outputs = inference_fn(items, hyperparameters)
 
-        inference_results: Dict[str, List[Any]] = {"outputs": outputs, "labels": labels}
-        dataset_results.append((eval_dataset.name, inference_results))
+            inference_results: Dict[str, List[Any]] = {"outputs": outputs, "labels": labels}
+            dataset_results.append((eval_dataset.name, inference_results, hyperparameters))
 
     # Step 2 - Calculate scores for each metric in each dataset and create eval results.
     eval_results: List[EvalResult] = []
-    for idx, (eval_dataset_name, inference_results) in enumerate(dataset_results):
+    for idx, (eval_dataset_name, inference_results, hyperparameters) in enumerate(dataset_results):
         eval_dataset = normalized_datasets[idx]
 
         metric_scores = {}
@@ -114,7 +113,9 @@ async def _evaluate_async(
                 "item_scores": item_scores,
             }
 
-        eval_results.append(EvalResult(eval_dataset, inference_results["outputs"], metric_scores))
+        eval_results.append(
+            EvalResult(eval_dataset, inference_results["outputs"], metric_scores, hyperparameters)
+        )
 
     # TODO: Implement experiment id
     if experiment_id:
@@ -143,7 +144,7 @@ async def _evaluate_async(
 def evaluate(
     inference_fn: Callable,
     datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
-    sweep: Optional[Dict[str, Any]] = None,
+    hyperparameters: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
     item_limit: Optional[int] = None,
     return_type: str = "dict",
@@ -158,10 +159,10 @@ def evaluate(
         inference_fn: Function that takes a list of dataset items and returns a list of predictions.
                      Can be either synchronous or asynchronous.
         datasets: One or more evaluation datasets to run evaluation on.
-        sweep: Optional dictionary containing parameter sweep configuration.
+        hyperparameters: Optional dictionary containing parameter sweep configuration.
         experiment_id: Optional string identifier for tracking multiple evaluation runs.
         item_limit: Optional integer limiting the number of items to evaluate per dataset.
-        return_type: Format of the return value. Currently only "dict" is supported.
+        return_type: Format of the return value. Currently, only "dict" is supported.
         score_type: Type of score aggregation to return.
 
     Returns:
@@ -171,7 +172,7 @@ def evaluate(
         _evaluate_async(
             inference_fn=inference_fn,
             datasets=datasets,
-            sweep=sweep,
+            hyperparameters=hyperparameters,
             experiment_id=experiment_id,
             item_limit=item_limit,
             return_type=return_type,

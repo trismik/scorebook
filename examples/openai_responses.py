@@ -4,7 +4,7 @@ import argparse
 import json
 import string
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
 
 from dotenv import load_dotenv
 
@@ -95,7 +95,9 @@ if __name__ == "__main__":
         "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
     )
 
-    async def openai_inference_function(eval_items: list[dict]) -> Any:
+    async def openai_inference_function(
+        eval_items: list[dict], hyperparameters: Dict[str, Any]
+    ) -> Any:
         """Async inference function that uses OpenAI API."""
         result = await responses(
             items=eval_items,
@@ -108,11 +110,11 @@ if __name__ == "__main__":
     print(f"Running OpenAI evaluation with model: {args.model}")
     print(f"Evaluating {10} items from MMLU-Pro dataset...")
 
-    # Evaluate using OpenAI with async inference function
+    # Evaluate using OpenAI with an async inference function
     results = evaluate(openai_inference_function, mmlu_pro, item_limit=10, score_type="all")
     print(results)
 
-    # Save results to JSON file
+    # Save results to a JSON file
     output_file = output_dir / "openai_responses_output.json"
     with open(output_file, "w") as f:
         json.dump(results, f, indent=4)

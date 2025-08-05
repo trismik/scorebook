@@ -27,6 +27,7 @@ class EvalResult:
     eval_dataset: EvalDataset
     inference_outputs: List[Any]
     metric_scores: Dict[str, Dict[str, Any]]
+    hyperparams: Dict[str, Any]
 
     @property
     def item_scores(self) -> List[Dict[str, Any]]:

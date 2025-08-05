@@ -1,7 +1,7 @@
 import asyncio
 import time
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import pytest
 
@@ -14,7 +14,9 @@ from scorebook.types.eval_result import EvalResult
 def create_async_inference_fn(expected_output: str = "1", delay: float = 0.01):
     """Create an async inference function that returns the same output after a delay."""
 
-    async def async_inference_fn(model_inputs: List[Dict]) -> List[str]:
+    async def async_inference_fn(
+        model_inputs: List[Dict], hyperparameters: Dict[str, Any]
+    ) -> List[str]:
         await asyncio.sleep(delay)  # Simulate async work
         return [expected_output for _ in model_inputs]
 
@@ -24,7 +26,7 @@ def create_async_inference_fn(expected_output: str = "1", delay: float = 0.01):
 def create_sync_inference_fn(expected_output: str = "1"):
     """Create a sync inference function for comparison tests."""
 
-    def sync_inference_fn(model_inputs: List[Dict]) -> List[str]:
+    def sync_inference_fn(model_inputs: List[Dict], hyperparameters: Dict[str, Any]) -> List[str]:
         return [expected_output for _ in model_inputs]
 
     return sync_inference_fn
@@ -110,7 +112,9 @@ def test_evaluate_async_with_item_limit(sample_dataset):
 def test_evaluate_async_different_outputs(sample_dataset):
     """Test async inference function that returns different outputs."""
 
-    async def variable_async_inference_fn(model_inputs: List[Dict]) -> List[str]:
+    async def variable_async_inference_fn(
+        model_inputs: List[Dict], hyperparameters: Dict[str, Any]
+    ) -> List[str]:
         await asyncio.sleep(0.001)
         # Return different outputs based on input text content
         results = []
@@ -168,14 +172,16 @@ async def test_async_inference_function_directly():
     """Test that we can call async inference functions directly."""
     async_inference_fn = create_async_inference_fn("test_output")
 
-    result = await async_inference_fn([{"input": "test"}])
+    result = await async_inference_fn([{"input": "test"}], {})
     assert result == ["test_output"]
 
 
 def test_evaluate_with_failing_async_function(sample_dataset):
     """Test evaluation handles async functions that raise exceptions."""
 
-    async def failing_async_inference_fn(model_inputs: List[Dict]) -> List[str]:
+    async def failing_async_inference_fn(
+        model_inputs: List[Dict], hyperparameters: Dict[str, Any]
+    ) -> List[str]:
         await asyncio.sleep(0.001)
         raise ValueError("Simulated async function failure")
 
