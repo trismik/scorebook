@@ -41,7 +41,7 @@ class InferencePipeline:
         """
         self.model: str = model
         self.preprocessor: Callable = preprocessor
-        self.inference_function = inference_function
+        self.inference_function: Callable = inference_function
         self.postprocessor = postprocessor
 
     def run(self, items: List[Dict[str, Any]], hyperparameters: Dict[str, Any]) -> List[Any]:
