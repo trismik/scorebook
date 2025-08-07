@@ -4,7 +4,7 @@ import argparse
 import json
 import string
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, List
 
 from dotenv import load_dotenv
 
@@ -98,9 +98,7 @@ if __name__ == "__main__":
         "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
     )
 
-    async def openai_batch_inference_function(
-        eval_items: List, hyperparameters: Dict[str, Any]
-    ) -> Any:
+    async def openai_batch_inference_function(eval_items: List, **hyperparameters: Any) -> Any:
         """Async inference function that uses OpenAI API."""
         return await batch(
             items=eval_items,

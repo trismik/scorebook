@@ -4,7 +4,7 @@ import argparse
 import json
 import string
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -95,9 +95,7 @@ if __name__ == "__main__":
         "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
     )
 
-    async def openai_inference_function(
-        eval_items: list[dict], hyperparameters: Dict[str, Any]
-    ) -> Any:
+    async def openai_inference_function(eval_items: list[dict], **hyperparameters: Any) -> Any:
         """Async inference function that uses OpenAI API."""
         result = await responses(
             items=eval_items,

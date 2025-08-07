@@ -4,7 +4,7 @@ import argparse
 import json
 import string
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import transformers
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         device="cpu",
     )
 
-    def inference_function(eval_items: list[dict], hyperparameters: Dict[str, Any]) -> list[Any]:
+    def inference_function(eval_items: list[dict], **hyperparameters: Any) -> list[Any]:
         """Pre-processes dataset items, inferencing and post-processing result."""
         results = []
 

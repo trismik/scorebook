@@ -39,16 +39,16 @@ async def _evaluate_async(
     eval_results: List[EvalResult] = []
 
     # 1) Run inference per (dataset, hyperparams)
-    for eval_dataset, items, labels, hp in _iter_dataset_jobs(
+    for eval_dataset, items, labels, hp_sweep in _iter_dataset_jobs(
         normalized_datasets, hyperparam_grid, item_limit
     ):
-        outputs = await _run_inference(inference_fn, items, hp)
+        outputs = await _run_inference(inference_fn, items, hp_sweep)
 
         # 2) Score metrics
         metric_scores = _score_metrics(eval_dataset, outputs, labels)
 
         # 3) Wrap into EvalResult
-        eval_results.append(EvalResult(eval_dataset, outputs, metric_scores, hp))
+        eval_results.append(EvalResult(eval_dataset, outputs, metric_scores, hp_sweep))
 
     # TODO: experiment_id handling (left as passthrough to preserve behavior)
     if experiment_id:
@@ -154,8 +154,8 @@ async def _run_inference(
     hyperparams: Dict[str, Any],
 ) -> Any:
     if asyncio.iscoroutinefunction(inference_fn):
-        return await inference_fn(items, hyperparams)
-    return inference_fn(items, hyperparams)
+        return await inference_fn(items, **hyperparams)
+    return inference_fn(items, **hyperparams)
 
 
 # Yields (eval_dataset, items, labels, hyperparams) for every dataset x hyperparam combo.
