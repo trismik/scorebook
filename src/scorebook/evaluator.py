@@ -18,7 +18,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from scorebook.types.eval_dataset import EvalDataset
 from scorebook.types.eval_result import EvalResult
-from scorebook.utils import expand_dict
+from scorebook.utils import evaluation_progress, expand_dict
 
 
 async def _evaluate_async(
@@ -38,17 +38,29 @@ async def _evaluate_async(
 
     eval_results: List[EvalResult] = []
 
-    # 1) Run inference per (dataset, hyperparams)
-    for eval_dataset, items, labels, hp_sweep in _iter_dataset_jobs(
-        normalized_datasets, hyperparam_grid, item_limit
-    ):
-        outputs = await _run_inference(inference_fn, items, hp_sweep)
+    with evaluation_progress(normalized_datasets, len(hyperparam_grid)) as progress_bars:
+        # Loop through datasets, then hyperparameters for clear progress tracking
+        for dataset_idx, eval_dataset in enumerate(normalized_datasets):
+            with progress_bars.hyperparam_progress_context():
+                # Run inference for each hyperparameter configuration on this dataset
+                for hp_idx, hp_sweep in enumerate(hyperparam_grid):
+                    items = _clip_items(eval_dataset.items, item_limit)
+                    labels = _labels_for(items, eval_dataset.label)
 
-        # 2) Score metrics
-        metric_scores = _score_metrics(eval_dataset, outputs, labels)
+                    # 1) Run inference
+                    outputs = await _run_inference(inference_fn, items, hp_sweep)
 
-        # 3) Wrap into EvalResult
-        eval_results.append(EvalResult(eval_dataset, outputs, metric_scores, hp_sweep))
+                    # 2) Score metrics
+                    metric_scores = _score_metrics(eval_dataset, outputs, labels)
+
+                    # 3) Wrap into EvalResult
+                    eval_results.append(EvalResult(eval_dataset, outputs, metric_scores, hp_sweep))
+
+                    # Update inner progress bar
+                    progress_bars.update_hyperparam_progress()
+
+            # Update outer progress bar
+            progress_bars.update_dataset_progress()
 
     # TODO: experiment_id handling (left as passthrough to preserve behavior)
     if experiment_id:

@@ -37,14 +37,12 @@ if __name__ == "__main__":
         "text-generation",
         model="microsoft/Phi-4-mini-instruct",
         model_kwargs={"torch_dtype": "auto"},
-        device="cpu",
     )
 
     def inference_function(eval_items: list[dict], **hyperparameters: Any) -> list[Any]:
         """Pre-processes dataset items, inferencing and post-processing result."""
         results = []
 
-        print("Running inference with hyperparameters: ", hyperparameters, "\n")
         for eval_item in eval_items:
             prompt = f"{eval_item['question']}\nOptions:\n" + "\n".join(
                 [
@@ -114,7 +112,6 @@ if __name__ == "__main__":
         score_type="all",
         item_limit=10,
     )
-    print(results)
 
     with open(output_dir / "sweep_output.json", "w") as output_file:
         json.dump(results, output_file, indent=4)
