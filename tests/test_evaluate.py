@@ -14,7 +14,7 @@ from scorebook.types.eval_result import EvalResult
 def create_simple_inference_fn(expected_output: str = "1"):
     """Create a simple inference function that always returns the same output."""
 
-    def inference_fn(model_inputs: List[Dict]) -> List[str]:
+    def inference_fn(model_inputs: List[Dict], **hyperparameters) -> List[str]:
         return [expected_output for _ in model_inputs]
 
     return inference_fn
@@ -109,7 +109,7 @@ def test_evaluate_invalid_inference_fn():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    def bad_inference_fn(model_inputs: List[Dict]):
+    def bad_inference_fn(model_inputs: List[Dict], **hyperparameters):
         raise ValueError("Inference error")
 
     with pytest.raises(ValueError):

@@ -27,6 +27,7 @@ class EvalResult:
     eval_dataset: EvalDataset
     inference_outputs: List[Any]
     metric_scores: Dict[str, Dict[str, Any]]
+    hyperparams: Dict[str, Any]
 
     @property
     def item_scores(self) -> List[Dict[str, Any]]:
@@ -45,6 +46,7 @@ class EvalResult:
                     metric: self.metric_scores[metric]["item_scores"][idx]
                     for metric in metric_names
                 },
+                **self.hyperparams,
             }
             results.append(result)
 
@@ -65,6 +67,8 @@ class EvalResult:
                     for key, value in scores["aggregate_scores"].items()
                 }
             )
+        for hyperparam, value in self.hyperparams.items():
+            result[hyperparam] = value
         return result
 
     def to_dict(self) -> Dict[str, Any]:

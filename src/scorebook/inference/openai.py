@@ -21,6 +21,7 @@ async def responses(
     post_processor: Callable,
     model: str = "gpt-4.1-nano",
     client: Any = None,
+    **hyperparameters: Any,
 ) -> List[str]:
     """Process multiple inference requests using OpenAI's API.
 
@@ -59,6 +60,7 @@ async def batch(
     post_processor: Callable,
     model: str = "gpt-4.1-nano",
     client: Any = None,
+    **hyperparameters: Any,
 ) -> List[str]:
     """Process multiple inference requests in batch using OpenAI's API.
 

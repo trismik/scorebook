@@ -1,4 +1,4 @@
-"""Example run."""
+"""Example run with hyperparameter sweep."""
 
 import argparse
 import json
@@ -13,7 +13,9 @@ from scorebook.metrics import Accuracy
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Run evaluation and save results.")
+    parser = argparse.ArgumentParser(
+        description="Run evaluation with hyperparam sweep and save results."
+    )
     parser.add_argument(
         "--output-dir",
         type=str,
@@ -35,7 +37,6 @@ if __name__ == "__main__":
         "text-generation",
         model="microsoft/Phi-4-mini-instruct",
         model_kwargs={"torch_dtype": "auto"},
-        device_map="auto",
     )
 
     def inference_function(eval_items: list[dict], **hyperparameters: Any) -> list[Any]:
@@ -78,16 +79,40 @@ if __name__ == "__main__":
                 {"role": "user", "content": prompt},
             ]
 
-            output = pipeline(messages)
+            # Filter hyperparameters to only include valid transformers pipeline parameters
+            valid_pipeline_params = {
+                "max_new_tokens",
+                "temperature",
+                "top_p",
+                "top_k",
+                "do_sample",
+                "pad_token_id",
+            }
+            generation_kwargs = {
+                k: v for k, v in hyperparameters.items() if k in valid_pipeline_params
+            }
+
+            output = pipeline(messages, **generation_kwargs)
             output = output[0]["generated_text"][-1]["content"]
             results.append(output)
 
         return results
 
-    # Evaluate Phi-4-mini-instruct using the MMLU-Pro Dataset.
-    results = evaluate(inference_function, mmlu_pro, item_limit=10)
-    print(results)
+    hyperparameters = {
+        "max_new_tokens": [50, 75],
+        "temperature": [0.6, 0.7],
+        "do_sample": True,
+    }
 
-    with open(output_dir / "output.json", "w") as output_file:
+    # Evaluate Phi-4-mini-instruct using the MMLU-Pro Dataset.
+    results = evaluate(
+        inference_function,
+        mmlu_pro,
+        hyperparameters=hyperparameters,
+        score_type="all",
+        item_limit=10,
+    )
+
+    with open(output_dir / "sweep_output.json", "w") as output_file:
         json.dump(results, output_file, indent=4)
-        print(f"Results saved in {output_dir / 'output.json'}")
+        print(f"Results saved in {output_dir / 'sweep_output.json'}")
