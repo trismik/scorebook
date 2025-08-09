@@ -14,16 +14,17 @@ models on datasets and computing metric scores.
 """
 
 import asyncio
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from scorebook.types.eval_dataset import EvalDataset
 from scorebook.types.eval_result import EvalResult
+from scorebook.types.inference_pipeline import InferencePipeline
 from scorebook.utils import evaluation_progress, expand_dict
 
 
 async def _evaluate_async(
-    inference_fn: Callable,
-    datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
+    inference_pipeline: InferencePipeline,
+    eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
     item_limit: Optional[int] = None,
@@ -33,7 +34,7 @@ async def _evaluate_async(
     """Run inference across datasets/hyperparams, compute metrics, and format results."""
     _validate_score_type(score_type)
 
-    normalized_datasets = _normalize_datasets(datasets)
+    normalized_datasets = _normalize_datasets(eval_datasets)
     hyperparam_grid = _expand_hyperparams(hyperparameters)
 
     eval_results: List[EvalResult] = []
@@ -43,23 +44,25 @@ async def _evaluate_async(
         for dataset_idx, eval_dataset in enumerate(normalized_datasets):
             with progress_bars.hyperparam_progress_context():
                 # Run inference for each hyperparameter configuration on this dataset
-                for hp_idx, hp_sweep in enumerate(hyperparam_grid):
+                for hp_idx, hyperparam_config in enumerate(hyperparam_grid):
                     items = _clip_items(eval_dataset.items, item_limit)
                     labels = _labels_for(items, eval_dataset.label)
 
                     # 1) Run inference
-                    outputs = await _run_inference(inference_fn, items, hp_sweep)
+                    outputs = await inference_pipeline.run(items, hyperparam_config)
 
                     # 2) Score metrics
                     metric_scores = _score_metrics(eval_dataset, outputs, labels)
 
                     # 3) Wrap into EvalResult
-                    eval_results.append(EvalResult(eval_dataset, outputs, metric_scores, hp_sweep))
+                    eval_results.append(
+                        EvalResult(eval_dataset, outputs, metric_scores, hyperparam_config)
+                    )
 
                     # Update inner progress bar
                     progress_bars.update_hyperparam_progress()
 
-            # Update outer progress bar
+            # Update the outer progress bar
             progress_bars.update_dataset_progress()
 
     # TODO: experiment_id handling (left as passthrough to preserve behavior)
@@ -71,8 +74,8 @@ async def _evaluate_async(
 
 
 def evaluate(
-    inference_fn: Callable,
-    datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
+    inference_pipeline: InferencePipeline,
+    eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
     item_limit: Optional[int] = None,
@@ -87,8 +90,9 @@ def evaluate(
     parameter sweeping, and different result formatting options.
 
     Args:
-        inference_fn: Function that takes a list of dataset items and returns a list of predictions.
-        datasets: One or more evaluation datasets to run evaluation on. Can be:
+        inference_pipeline: Pipeline object that handles preprocessing, model inference, and
+                            postprocessing of dataset items to generate predictions.
+        eval_datasets: One or more evaluation datasets to run evaluation on. Can be:
                  - A single EvalDataset instance
                  - A list of EvalDataset instances
                  - A string identifier (for future dataset registry support)
@@ -120,8 +124,8 @@ def evaluate(
     """
     return asyncio.run(
         _evaluate_async(
-            inference_fn=inference_fn,
-            datasets=datasets,
+            inference_pipeline=inference_pipeline,
+            eval_datasets=eval_datasets,
             hyperparameters=hyperparameters,
             experiment_id=experiment_id,
             item_limit=item_limit,
@@ -161,13 +165,11 @@ def _labels_for(items: List[Dict[str, Any]], label_key: str) -> List[Any]:
 
 
 async def _run_inference(
-    inference_fn: Callable,
+    inference_pipeline: InferencePipeline,
     items: List[Dict[str, Any]],
     hyperparams: Dict[str, Any],
 ) -> Any:
-    if asyncio.iscoroutinefunction(inference_fn):
-        return await inference_fn(items, **hyperparams)
-    return inference_fn(items, **hyperparams)
+    return await inference_pipeline.run(items, hyperparams)
 
 
 # Yields (eval_dataset, items, labels, hyperparams) for every dataset x hyperparam combo.

@@ -4,13 +4,14 @@ import argparse
 import json
 import string
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 from dotenv import load_dotenv
 
 from scorebook import EvalDataset, evaluate
 from scorebook.inference.openai import batch
 from scorebook.metrics import Accuracy
+from scorebook.types.inference_pipeline import InferencePipeline
 
 if __name__ == "__main__":
     # Load environment variables from .env file
@@ -37,7 +38,7 @@ if __name__ == "__main__":
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    def preprocess_mmlu_item(eval_item: dict) -> dict:
+    def preprocessor(eval_item: dict) -> dict:
         """Pre-process MMLU-Pro dataset items into OpenAI batch API format."""
         prompt = f"{eval_item['question']}\nOptions:\n" + "\n".join(
             [
@@ -71,7 +72,7 @@ if __name__ == "__main__":
             ],
         }
 
-    def postprocess_openai_response(response: Any) -> str:
+    def postprocessor(response: Any) -> str:
         """Post-process OpenAI response to extract the answer letter."""
         # Extract the text from the OpenAI response object
         try:
@@ -98,20 +99,19 @@ if __name__ == "__main__":
         "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
     )
 
-    async def openai_batch_inference_function(eval_items: List, **hyperparameters: Any) -> Any:
-        """Async inference function that uses OpenAI API."""
-        return await batch(
-            items=eval_items,
-            pre_processor=preprocess_mmlu_item,
-            post_processor=postprocess_openai_response,
-            model=args.model,
-        )
+    # Create inference pipeline using the batch function directly
+    inference_pipeline = InferencePipeline(
+        model=args.model,
+        preprocessor=preprocessor,
+        inference_function=batch,
+        postprocessor=postprocessor,
+    )
 
     print(f"Running OpenAI batch evaluation with model: {args.model}")
     print(f"Evaluating {10} items from MMLU-Pro dataset...")
 
-    # Evaluate using OpenAI with the batch inference function
-    results = evaluate(openai_batch_inference_function, mmlu_pro, item_limit=2, score_type="all")
+    # Evaluate using OpenAI with inference pipeline
+    results = evaluate(inference_pipeline, mmlu_pro, item_limit=2, score_type="all")
     print(results)
 
     # Save results to a JSON file
