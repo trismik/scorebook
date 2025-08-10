@@ -7,7 +7,7 @@ configurable way.
 """
 
 import asyncio
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional, cast
 
 
 class InferencePipeline:
@@ -29,22 +29,22 @@ class InferencePipeline:
     def __init__(
         self,
         model: str,
-        preprocessor: Callable,
         inference_function: Callable,
-        postprocessor: Callable,
+        preprocessor: Optional[Callable] = None,
+        postprocessor: Optional[Callable] = None,
     ) -> None:
         """Initialize the inference pipeline.
 
         Args:
             model: Name or identifier of the model to use
-            preprocessor: Function to prepare items for inference
             inference_function: Function that performs model inference
-            postprocessor: Function to process model outputs
+            preprocessor: Optional function to prepare items for inference.
+            postprocessor: Optional function to process model outputs.
         """
         self.model: str = model
-        self.preprocessor: Callable = preprocessor
         self.inference_function = inference_function
-        self.postprocessor = postprocessor
+        self.preprocessor: Optional[Callable] = preprocessor
+        self.postprocessor: Optional[Callable] = postprocessor
 
     async def run(self, items: List[Dict[str, Any]], hyperparameters: Dict[str, Any]) -> List[Any]:
         """Execute the complete inference pipeline on a list of items.
@@ -56,11 +56,17 @@ class InferencePipeline:
         Returns:
             List of processed outputs after running through the complete pipeline
         """
-        input_items = [self.preprocessor(item) for item in items]
+        if self.preprocessor:
+            input_items = [self.preprocessor(item) for item in items]
+        else:
+            input_items = items
 
         if asyncio.iscoroutinefunction(self.inference_function):
             inference_outputs = await self.inference_function(input_items, hyperparameters)
         else:
             inference_outputs = self.inference_function(input_items, hyperparameters)
 
-        return [self.postprocessor(inference_output) for inference_output in inference_outputs]
+        if self.postprocessor:
+            return [self.postprocessor(inference_output) for inference_output in inference_outputs]
+        else:
+            return cast(List[Any], inference_outputs)

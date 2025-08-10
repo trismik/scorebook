@@ -63,3 +63,25 @@ def test_evaluate_with_parametric_inference_function():
     assert isinstance(results, list)
     assert len(results) > 0
     assert "accuracy" in results[0]
+
+
+def test_evaluate_with_minimal_inference_pipeline():
+    """Test evaluation with an InferencePipeline that only has inference function."""
+    from scorebook.types.inference_pipeline import InferencePipeline
+
+    def simple_inference(items: List[Dict], hyperparameters: Dict) -> List[str]:
+        return ["1" for _ in items]
+
+    # Create pipeline with only inference function (no preprocessor/postprocessor)
+    pipeline = InferencePipeline(model="test_model", inference_function=simple_inference)
+
+    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset = EvalDataset.from_csv(
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+    )
+
+    results = evaluate(pipeline, dataset, item_limit=5)
+
+    assert isinstance(results, list)
+    assert len(results) > 0
+    assert "accuracy" in results[0]
