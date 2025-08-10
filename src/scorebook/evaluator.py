@@ -14,7 +14,7 @@ models on datasets and computing metric scores.
 """
 
 import asyncio
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from scorebook.types.eval_dataset import EvalDataset
 from scorebook.types.eval_result import EvalResult
@@ -23,7 +23,7 @@ from scorebook.utils import evaluation_progress, expand_dict
 
 
 async def _evaluate_async(
-    inference_pipeline: InferencePipeline,
+    inference_pipeline: Union[InferencePipeline, Callable],
     eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
@@ -49,7 +49,9 @@ async def _evaluate_async(
                     labels = _labels_for(items, eval_dataset.label)
 
                     # 1) Run inference
-                    outputs = await inference_pipeline.run(items, hyperparam_config)
+                    outputs = await _run_inference_unified(
+                        inference_pipeline, items, hyperparam_config
+                    )
 
                     # 2) Score metrics
                     metric_scores = _score_metrics(eval_dataset, outputs, labels)
@@ -74,7 +76,7 @@ async def _evaluate_async(
 
 
 def evaluate(
-    inference_pipeline: InferencePipeline,
+    inference_pipeline: Union[InferencePipeline, Callable],
     eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
@@ -90,8 +92,10 @@ def evaluate(
     parameter sweeping, and different result formatting options.
 
     Args:
-        inference_pipeline: Pipeline object that handles preprocessing, model inference, and
-                            postprocessing of dataset items to generate predictions.
+        inference_pipeline: Either an InferencePipeline object that handles preprocessing,
+                            model inference, and postprocessing of dataset items to generate
+                            predictions, or a callable function that takes (items, hyperparameters)
+                            and returns predictions.
         eval_datasets: One or more evaluation datasets to run evaluation on. Can be:
                  - A single EvalDataset instance
                  - A list of EvalDataset instances
@@ -162,6 +166,20 @@ def _clip_items(items: List[Dict[str, Any]], item_limit: Optional[int]) -> List[
 
 def _labels_for(items: List[Dict[str, Any]], label_key: str) -> List[Any]:
     return [item.get(label_key) for item in items]
+
+
+async def _run_inference_unified(
+    inference_pipeline_or_function: Union[InferencePipeline, Callable],
+    items: List[Dict[str, Any]],
+    hyperparams: Dict[str, Any],
+) -> Any:
+    if isinstance(inference_pipeline_or_function, InferencePipeline):
+        return await inference_pipeline_or_function.run(items, hyperparams)
+    else:
+        if asyncio.iscoroutinefunction(inference_pipeline_or_function):
+            return await inference_pipeline_or_function(items, hyperparams)
+        else:
+            return inference_pipeline_or_function(items, hyperparams)
 
 
 async def _run_inference(
