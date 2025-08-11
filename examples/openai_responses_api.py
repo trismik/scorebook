@@ -11,9 +11,10 @@ from dotenv import load_dotenv
 from scorebook import EvalDataset, evaluate
 from scorebook.inference.openai import responses
 from scorebook.metrics import Accuracy
+from scorebook.types.inference_pipeline import InferencePipeline
 
 
-def preprocess_mmlu_item(eval_item: dict) -> str:
+def preprocessor(eval_item: dict) -> str:
     """Pre-process MMLU-Pro dataset items into OpenAI prompt format."""
     prompt = f"{eval_item['question']}\nOptions:\n" + "\n".join(
         [
@@ -42,7 +43,7 @@ Please adhere strictly to the instructions.
     return f"System: {system_prompt}\n\nUser: {prompt}\n\nAssistant:"
 
 
-def postprocess_openai_response(response: Any) -> str:
+def postprocessor(response: Any) -> str:
     """Post-process OpenAI response to extract the answer letter."""
     # Extract the text from the OpenAI response object
     try:
@@ -95,21 +96,19 @@ if __name__ == "__main__":
         "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
     )
 
-    async def openai_inference_function(eval_items: list[dict], **hyperparameters: Any) -> Any:
-        """Async inference function that uses OpenAI API."""
-        result = await responses(
-            items=eval_items,
-            pre_processor=preprocess_mmlu_item,
-            post_processor=postprocess_openai_response,
-            model=args.model,
-        )
-        return result
+    # Create inference pipeline using the responses function directly
+    inference_pipeline = InferencePipeline(
+        model=args.model,
+        preprocessor=preprocessor,
+        inference_function=responses,
+        postprocessor=postprocessor,
+    )
 
     print(f"Running OpenAI evaluation with model: {args.model}")
     print(f"Evaluating {10} items from MMLU-Pro dataset...")
 
-    # Evaluate using OpenAI with an async inference function
-    results = evaluate(openai_inference_function, mmlu_pro, item_limit=10, score_type="all")
+    # Evaluate using OpenAI with inference pipeline
+    results = evaluate(inference_pipeline, mmlu_pro, item_limit=10, score_type="all")
     print(results)
 
     # Save results to a JSON file

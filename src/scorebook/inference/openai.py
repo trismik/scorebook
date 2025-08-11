@@ -9,34 +9,28 @@ API communication, request formatting, and response processing.
 import asyncio
 import json
 import tempfile
-from typing import Any, Callable, Dict, List
+from typing import Any, List
 
 from openai import OpenAI
 from tqdm.asyncio import tqdm
 
 
 async def responses(
-    items: List[Dict],
-    pre_processor: Callable,
-    post_processor: Callable,
-    model: str = "gpt-4.1-nano",
-    client: Any = None,
-    **hyperparameters: Any,
-) -> List[str]:
+    items: List[Any], model: str = "gpt-4.1-nano", client: Any = None, **hyperparameters: Any
+) -> List[Any]:
     """Process multiple inference requests using OpenAI's API.
 
     This asynchronous function handles multiple inference requests,
     manages the API communication, and processes the responses.
 
     Args:
-        items: List of dataset items to process.
-        pre_processor: Function to preprocess each item.
-        post_processor: Function to postprocess each response.
+        items: List of preprocessed items to process.
         model: OpenAI model to use.
         client: Optional OpenAI client instance.
+        hyperparameters: Dictionary of hyperparameters for inference.
 
     Returns:
-        List of processed model responses.
+        List of raw model responses.
 
     Raises:
         NotImplementedError: Currently not implemented.
@@ -46,36 +40,31 @@ async def responses(
 
     results = []
     for item in items:
-        inference_input = pre_processor(item)
-        response = client.responses.create(model=model, input=inference_input)
-        inference_output = post_processor(response)
-        results.append(str(inference_output))
+        response = client.responses.create(model=model, input=item)
+        results.append(response)
 
     return results
 
 
 async def batch(
-    items: List[Dict],
-    pre_processor: Callable,
-    post_processor: Callable,
+    items: List[Any],
     model: str = "gpt-4.1-nano",
     client: Any = None,
     **hyperparameters: Any,
-) -> List[str]:
+) -> List[Any]:
     """Process multiple inference requests in batch using OpenAI's API.
 
     This asynchronous function handles batch processing of inference requests,
     optimizing for throughput while respecting API rate limits.
 
     Args:
-        items: List of dataset items to process.
-        pre_processor: Function to preprocess each item.
-        post_processor: Function to postprocess each response.
+        items: List of preprocessed items to process.
         model: OpenAI model to use.
         client: Optional OpenAI client instance.
+        hyperparameters: Dictionary of hyperparameters for inference.
 
     Returns:
-        A list of processed model responses.
+        A list of raw model responses.
 
     Raises:
         NotImplementedError: Currently not implemented.
@@ -83,15 +72,11 @@ async def batch(
     if client is None:
         client = OpenAI()
 
-    prompts: List[str] = []
-    for item in items:
-        prompts.append(pre_processor(item))
-
-    file_id = _upload_batch(prompts, client)
+    file_id = _upload_batch(items, client)
     batch_id = _start_batch(file_id, client)
 
     # Initialize progress bar
-    pbar = tqdm(total=len(prompts), desc="Batch processing", unit="requests")
+    pbar = tqdm(total=len(items), desc="Batch processing", unit="requests")
 
     awaiting_batch = True
     while awaiting_batch:
@@ -127,11 +112,11 @@ async def batch(
     return batch_result
 
 
-def _upload_batch(prompts: List[str], client: Any) -> str:
-    """Create a .jsonl file from dataset items and upload to OpenAI for batch processing.
+def _upload_batch(items: List[Any], client: Any) -> str:
+    """Create a .jsonl file from preprocessed items and upload to OpenAI for batch processing.
 
     Args:
-        prompts: A list of prompts, each representing a single dataset eval item.
+        items: A list of preprocessed items, each representing a single dataset eval item.
 
     Returns:
         The file ID returned by OpenAI after uploading.
@@ -143,13 +128,13 @@ def _upload_batch(prompts: List[str], client: Any) -> str:
 
     # Create temp .jsonl file
     with tempfile.NamedTemporaryFile(mode="w+", suffix=".jsonl", delete=False) as f:
-        for i, prompt in enumerate(prompts):
+        for i, item in enumerate(items):
             # Construct each batch line
             payload = {
                 "custom_id": f"request-{i}",
                 "method": "POST",
                 "url": "/v1/chat/completions",
-                "body": prompt,
+                "body": item,
             }
             f.write(json.dumps(payload) + "\n")
         file_path = f.name

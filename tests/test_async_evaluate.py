@@ -9,25 +9,48 @@ from scorebook.evaluator import evaluate
 from scorebook.metrics import Accuracy
 from scorebook.types.eval_dataset import EvalDataset
 from scorebook.types.eval_result import EvalResult
+from scorebook.types.inference_pipeline import InferencePipeline
 
 
-def create_async_inference_fn(expected_output: str = "1", delay: float = 0.01):
-    """Create an async inference function that returns the same output after a delay."""
+def create_async_inference_pipeline(expected_output: str = "1", delay: float = 0.01):
+    """Create an async inference pipeline that returns the same output after a delay."""
 
-    async def async_inference_fn(model_inputs: List[Dict], **hyperparameters) -> List[str]:
+    def preprocessor(item: Dict) -> Dict:
+        return item
+
+    async def async_inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
         await asyncio.sleep(delay)  # Simulate async work
-        return [expected_output for _ in model_inputs]
+        return [expected_output for _ in processed_items]
 
-    return async_inference_fn
+    def postprocessor(output: str) -> str:
+        return output
+
+    return InferencePipeline(
+        model="test_model",
+        preprocessor=preprocessor,
+        inference_function=async_inference_function,
+        postprocessor=postprocessor,
+    )
 
 
-def create_sync_inference_fn(expected_output: str = "1"):
-    """Create a sync inference function for comparison tests."""
+def create_sync_inference_pipeline(expected_output: str = "1"):
+    """Create a sync inference pipeline for comparison tests."""
 
-    def sync_inference_fn(model_inputs: List[Dict], **hyperparameters) -> List[str]:
-        return [expected_output for _ in model_inputs]
+    def preprocessor(item: Dict) -> Dict:
+        return item
 
-    return sync_inference_fn
+    def sync_inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
+        return [expected_output for _ in processed_items]
+
+    def postprocessor(output: str) -> str:
+        return output
+
+    return InferencePipeline(
+        model="test_model",
+        preprocessor=preprocessor,
+        inference_function=sync_inference_function,
+        postprocessor=postprocessor,
+    )
 
 
 @pytest.fixture
@@ -41,7 +64,7 @@ def sample_dataset():
 
 def test_evaluate_with_async_inference_function(sample_dataset):
     """Test evaluation with an async inference function."""
-    async_inference_fn = create_async_inference_fn("1")
+    async_inference_fn = create_async_inference_pipeline("1")
 
     results = evaluate(async_inference_fn, sample_dataset, return_type="object")
 
@@ -55,8 +78,8 @@ def test_evaluate_with_async_inference_function(sample_dataset):
 
 def test_evaluate_async_vs_sync_same_results(sample_dataset):
     """Test that async and sync inference functions produce identical results."""
-    sync_inference_fn = create_sync_inference_fn("1")
-    async_inference_fn = create_async_inference_fn("1")
+    sync_inference_fn = create_sync_inference_pipeline("1")
+    async_inference_fn = create_async_inference_pipeline("1")
 
     sync_results = evaluate(sync_inference_fn, sample_dataset, return_type="object")
     async_results = evaluate(async_inference_fn, sample_dataset, return_type="object")
@@ -81,7 +104,7 @@ def test_evaluate_async_with_multiple_datasets():
         dataset_path, label="label", metrics=[Accuracy], name="dataset2"
     )
 
-    async_inference_fn = create_async_inference_fn("1")
+    async_inference_fn = create_async_inference_pipeline("1")
     results = evaluate(async_inference_fn, [dataset1, dataset2], return_type="object")
 
     assert len(results) == 2
@@ -96,7 +119,7 @@ def test_evaluate_async_with_multiple_datasets():
 
 def test_evaluate_async_with_item_limit(sample_dataset):
     """Test evaluation with async inference function and item limit."""
-    async_inference_fn = create_async_inference_fn("1")
+    async_inference_fn = create_async_inference_pipeline("1")
     item_limit = 3
 
     results = evaluate(
@@ -108,20 +131,29 @@ def test_evaluate_async_with_item_limit(sample_dataset):
 
 
 def test_evaluate_async_different_outputs(sample_dataset):
-    """Test async inference function that returns different outputs."""
+    """Test async inference pipeline that returns different outputs."""
 
-    async def variable_async_inference_fn(model_inputs: List[Dict], **hyperparameters) -> List[str]:
+    async def variable_async_inference_function(
+        processed_items: List[Dict], **hyperparameters
+    ) -> List[str]:
         await asyncio.sleep(0.001)
         # Return different outputs based on input text content
         results = []
-        for model_input in model_inputs:
-            if "input" in model_input and "favorite" in str(model_input["input"]).lower():
+        for processed_item in processed_items:
+            if "input" in processed_item and "favorite" in str(processed_item["input"]).lower():
                 results.append("1")
             else:
                 results.append("0")
         return results
 
-    results = evaluate(variable_async_inference_fn, sample_dataset, return_type="object")
+    variable_pipeline = InferencePipeline(
+        model="test_model",
+        preprocessor=lambda x: x,
+        inference_function=variable_async_inference_function,
+        postprocessor=lambda x: x,
+    )
+
+    results = evaluate(variable_pipeline, sample_dataset, return_type="object")
     eval_result = results["test_dataset"]
 
     # Check that we got some variety in predictions
@@ -131,7 +163,7 @@ def test_evaluate_async_different_outputs(sample_dataset):
 
 def test_evaluate_async_with_dict_return_type(sample_dataset):
     """Test async inference function with dict return type."""
-    async_inference_fn = create_async_inference_fn("1")
+    async_inference_fn = create_async_inference_pipeline("1")
 
     results = evaluate(async_inference_fn, sample_dataset, return_type="dict")
 
@@ -150,7 +182,7 @@ def test_evaluate_async_performance():
     data = [{"input": f"test_{i}", "label": str(i % 2)} for i in range(50)]
     dataset = EvalDataset.from_list(name="perf_test", label="label", metrics=[Accuracy], data=data)
 
-    async_inference_fn = create_async_inference_fn("1", delay=0.001)  # 1ms delay
+    async_inference_fn = create_async_inference_pipeline("1", delay=0.001)  # 1ms delay
 
     start_time = time.time()
     results = evaluate(async_inference_fn, dataset, return_type="object")
@@ -165,19 +197,28 @@ def test_evaluate_async_performance():
 
 @pytest.mark.asyncio
 async def test_async_inference_function_directly():
-    """Test that we can call async inference functions directly."""
-    async_inference_fn = create_async_inference_fn("test_output")
+    """Test that we can call async inference pipeline directly."""
+    pipeline = create_async_inference_pipeline("test_output")
 
-    result = await async_inference_fn([{"input": "test"}])
+    result = await pipeline.run([{"input": "test"}])
     assert result == ["test_output"]
 
 
 def test_evaluate_with_failing_async_function(sample_dataset):
-    """Test evaluation handles async functions that raise exceptions."""
+    """Test evaluation handles async pipelines that raise exceptions."""
 
-    async def failing_async_inference_fn(model_inputs: List[Dict], **hyperparameters) -> List[str]:
+    async def failing_async_inference_function(
+        processed_items: List[Dict], **hyperparameters
+    ) -> List[str]:
         await asyncio.sleep(0.001)
         raise ValueError("Simulated async function failure")
 
+    failing_pipeline = InferencePipeline(
+        model="test_model",
+        preprocessor=lambda x: x,
+        inference_function=failing_async_inference_function,
+        postprocessor=lambda x: x,
+    )
+
     with pytest.raises(ValueError, match="Simulated async function failure"):
-        evaluate(failing_async_inference_fn, sample_dataset, return_type="object")
+        evaluate(failing_pipeline, sample_dataset, return_type="object")
