@@ -9,17 +9,14 @@ API communication, request formatting, and response processing.
 import asyncio
 import json
 import tempfile
-from typing import Any, Dict, List
+from typing import Any, List
 
 from openai import OpenAI
 from tqdm.asyncio import tqdm
 
 
 async def responses(
-    items: List[Any],
-    hyperparameters: Dict[str, Any],
-    model: str = "gpt-4.1-nano",
-    client: Any = None,
+    items: List[Any], model: str = "gpt-4.1-nano", client: Any = None, **hyperparameters: Any
 ) -> List[Any]:
     """Process multiple inference requests using OpenAI's API.
 
@@ -28,9 +25,9 @@ async def responses(
 
     Args:
         items: List of preprocessed items to process.
-        hyperparameters: Dictionary of hyperparameters for inference.
         model: OpenAI model to use.
         client: Optional OpenAI client instance.
+        hyperparameters: Dictionary of hyperparameters for inference.
 
     Returns:
         List of raw model responses.
@@ -51,9 +48,9 @@ async def responses(
 
 async def batch(
     items: List[Any],
-    hyperparameters: Dict[str, Any],
     model: str = "gpt-4.1-nano",
     client: Any = None,
+    **hyperparameters: Any,
 ) -> List[Any]:
     """Process multiple inference requests in batch using OpenAI's API.
 
@@ -62,9 +59,9 @@ async def batch(
 
     Args:
         items: List of preprocessed items to process.
-        hyperparameters: Dictionary of hyperparameters for inference.
         model: OpenAI model to use.
         client: Optional OpenAI client instance.
+        hyperparameters: Dictionary of hyperparameters for inference.
 
     Returns:
         A list of raw model responses.

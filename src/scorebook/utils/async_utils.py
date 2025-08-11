@@ -11,8 +11,6 @@ def is_awaitable(obj: Callable) -> bool:
     This handles both coroutine functions and callable instances (like classes
     with __call__ methods) that may return coroutines.
 
-    Based on approach from Starlette: https://github.com/encode/starlette/issues/886
-
     Args:
         obj: The callable object to check
 
