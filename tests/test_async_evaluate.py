@@ -18,9 +18,7 @@ def create_async_inference_pipeline(expected_output: str = "1", delay: float = 0
     def preprocessor(item: Dict) -> Dict:
         return item
 
-    async def async_inference_function(
-        processed_items: List[Dict], hyperparameters: Dict
-    ) -> List[str]:
+    async def async_inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
         await asyncio.sleep(delay)  # Simulate async work
         return [expected_output for _ in processed_items]
 
@@ -41,7 +39,7 @@ def create_sync_inference_pipeline(expected_output: str = "1"):
     def preprocessor(item: Dict) -> Dict:
         return item
 
-    def sync_inference_function(processed_items: List[Dict], hyperparameters: Dict) -> List[str]:
+    def sync_inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
         return [expected_output for _ in processed_items]
 
     def postprocessor(output: str) -> str:
@@ -136,7 +134,7 @@ def test_evaluate_async_different_outputs(sample_dataset):
     """Test async inference pipeline that returns different outputs."""
 
     async def variable_async_inference_function(
-        processed_items: List[Dict], hyperparameters: Dict
+        processed_items: List[Dict], **hyperparameters
     ) -> List[str]:
         await asyncio.sleep(0.001)
         # Return different outputs based on input text content
@@ -202,7 +200,7 @@ async def test_async_inference_function_directly():
     """Test that we can call async inference pipeline directly."""
     pipeline = create_async_inference_pipeline("test_output")
 
-    result = await pipeline.run([{"input": "test"}], {})
+    result = await pipeline.run([{"input": "test"}])
     assert result == ["test_output"]
 
 
@@ -210,7 +208,7 @@ def test_evaluate_with_failing_async_function(sample_dataset):
     """Test evaluation handles async pipelines that raise exceptions."""
 
     async def failing_async_inference_function(
-        processed_items: List[Dict], hyperparameters: Dict
+        processed_items: List[Dict], **hyperparameters
     ) -> List[str]:
         await asyncio.sleep(0.001)
         raise ValueError("Simulated async function failure")

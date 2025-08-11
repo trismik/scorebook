@@ -18,7 +18,7 @@ def create_simple_inference_pipeline(expected_output: str = "1"):
     def preprocessor(item: Dict) -> Dict:
         return item
 
-    def inference_function(processed_items: List[Dict], hyperparameters: Dict) -> List[str]:
+    def inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
         return [expected_output for _ in processed_items]
 
     def postprocessor(output: str) -> str:
@@ -123,7 +123,7 @@ def test_evaluate_invalid_inference_fn():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    def bad_inference_function(processed_items: List[Dict], hyperparameters: Dict):
+    def bad_inference_function(processed_items: List[Dict], **hyperparameters):
         raise ValueError("Inference error")
 
     bad_pipeline = InferencePipeline(

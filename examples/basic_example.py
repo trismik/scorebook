@@ -77,7 +77,7 @@ if __name__ == "__main__":
         ]
         return messages
 
-    def inference_function(processed_items: list[list], hyperparameters: dict) -> list[Any]:
+    def inference_function(processed_items: list[list], **hyperparameters: Any) -> list[Any]:
         """Run model inference on preprocessed items."""
         outputs = []
         for messages in processed_items:

@@ -6,12 +6,12 @@ from scorebook.metrics import Accuracy
 from scorebook.types.eval_dataset import EvalDataset
 
 
-def simple_inference_function(items: List[Dict], hyperparameters: Dict) -> List[str]:
+def simple_inference_function(items: List[Dict], **hyperparameters) -> List[str]:
     """Inference function that always returns '1'."""
     return ["1" for _ in items]
 
 
-async def async_inference_function(items: List[Dict], hyperparameters: Dict) -> List[str]:
+async def async_inference_function(items: List[Dict], **hyperparameters) -> List[str]:
     """Async inference function that always returns '1'."""
     return ["1" for _ in items]
 
@@ -47,7 +47,7 @@ def test_evaluate_with_async_inference_function():
 def test_evaluate_with_parametric_inference_function():
     """Test evaluation with an inference function that uses hyperparameters."""
 
-    def parametric_inference_function(items: List[Dict], hyperparameters: Dict) -> List[str]:
+    def parametric_inference_function(items: List[Dict], **hyperparameters) -> List[str]:
         output_value = hyperparameters.get("output", "1")
         return [output_value for _ in items]
 
@@ -69,7 +69,7 @@ def test_evaluate_with_minimal_inference_pipeline():
     """Test evaluation with an InferencePipeline that only has inference function."""
     from scorebook.types.inference_pipeline import InferencePipeline
 
-    def simple_inference(items: List[Dict], hyperparameters: Dict) -> List[str]:
+    def simple_inference(items: List[Dict], **hyperparameters) -> List[str]:
         return ["1" for _ in items]
 
     # Create pipeline with only inference function (no preprocessor/postprocessor)

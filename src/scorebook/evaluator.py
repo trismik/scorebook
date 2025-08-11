@@ -18,12 +18,11 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from scorebook.types.eval_dataset import EvalDataset
 from scorebook.types.eval_result import EvalResult
-from scorebook.types.inference_pipeline import InferencePipeline
-from scorebook.utils import evaluation_progress, expand_dict
+from scorebook.utils import evaluation_progress, expand_dict, is_awaitable
 
 
 async def _evaluate_async(
-    inference_pipeline: Union[InferencePipeline, Callable],
+    inference_callable: Callable,
     eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
@@ -49,8 +48,8 @@ async def _evaluate_async(
                     labels = _labels_for(items, eval_dataset.label)
 
                     # 1) Run inference
-                    outputs = await _run_inference_unified(
-                        inference_pipeline, items, hyperparam_config
+                    outputs = await _run_inference_callable(
+                        inference_callable, items, hyperparam_config
                     )
 
                     # 2) Score metrics
@@ -76,7 +75,7 @@ async def _evaluate_async(
 
 
 def evaluate(
-    inference_pipeline: Union[InferencePipeline, Callable],
+    inference_callable: Callable,
     eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
@@ -87,15 +86,14 @@ def evaluate(
     """
     Evaluate model predictions using specified metrics on given datasets.
 
-    This function runs the provided inference function on one or more evaluation datasets,
+    This function runs the provided inference callable on one or more evaluation datasets,
     computes metric scores, and returns the evaluation results. It supports batch processing,
     parameter sweeping, and different result formatting options.
 
     Args:
-        inference_pipeline: Either an InferencePipeline object that handles preprocessing,
-                            model inference, and postprocessing of dataset items to generate
-                            predictions, or a callable function that takes (items, hyperparameters)
-                            and returns predictions.
+        inference_callable: A callable function or object that takes (items, hyperparameters)
+                           and returns predictions. Can be a regular function, async function,
+                           or callable instance (like a class with __call__ method).
         eval_datasets: One or more evaluation datasets to run evaluation on. Can be:
                  - A single EvalDataset instance
                  - A list of EvalDataset instances
@@ -128,7 +126,7 @@ def evaluate(
     """
     return asyncio.run(
         _evaluate_async(
-            inference_pipeline=inference_pipeline,
+            inference_callable=inference_callable,
             eval_datasets=eval_datasets,
             hyperparameters=hyperparameters,
             experiment_id=experiment_id,
@@ -168,26 +166,15 @@ def _labels_for(items: List[Dict[str, Any]], label_key: str) -> List[Any]:
     return [item.get(label_key) for item in items]
 
 
-async def _run_inference_unified(
-    inference_pipeline_or_function: Union[InferencePipeline, Callable],
+async def _run_inference_callable(
+    inference_callable: Callable,
     items: List[Dict[str, Any]],
     hyperparams: Dict[str, Any],
 ) -> Any:
-    if isinstance(inference_pipeline_or_function, InferencePipeline):
-        return await inference_pipeline_or_function.run(items, hyperparams)
+    if is_awaitable(inference_callable):
+        return await inference_callable(items, **hyperparams)
     else:
-        if asyncio.iscoroutinefunction(inference_pipeline_or_function):
-            return await inference_pipeline_or_function(items, hyperparams)
-        else:
-            return inference_pipeline_or_function(items, hyperparams)
-
-
-async def _run_inference(
-    inference_pipeline: InferencePipeline,
-    items: List[Dict[str, Any]],
-    hyperparams: Dict[str, Any],
-) -> Any:
-    return await inference_pipeline.run(items, hyperparams)
+        return inference_callable(items, **hyperparams)
 
 
 # Yields (eval_dataset, items, labels, hyperparams) for every dataset x hyperparam combo.

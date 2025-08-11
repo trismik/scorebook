@@ -46,12 +46,12 @@ class InferencePipeline:
         self.preprocessor: Optional[Callable] = preprocessor
         self.postprocessor: Optional[Callable] = postprocessor
 
-    async def run(self, items: List[Dict[str, Any]], hyperparameters: Dict[str, Any]) -> List[Any]:
+    async def run(self, items: List[Dict[str, Any]], **hyperparameters: Any) -> List[Any]:
         """Execute the complete inference pipeline on a list of items.
 
         Args:
             items: List of items to process through the pipeline
-            hyperparameters: Model-specific parameters for inference
+            **hyperparameters: Model-specific parameters for inference
 
         Returns:
             List of processed outputs after running through the complete pipeline
@@ -62,11 +62,23 @@ class InferencePipeline:
             input_items = items
 
         if asyncio.iscoroutinefunction(self.inference_function):
-            inference_outputs = await self.inference_function(input_items, hyperparameters)
+            inference_outputs = await self.inference_function(input_items, **hyperparameters)
         else:
-            inference_outputs = self.inference_function(input_items, hyperparameters)
+            inference_outputs = self.inference_function(input_items, **hyperparameters)
 
         if self.postprocessor:
             return [self.postprocessor(inference_output) for inference_output in inference_outputs]
         else:
             return cast(List[Any], inference_outputs)
+
+    async def __call__(self, items: List[Dict[str, Any]], **hyperparameters: Any) -> List[Any]:
+        """Make the pipeline instance callable by wrapping the run method.
+
+        Args:
+            items: List of items to process through the pipeline
+            **hyperparameters: Model-specific parameters for inference
+
+        Returns:
+            List of processed outputs after running through the complete pipeline
+        """
+        return await self.run(items, **hyperparameters)
