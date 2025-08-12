@@ -1,4 +1,4 @@
-# ScoreBook
+# Scorebook
 
 **A Python library for LLM evaluation**
 
@@ -8,17 +8,15 @@
   <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
 </p>
 
-ScoreBook is a flexible and extensible framework for evaluating Large Language Models (LLMs). It provides clear contracts for data loading, model inference, and metrics computation, making it easy to run comprehensive evaluations across different datasets, models, and metrics.
+Scorebook is a flexible and extensible framework for evaluating Large Language Models (LLMs). It provides clear contracts for data loading, model inference, and metrics computation, making it easy to run comprehensive evaluations across different datasets, models, and metrics.
 
 ## ✨ Key Features
 
 - **🔌 Flexible Data Loading**: Support for Hugging Face datasets, CSV, JSON, and Python lists
-- **🚀 Model Agnostic**: Works with any model through inference functions or pipelines
-- **📊 Built-in Metrics**: Accuracy, Precision, and extensible metric system
-- **⚡ Batch Processing**: Efficient evaluation with progress tracking
-- **🔄 Hyperparameter Sweeping**: Test multiple model configurations automatically
-- **🔧 Modular Design**: Separate preprocessing, inference, and postprocessing stages
-- **📈 Rich Results**: Export results to JSON, CSV, or structured formats
+- **🚀 Model Agnostic**: Works with any model or inference provider
+- **📊 Extensible Metric Engine**: Use the metrics we provide or implement your own
+- **🔄 Automated Sweeping**: Test multiple model configurations automatically
+- **📈 Rich Results**: Export results to JSON, CSV, or structured formats like pandas DataFrames
 
 ## 🚀 Quick Start
 
@@ -77,7 +75,7 @@ print(results)
 
 ### 1. Evaluation Datasets
 
-ScoreBook supports multiple data sources through the `EvalDataset` class:
+Scorebook supports multiple data sources through the `EvalDataset` class:
 
 #### From Hugging Face
 ```python
@@ -119,7 +117,7 @@ dataset = EvalDataset.from_list(
 
 ### 2. Model Integration
 
-ScoreBook offers two approaches for model integration:
+Scorebook offers two approaches for model integration:
 
 #### Inference Functions
 A single function that handles the complete pipeline:
@@ -254,7 +252,7 @@ for result in results:
 
 ## 🔧 OpenAI Integration
 
-ScoreBook includes built-in OpenAI support for both single requests and batch processing:
+Scorebook includes built-in OpenAI support for both single requests and batch processing:
 
 ```python
 from scorebook.inference.openai import responses, batch
@@ -296,7 +294,7 @@ python basic_example.py --output-dir ./my_results
 
 ## 🏗️ Architecture
 
-ScoreBook follows a modular architecture:
+Scorebook follows a modular architecture:
 
 ```
 ┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
@@ -322,7 +320,7 @@ ScoreBook follows a modular architecture:
 
 ## 🎯 Use Cases
 
-ScoreBook is designed for:
+Scorebook is designed for:
 
 - **Model Benchmarking**: Compare different models on standard datasets
 - **Hyperparameter Optimization**: Find optimal model configurations
@@ -330,22 +328,6 @@ ScoreBook is designed for:
 - **A/B Testing**: Compare model versions or approaches
 - **Research Experiments**: Reproducible evaluation workflows
 - **Production Monitoring**: Track model performance over time
-
-## 📚 API Reference
-
-### Core Functions
-
-- **`evaluate()`**: Main evaluation function
-- **`EvalDataset`**: Dataset loading and management
-- **`InferencePipeline`**: Modular inference pipeline
-- **`MetricBase`**: Base class for custom metrics
-
-### Configuration Options
-
-- **`score_type`**: "aggregate", "item", or "all"
-- **`return_type`**: "dict" or "object"
-- **`item_limit`**: Limit evaluation to N items
-- **`hyperparameters`**: Dictionary for parameter sweeping
 
 ## 🤝 Contributing
 
@@ -357,7 +339,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🏢 About
 
-ScoreBook is developed by [Trismik](https://trismik.com) to speed up your LLM evaluation.
+Scorebook is developed by [Trismik](https://trismik.com) to speed up your LLM evaluation.
 
 ---
 
