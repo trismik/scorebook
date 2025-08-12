@@ -92,7 +92,7 @@ dataset = EvalDataset.from_huggingface(
 #### From CSV
 ```python
 dataset = EvalDataset.from_csv(
-    "data.csv",
+    "dataset.csv",
     label="answer",
     metrics=[Accuracy]
 )
@@ -101,7 +101,7 @@ dataset = EvalDataset.from_csv(
 #### From JSON
 ```python
 dataset = EvalDataset.from_json(
-    "data.json",
+    "dataset.json",
     label="answer",
     metrics=[Accuracy]
 )

@@ -1,0 +1,354 @@
+{
+    "aggregate": [
+        {
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": 0.2,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": 0.2,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": 0.4,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": 0.2,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        }
+    ],
+    "per_sample": [
+        {
+            "item_id": 0,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 1,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 2,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 3,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 4,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 5,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 6,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 7,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 8,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 9,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 0,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 1,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 2,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 3,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 4,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 5,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 6,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 7,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 8,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 9,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 0,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 1,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 2,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 3,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 4,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 5,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 6,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 7,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 8,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 9,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 0,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 1,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 2,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 3,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 4,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 5,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 6,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 7,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 8,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 9,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false,
+            "do_sample": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        }
+    ]
+}

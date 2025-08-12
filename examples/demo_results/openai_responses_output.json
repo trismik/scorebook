@@ -1,0 +1,60 @@
+{
+    "aggregate": [
+        {
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": 0.3
+        }
+    ],
+    "per_sample": [
+        {
+            "item_id": 0,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false
+        },
+        {
+            "item_id": 1,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false
+        },
+        {
+            "item_id": 2,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false
+        },
+        {
+            "item_id": 3,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false
+        },
+        {
+            "item_id": 4,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true
+        },
+        {
+            "item_id": 5,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true
+        },
+        {
+            "item_id": 6,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false
+        },
+        {
+            "item_id": 7,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": true
+        },
+        {
+            "item_id": 8,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false
+        },
+        {
+            "item_id": 9,
+            "dataset_name": "TIGER-Lab/MMLU-Pro",
+            "accuracy": false
+        }
+    ]
+}
