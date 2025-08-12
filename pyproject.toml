@@ -7,14 +7,14 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = ["notebook (>=7.4.5,<8.0.0)"]
+dependencies = [
+    "datasets>=3.6.0",
+]
 
 [tool.poetry]
 version = "0.0.1"  # base version
 packages = [{ include = "scorebook", from = "src" }]
 
-[tool.poetry.group.main.dependencies]
-datasets = "^3.6.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
@@ -28,20 +28,11 @@ mypy = "^1.15.0"
 autoflake = "^2.3.1"
 toml = "^0.10.2"
 
-[tool.poetry.dependencies]
-openai = { version = "^1.98.0", optional = true }
-python-dotenv = { version = "^1.1.1", optional = true }
-# Hugging Face ecosystem for examples
-transformers = { version = "^4.51.3", optional = true }
-torch = { version = "^2.7.0", optional = true }
-torchvision = { version = "^0.22.0", optional = true }
-torchaudio = { version = "^2.7.0", optional = true }
-accelerate = { version = "^1.7.0", optional = true }
-notebook = "^7.4.5"
-
 [project.optional-dependencies]
 openai = ["openai", "python-dotenv"]
-examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate"]
+examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook"]
+
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
