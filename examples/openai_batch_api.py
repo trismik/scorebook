@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output-dir",
         type=str,
-        default=str(Path.cwd() / "demo_results"),
+        default=str(Path.cwd() / "examples/demo_results"),
         help=(
             "Directory to save evaluation outputs (JSON). "
             "Defaults to ./results in the current working directory."
