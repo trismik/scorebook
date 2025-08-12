@@ -57,6 +57,25 @@ class EvalDataset:
         else:
             raise TypeError(f"Invalid key type: {type(key)}. Must be int or str.")
 
+    def __str__(self) -> str:
+        """Return a formatted string summary of the evaluation dataset."""
+        if self._hf_dataset is None:
+            return f"EvalDataset(name='{self.name}', status='uninitialized')"
+
+        num_rows = len(self._hf_dataset)
+        fields = ", ".join(self.column_names)
+        metrics = ", ".join([metric.name for metric in self.metrics])
+
+        return (
+            f"EvalDataset(\n"
+            f"  name='{self.name}',\n"
+            f"  rows={num_rows},\n"
+            f"  label='{self.label}',\n"
+            f"  fields=[{fields}],\n"
+            f"  metrics=[{metrics}]\n"
+            f")"
+        )
+
     def __iter__(self) -> Iterator[Dict[str, Any]]:
         """Return an iterator over all examples in the dataset."""
         if self._hf_dataset is None:
