@@ -29,7 +29,6 @@ cloud and local inference approaches.
 """
 
 import json
-import string
 from pathlib import Path
 from typing import Any
 
@@ -49,50 +48,35 @@ def main() -> None:
     output_dir = setup_output_directory()
 
     # Step 1: Load the evaluation dataset
-    # Create an EvalDataset from Hugging Face Hub using the MMLU-Pro benchmark
+    # Create an EvalDataset from local JSON file
     # - Uses 'answer' field as ground truth labels
     # - Configures Accuracy metric for evaluation
-    # - Uses validation split for evaluation
-    mmlu_pro = EvalDataset.from_huggingface(
-        "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
+    # - Loads from examples/example_datasets/dataset.json
+    dataset = EvalDataset.from_json(
+        "examples/example_datasets/dataset.json", label="answer", metrics=[Accuracy]
     )
 
     # Step 2: Define the preprocessing function
     # Convert raw dataset items into OpenAI API-compatible format
-    # This function formats the question and options for the cloud model
+    # This function formats the question for the cloud model
     def preprocessor(eval_item: dict) -> str:
-        """Pre-process MMLU-Pro dataset items into OpenAI prompt format."""
-        prompt = f"{eval_item['question']}\nOptions:\n" + "\n".join(
-            [
-                f"{letter}: {choice}"
-                for letter, choice in zip(string.ascii_uppercase, eval_item["options"])
-            ]
-        )
+        """Pre-process dataset items into OpenAI prompt format."""
+        prompt = eval_item["question"]
 
-        # Create a system message with strict instructions for single-letter responses
+        # Create a system message with instructions for direct answers
         system_prompt = """
-Answer the question you are given using only a single letter (for example, 'A').
-Do not use punctuation.
-Do not show your reasoning.
-Do not provide any explanation.
-Follow the instructions exactly and always answer using a single uppercase letter.
-
-For example, if the question is "What is the capital of France?" and the
-choices are "A: Paris", "B: London", "C: Rome", "D: Madrid",
-- the answer should be "A"
-- the answer should NOT be "Paris" or "A. Paris" or "A: Paris"
-
-Please adhere strictly to the instructions.
+Answer the question directly and concisely.
+Do not provide lengthy explanations unless specifically asked.
 """.strip()
 
         # Format as a conversation for OpenAI API
         return f"System: {system_prompt}\n\nUser: {prompt}\n\nAssistant:"
 
     # Step 3: Define the postprocessing function
-    # Extract the final answer letter from OpenAI API response
-    # Handles response parsing and extracts single letter answers
+    # Extract the final answer from OpenAI API response
+    # Handles response parsing and returns the response text
     def postprocessor(response: Any) -> str:
-        """Post-process OpenAI response to extract the answer letter."""
+        """Post-process OpenAI response to extract the answer."""
         # Extract the text from the OpenAI response object
         try:
             # Access the first choice's message content
@@ -100,18 +84,8 @@ Please adhere strictly to the instructions.
         except (KeyError, IndexError, AttributeError):
             raw_response = ""
 
-        # Extract a single letter from response
-        # Look for uppercase letters A-Z
-        for char in raw_response:
-            if char in string.ascii_uppercase:
-                return str(char)
-
-        # Fallback: return the first character if it's a letter
-        if raw_response and raw_response[0].upper() in string.ascii_uppercase:
-            return str(raw_response[0].upper())
-
-        # Last resort: return an empty string as default
-        return ""
+        # Return the response text, stripping whitespace
+        return str(raw_response.strip())
 
     # Step 4: Create the inference pipeline for cloud-based evaluation
     # Combine preprocessing, OpenAI API inference, and postprocessing
@@ -129,9 +103,9 @@ Please adhere strictly to the instructions.
     # - Uses score_type="all" to get both aggregate and per-item results
     # - Limits to 10 items for quick demonstration and cost control
     print(f"Running OpenAI evaluation with model: {model_name}")
-    print("Evaluating 10 items from MMLU-Pro dataset...")
+    print("Evaluating 10 items from local dataset...")
 
-    results = evaluate(inference_pipeline, mmlu_pro, item_limit=10, score_type="all")
+    results = evaluate(inference_pipeline, dataset, item_limit=10, score_type="all")
     print(results)
 
     # Step 6: Save results to file

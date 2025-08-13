@@ -21,7 +21,6 @@ to see the evolution from basic evaluation to advanced hyperparameter optimizati
 """
 
 import json
-import string
 from pathlib import Path
 from typing import Any
 
@@ -37,8 +36,8 @@ def main() -> None:
     output_dir = setup_output_directory()
 
     # Step 1: Load the evaluation dataset
-    mmlu_pro = EvalDataset.from_huggingface(
-        "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
+    dataset = EvalDataset.from_json(
+        "examples/example_datasets/dataset.json", label="answer", metrics=[Accuracy]
     )
 
     # Step 2: Initialize the language model
@@ -51,17 +50,12 @@ def main() -> None:
     # Step 3: Define the preprocessing function
     def preprocessor(eval_item: dict) -> list:
         """Convert evaluation item to model input format."""
-        prompt = f"{eval_item['question']}\nOptions:\n" + "\n".join(
-            [
-                f"{letter} : {choice}"
-                for letter, choice in zip(string.ascii_uppercase, eval_item["options"])
-            ]
-        )
+        prompt = eval_item["question"]
 
         messages = [
             {
                 "role": "system",
-                "content": "Answer the question using only a single letter (for example, 'A').",
+                "content": "Answer the question directly and concisely.",
             },
             {"role": "user", "content": prompt},
         ]
@@ -113,7 +107,7 @@ def main() -> None:
     # Results will contain separate evaluations for each parameter combination
     results = evaluate(
         inference_pipeline,
-        mmlu_pro,
+        dataset,
         hyperparameters=hyperparameters,
         score_type="all",
         item_limit=10,

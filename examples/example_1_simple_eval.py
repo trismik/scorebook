@@ -4,14 +4,14 @@ Simple Scorebook Evaluation Example.
 This example demonstrates the fundamental workflow for evaluating a language model using Scorebook.
 It shows how to:
 
-1. Load an evaluation dataset from Hugging Face Hub (MMLU-Pro benchmark)
+1. Load an evaluation dataset from local JSON file
 2. Set up a language model using Hugging Face transformers
 3. Define a custom inference function with preprocessing and postprocessing
 4. Run the evaluation and collect results
 5. Save results for analysis
 
 The example uses:
-- Dataset: MMLU-Pro (multi-choice academic questions)
+- Dataset: Local JSON dataset (question/answer pairs)
 - Model: Microsoft Phi-4-mini-instruct
 - Metric: Accuracy
 - Sample size: 10 items (for quick demonstration)
@@ -21,7 +21,6 @@ before exploring more advanced features like inference pipelines and hyperparame
 """
 
 import json
-import string
 from pathlib import Path
 from typing import Any
 
@@ -36,12 +35,12 @@ def main() -> None:
     output_dir = setup_output_directory()
 
     # Step 1: Load the evaluation dataset
-    # Create an EvalDataset from Hugging Face Hub using the MMLU-Pro benchmark
+    # Create an EvalDataset from local JSON file
     # - Uses 'answer' field as ground truth labels
     # - Configures Accuracy metric for evaluation
-    # - Uses validation split for evaluation
-    mmlu_pro = EvalDataset.from_huggingface(
-        "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
+    # - Loads from examples/example_datasets/dataset.json
+    dataset = EvalDataset.from_json(
+        "examples/example_datasets/dataset.json", label="answer", metrics=[Accuracy]
     )
 
     # Step 2: Initialize the language model
@@ -62,19 +61,14 @@ def main() -> None:
         """Pre-processes dataset items, inference and post-processing result."""
         results = []
         for eval_item in eval_items:
-            # Preprocess: Format the question with multiple choice options (A, B, C, D...)
-            prompt = f"{eval_item['question']}\nOptions:\n" + "\n".join(
-                [
-                    f"{letter} : {choice}"
-                    for letter, choice in zip(string.ascii_uppercase, eval_item["options"])
-                ]
-            )
+            # Preprocess: Use the question directly from the local dataset
+            prompt = eval_item["question"]
 
-            # Create chat messages with system instruction for single-letter responses
+            # Create chat messages
             messages = [
                 {
                     "role": "system",
-                    "content": "Answer the question using only a single letter (for example, 'A').",
+                    "content": "Answer the question directly and concisely.",
                 },
                 {"role": "user", "content": prompt},
             ]
@@ -90,7 +84,7 @@ def main() -> None:
     # Execute the evaluation using scorebook's evaluate function
     # - Limits to 10 items for quick demonstration
     # - Returns structured results with metrics and per-item scores
-    results = evaluate(inference_function, mmlu_pro, item_limit=10)
+    results = evaluate(inference_function, dataset, item_limit=10)
     print(results)
 
     # Step 5: Save results to file

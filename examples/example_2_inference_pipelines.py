@@ -26,7 +26,6 @@ inference functions and modular pipeline approaches.
 """
 
 import json
-import string
 from pathlib import Path
 from typing import Any
 
@@ -42,8 +41,8 @@ def main() -> None:
     output_dir = setup_output_directory()
 
     # Step 1: Load the evaluation dataset
-    mmlu_pro = EvalDataset.from_huggingface(
-        "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
+    dataset = EvalDataset.from_json(
+        "examples/example_datasets/dataset.json", label="answer", metrics=[Accuracy]
     )
 
     # Step 2: Initialize the language model
@@ -56,20 +55,15 @@ def main() -> None:
 
     # Step 3: Define the preprocessing function
     # Convert raw dataset items into model-ready input format
-    # This function handles formatting the question and options for the model
+    # This function handles formatting the question for the model
     def preprocessor(eval_item: dict) -> list:
         """Convert evaluation item to model input format."""
-        prompt = f"{eval_item['question']}\nOptions:\n" + "\n".join(
-            [
-                f"{letter} : {choice}"
-                for letter, choice in zip(string.ascii_uppercase, eval_item["options"])
-            ]
-        )
+        prompt = eval_item["question"]
 
         messages = [
             {
                 "role": "system",
-                "content": "Answer the question using only a single letter (for example, 'A').",
+                "content": "Answer the question directly and concisely.",
             },
             {"role": "user", "content": prompt},
         ]
@@ -107,7 +101,7 @@ def main() -> None:
     )
 
     # Step 7: Run the evaluation
-    results = evaluate(inference_pipeline, mmlu_pro, item_limit=10)
+    results = evaluate(inference_pipeline, dataset, item_limit=10)
     print(results)
 
     # Step 8: Save results to file
