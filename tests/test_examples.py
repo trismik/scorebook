@@ -89,27 +89,27 @@ def test_example_2_inference_pipelines():
             del sys.modules["example_2_inference_pipelines"]
 
 
-def test_example_3_hyperparameter_sweeps():
-    """Test that example_3_hyperparameter_sweeps.py runs successfully."""
+def test_example_4_hyperparameter_sweeps():
+    """Test that example_4_hyperparameter_sweeps.py runs successfully."""
     # Add examples directory to Python path
     examples_dir = Path(__file__).parent.parent / "examples"
     sys.path.insert(0, str(examples_dir))
 
     try:
         # Import the example module
-        import example_3_hyperparameter_sweeps
+        import example_4_hyperparameter_sweeps
 
         # Create a temporary directory for output
         with tempfile.TemporaryDirectory() as temp_dir:
             # Mock sys.argv to provide the --output-dir argument
             with patch(
-                "sys.argv", ["example_3_hyperparameter_sweeps.py", "--output-dir", temp_dir]
+                "sys.argv", ["example_4_hyperparameter_sweeps.py", "--output-dir", temp_dir]
             ):
                 # Run the main function
-                example_3_hyperparameter_sweeps.main()
+                example_4_hyperparameter_sweeps.main()
 
                 # Verify output file was created
-                output_file = Path(temp_dir) / "example_3_output.json"
+                output_file = Path(temp_dir) / "example_4_output.json"
                 assert output_file.exists(), "Output file was not created"
 
                 # Verify output file contains valid JSON
@@ -146,5 +146,5 @@ def test_example_3_hyperparameter_sweeps():
             sys.path.remove(str(examples_dir))
 
         # Remove the module from cache to avoid conflicts
-        if "example_3_hyperparameter_sweeps" in sys.modules:
-            del sys.modules["example_3_hyperparameter_sweeps"]
+        if "example_4_hyperparameter_sweeps" in sys.modules:
+            del sys.modules["example_4_hyperparameter_sweeps"]

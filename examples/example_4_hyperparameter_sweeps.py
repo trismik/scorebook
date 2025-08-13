@@ -116,9 +116,9 @@ def main() -> None:
     # Step 9: Save results to file
     # Export comprehensive results including all hyperparameter combinations
     # The JSON will contain results for each of the 4 parameter combinations
-    with open(output_dir / "example_3_output.json", "w") as output_file:
+    with open(output_dir / "example_4_output.json", "w") as output_file:
         json.dump(results, output_file, indent=4)
-        print(f"Results saved in {output_dir / 'example_3_output.json'}")
+        print(f"Results saved in {output_dir / 'example_4_output.json'}")
 
 
 # ============================================================================

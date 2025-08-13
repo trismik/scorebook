@@ -110,7 +110,7 @@ Do not provide lengthy explanations unless specifically asked.
 
     # Step 6: Save results to file
     # Export evaluation results as JSON for later analysis
-    output_file = output_dir / "example_4_output.json"
+    output_file = output_dir / "example_5_output.json"
     with open(output_file, "w") as f:
         json.dump(results, f, indent=4)
         print(f"Results saved in {output_file}")
