@@ -322,12 +322,12 @@ Scorebook follows a modular architecture:
 
 Scorebook is designed for:
 
-- **Model Benchmarking**: Compare different models on standard datasets
-- **Hyperparameter Optimization**: Find optimal model configurations
-- **Dataset Analysis**: Understand model performance across different data types
-- **A/B Testing**: Compare model versions or approaches
-- **Research Experiments**: Reproducible evaluation workflows
-- **Production Monitoring**: Track model performance over time
+- **🏆 Model Benchmarking**: Compare different models on standard datasets
+- **⚙️ Hyperparameter Optimization**: Find optimal model configurations
+- **📊 Dataset Analysis**: Understand model performance across different data types
+- **🔄 A/B Testing**: Compare model versions or approaches
+- **🔬 Research Experiments**: Reproducible evaluation workflows
+- **📈 Production Monitoring**: Track model performance over time
 
 ## 🤝 Contributing
 
