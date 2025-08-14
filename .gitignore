@@ -209,5 +209,6 @@ __marimo__/
 # Results directories
 tests/**/results/
 examples/**/results/
+examples/demo_results/
 /results/
 /scorebook/results/
