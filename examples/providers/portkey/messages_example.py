@@ -2,31 +2,9 @@
 Portkey Cloud Model Inference Example.
 
 This example demonstrates how to evaluate language models using Portkey's inference
-services with Scorebook. It showcases integration with Portkey's API for large-scale
-model evaluation without requiring local model hosting.
+services with Scorebook for real-time API calls.
 
-Key Features Demonstrated:
-1. **Portkey Integration**: Use Portkey's API for model inference
-2. **Flexible Model Selection**: Support for different models via Portkey (GPT-4, GPT-3.5, etc.)
-3. **Inference Pipeline**: Modular preprocessing and postprocessing for Portkey APIs
-4. **Cost-Effective Evaluation**: Leverage powerful cloud models without local resources
-5. **Environment Configuration**: Secure API key management using environment variables
-
-Portkey Cloud Inference Benefits:
-- **No Local Resources**: No need for powerful GPUs or model downloads
-- **Latest Models**: Access to state-of-the-art models through Portkey
-- **Scalability**: Handle large evaluations without memory constraints
-- **Consistency**: Reproducible results across different environments
-- **Cost Control**: Pay-per-use pricing model with Portkey optimization
-
-Prerequisites:
-- Portkey API key set in environment variable PORTKEY_API_KEY
-- python-dotenv for environment variable management
-- Active Portkey account with API credits
-- portkey-ai package installed
-
-Compare with local model examples to understand the tradeoffs between
-cloud and local inference approaches.
+Prerequisites: PORTKEY_API_KEY environment variable and active Portkey account.
 """
 
 import json
@@ -78,15 +56,7 @@ Do not provide lengthy explanations unless specifically asked.
     # Handles response parsing and returns the response text
     def postprocessor(response: Any) -> str:
         """Post-process Portkey response to extract the answer."""
-        # Extract the text from the Portkey response object
-        try:
-            # Access the first choice's message content
-            raw_response = response.choices[0].message.content
-        except (KeyError, IndexError, AttributeError):
-            raw_response = ""
-
-        # Return the response text, stripping whitespace
-        return str(raw_response.strip())
+        return str(response.choices[0].message.content.strip())
 
     # Step 4: Create the inference pipeline for cloud-based evaluation
     # Combine preprocessing, Portkey API inference, and postprocessing
@@ -133,17 +103,14 @@ def setup_arguments() -> tuple[Path, str]:
     parser.add_argument(
         "--output-dir",
         type=str,
-        default=str(Path.cwd() / "examples/example_results"),
-        help=(
-            "Directory to save evaluation outputs (JSON). "
-            "Defaults to ./examples/example_results in the current working directory."
-        ),
+        default=str(Path.cwd() / "results"),
+        help="Directory to save evaluation outputs (JSON).",
     )
     parser.add_argument(
         "--model",
         type=str,
         required=True,
-        help="Model to use for inference via Portkey (e.g., @your_slug/gpt-4.1-mini)",
+        help="Model to use for inference via Portkey (e.g., @openai/gpt-4.1-mini)",
     )
     args = parser.parse_args()
     output_dir = Path(args.output_dir)

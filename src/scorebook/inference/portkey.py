@@ -81,6 +81,7 @@ async def batch(
     pbar = tqdm(total=len(items), desc="Batch processing", unit="requests")
 
     awaiting_batch = True
+
     while awaiting_batch:
         batch_object = await _get_batch(batch_id, client)
         batch_status = batch_object.status
@@ -106,9 +107,8 @@ async def batch(
 
     pbar.close()
 
-    # Get the final batch object to access output_file_id
-    final_batch_object = await _get_batch(batch_id, client)
-    output_file_id = final_batch_object.output_file_id
+    # Use the final batch object to access output_file_id
+    output_file_id = batch_object.output_file_id
 
     batch_result = await _get_results_file(output_file_id, client)
     return batch_result
@@ -129,11 +129,9 @@ async def _upload_batch(
         The file ID returned by Portkey after uploading.
     """
     print("Uploading batch...")
-    if client is None:
-        client = AsyncPortkey(provider=model.split("/")[0], api_key=os.getenv("PORTKEY_API_KEY"))
 
     # Create temp .jsonl file
-    with tempfile.NamedTemporaryFile(mode="w+", suffix=".jsonl", delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
         for i, item in enumerate(items):
             # Construct each batch line
             payload = {
@@ -181,17 +179,8 @@ async def _get_results_file(output_file_id: str, client: Any) -> List[str]:
     results = []
 
     for line in content.strip().split("\n"):
-        if line.strip():
-            result_obj = json.loads(line)
-            # Extract the response from the batch result structure
-            if "response" in result_obj and "body" in result_obj["response"]:
-                response_body = result_obj["response"]["body"]
-                if "choices" in response_body and len(response_body["choices"]) > 0:
-                    message_content = response_body["choices"][0]["message"]["content"]
-                    results.append(message_content)
-                else:
-                    results.append("")
-            else:
-                results.append("")
+        result_obj = json.loads(line)
+        message_content = result_obj["response"]["body"]["choices"][0]["message"]["content"]
+        results.append(message_content)
 
     return results
