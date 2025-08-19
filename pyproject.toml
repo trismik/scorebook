@@ -30,6 +30,7 @@ toml = "^0.10.2"
 
 [project.optional-dependencies]
 openai = ["openai", "python-dotenv"]
+portkey = ["portkey-ai", "python-dotenv"]
 examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook"]
 
 
