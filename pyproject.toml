@@ -3,6 +3,7 @@ name = "scorebook"
 dynamic = ["version"]
 description = "A Python project for LLM evaluation."
 authors = [
+    { name = "Euan Campbell", email = "euan@trismik.com"},
     { name = "Marco Basaldella", email = "marco@trismik.com" }
 ]
 readme = "README.md"
