@@ -11,14 +11,89 @@ import json
 import os
 import tempfile
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import fsspec
 import pandas as pd
 from google import genai
 from google.cloud import storage
-from google.genai.types import CreateBatchJobConfig
+from google.genai import types
 from tqdm.asyncio import tqdm
+
+
+async def responses(
+    items: List[
+        Union[
+            str,
+            List[str],
+            types.Content,
+            List[types.Content],
+            types.FunctionCall,
+            List[types.FunctionCall],
+            types.Part,
+            List[types.Part],
+        ]
+    ],
+    model: str,
+    client: Optional[genai.Client] = None,
+    project_id: Optional[str] = None,
+    location: str = "us-central1",
+    system_instruction: Optional[str] = None,
+    **hyperparameters: Any,
+) -> List[types.GenerateContentResponse]:
+    """Process multiple inference requests using Google Cloud Vertex AI.
+
+    This asynchronous function handles multiple inference requests,
+    manages the API communication, and processes the responses.
+
+    Args:
+        items: List of preprocessed items to process.
+        model: Gemini model ID to use (e.g., 'gemini-2.0-flash-001').
+        client: Optional Vertex AI client instance.
+        project_id: Google Cloud Project ID. If None, uses GOOGLE_CLOUD_PROJECT env var.
+        location: Google Cloud region (default: 'us-central1').
+        system_instruction: Optional system instruction to guide model behavior.
+        hyperparameters: Additional parameters for the requests.
+
+    Returns:
+        List of raw model responses.
+    """
+    if client is None:
+        if project_id is None:
+            project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+            if not project_id:
+                raise ValueError(
+                    "Project ID must be provided or set in GOOGLE_CLOUD_PROJECT "
+                    "environment variable"
+                )
+
+        client = genai.Client(
+            vertexai=True,
+            project=project_id,
+            location=location,
+            http_options=types.HttpOptions(api_version="v1"),
+        )
+
+    # Create config if system_instruction or hyperparameters are provided
+    config = None
+    if system_instruction or hyperparameters:
+        config_dict = {}
+        if system_instruction:
+            config_dict["system_instruction"] = system_instruction
+        if hyperparameters:
+            config_dict.update(hyperparameters)
+        config = types.GenerateContentConfig(**config_dict)
+
+    results = []
+    for item in items:
+        response = client.models.generate_content(
+            model=model,
+            contents=item,
+            config=config,
+        )
+        results.append(response)
+
+    return results
 
 
 async def batch(
@@ -52,7 +127,7 @@ async def batch(
         project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
         if not project_id:
             raise ValueError(
-                "Project ID must be provided or set in GOOGLE_CLOUD_PROJECT environment variable"
+                "Project ID must be provided or set in GOOGLE_CLOUD_PROJECT " "environment variable"
             )
 
     if not input_bucket or not output_bucket:
@@ -157,7 +232,7 @@ async def _start_batch_job(
     batch_job = client.batches.create(
         model=model,
         src=input_uri,
-        config=CreateBatchJobConfig(dest=output_bucket),
+        config=types.CreateBatchJobConfig(dest=output_bucket),
     )
     return batch_job
 
