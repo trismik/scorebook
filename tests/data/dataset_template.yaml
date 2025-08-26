@@ -1,0 +1,17 @@
+name: "TIGER-Lab/MMLU-Pro"
+label: "answer"
+split: "validation"
+config: "default"
+metrics:
+  - "accuracy"
+
+system_prompt: "You are..."
+template: |
+  {{ question }}
+  Options:
+  {% for option in options %}
+  {{ number_to_letter(loop.index0) }} : {{ option }}
+  {% endfor %}
+
+# Optional metadata
+description: "MMLU-Pro multiple choice questions"

@@ -4,6 +4,7 @@ import csv
 import json
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
 
+import yaml
 from datasets import Dataset as HuggingFaceDataset
 from datasets import DatasetDict as HuggingFaceDatasetDict
 from datasets import load_dataset
@@ -21,6 +22,7 @@ class EvalDataset:
         label: str,
         metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]],
         hf_dataset: HuggingFaceDataset,
+        prompt_template: Optional[str] = None,
     ):
         """
         Create a new scorebook evaluation dataset instance.
@@ -34,6 +36,7 @@ class EvalDataset:
         self.label: str = label
         self.metrics: List[MetricBase] = self._resolve_metrics(metrics)
         self._hf_dataset: Optional[HuggingFaceDataset] = hf_dataset
+        self.prompt_template: Optional[str] = prompt_template
 
     def __len__(self) -> int:
         """Return the number of items in the dataset."""
@@ -285,6 +288,52 @@ class EvalDataset:
             raise ValueError(f"Unexpected dataset type for '{path}': {type(ds)}")
 
         return cls(name=path, label=label, metrics=metrics, hf_dataset=hf_dataset)
+
+    @classmethod
+    def from_yaml(cls, file_path: str) -> "EvalDataset":
+        """Instantiate an EvalDataset from a YAML file.
+
+        The YAML file should contain configuration for loading a dataset, including:
+        - name: Name of the dataset or Hugging Face dataset path
+        - label: The field used as the evaluation label
+        - metrics: List of metrics to evaluate
+        - split: Optional split name to load
+        - template: Optional prompt template
+
+        Returns:
+            An EvalDataset instance configured according to the YAML file.
+
+        Raises:
+            ValueError: If the YAML file is invalid or missing required fields.
+        """
+        path = validate_path(file_path, expected_suffix=".yaml")
+
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ValueError(f"Invalid YAML in {file_path}: {e}") from e
+
+        # Validate required fields
+        required_fields = ["name", "label", "metrics"]
+        missing_fields = [field for field in required_fields if field not in config]
+        if missing_fields:
+            raise ValueError(f"Missing required fields in YAML config: {', '.join(missing_fields)}")
+
+        # Load the dataset from Hugging Face
+        dataset = cls.from_huggingface(
+            path=config["name"],
+            label=config["label"],
+            metrics=config["metrics"],
+            split=config.get("split"),  # Optional field
+            name=config.get("config"),  # Optional field
+        )
+
+        # Add template if provided
+        if "template" in config:
+            dataset.prompt_template = config["template"]
+
+        return dataset
 
     @staticmethod
     def _resolve_metrics(

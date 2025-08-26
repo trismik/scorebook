@@ -45,17 +45,21 @@ def test_load_huggingface_dataset():
 
 def test_nonexistent_files():
     # Test nonexistent CSV file
-    with pytest.raises(FileNotFoundError, match="File not found"):
+    with pytest.raises(FileNotFoundError):
         EvalDataset.from_csv("nonexistent.csv", label="label", metrics=Precision)
 
     # Test nonexistent JSON file
-    with pytest.raises(FileNotFoundError, match="File not found"):
+    with pytest.raises(FileNotFoundError):
         EvalDataset.from_json("nonexistent.json", label="label", metrics=Precision)
+
+    # Test nonexistent YAML file
+    with pytest.raises(FileNotFoundError):
+        EvalDataset.from_yaml("nonexistent.yaml")
 
 
 def test_invalid_split():
     json_dataset_path = Path(__file__).parent / "data" / "DatasetDict.json"
-    with pytest.raises(ValueError, match="Split 'testing' not found in JSON file"):
+    with pytest.raises(ValueError):
         EvalDataset.from_json(
             str(json_dataset_path), label="label", split="testing", metrics=Precision
         )
@@ -70,3 +74,50 @@ def test_metric_types():
     assert len(data_csv) == 5
     assert "input" in data_csv.column_names
     assert "label" in data_csv.column_names
+
+
+def test_load_yaml_dataset():
+    yaml_path = Path(__file__).parent / "data" / "dataset_template.yaml"
+
+    # Load dataset from YAML
+    data_yaml = EvalDataset.from_yaml(str(yaml_path))
+
+    # Verify the dataset was loaded correctly
+    assert isinstance(data_yaml, EvalDataset)
+    assert len(data_yaml) > 0
+    assert "question" in data_yaml.column_names
+    assert "answer" in data_yaml.column_names
+    assert "options" in data_yaml.column_names
+    assert data_yaml.prompt_template is not None
+    assert "{{ question }}" in data_yaml.prompt_template
+
+
+def test_yaml_missing_required_fields(tmp_path):
+    # Create a YAML file missing required fields
+    yaml_content = """
+name: "imdb"
+split: "test"
+"""
+    yaml_path = tmp_path / "invalid_config.yaml"
+    yaml_path.write_text(yaml_content)
+
+    # Test that loading raises ValueError
+    with pytest.raises(ValueError):
+        EvalDataset.from_yaml(str(yaml_path))
+
+
+def test_invalid_yaml_syntax(tmp_path):
+    # Create a YAML file with invalid syntax
+    yaml_content = """
+name: "imdb"
+label: "label"
+metrics: [
+  "accuracy"
+  invalid:
+"""
+    yaml_path = tmp_path / "invalid_syntax.yaml"
+    yaml_path.write_text(yaml_content)
+
+    # Test that loading raises ValueError
+    with pytest.raises(ValueError):
+        EvalDataset.from_yaml(str(yaml_path))

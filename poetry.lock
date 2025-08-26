@@ -5386,6 +5386,18 @@ files = [
 ]
 
 [[package]]
+name = "types-pyyaml"
+version = "6.0.12.20250822"
+description = "Typing stubs for PyYAML"
+optional = false
+python-versions = ">=3.9"
+groups = ["dev"]
+files = [
+    {file = "types_pyyaml-6.0.12.20250822-py3-none-any.whl", hash = "sha256:1fe1a5e146aa315483592d292b72a172b65b946a6d98aa6ddd8e4aa838ab7098"},
+    {file = "types_pyyaml-6.0.12.20250822.tar.gz", hash = "sha256:259f1d93079d335730a9db7cff2bcaf65d7e04b4a56b5927d49a612199b59413"},
+]
+
+[[package]]
 name = "typing-extensions"
 version = "4.14.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
@@ -5817,4 +5829,4 @@ openai = ["openai", "python-dotenv"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "d8eafdd67a6a70f8585d9b67d933b2bf6691d3b996bd49e6a97b9c81dfc42854"
+content-hash = "0b584a52871c6967219bb9ed9058555c6f27b022c6c5e76cc1d792439e35e86e"
