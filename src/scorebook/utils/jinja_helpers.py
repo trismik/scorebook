@@ -1,43 +1,135 @@
 """Jinja2 template helper functions for Scorebook."""
 
-from typing import Any, Callable, Dict, Mapping, Optional
+import json
+import re
+from typing import Any, Dict, List, Optional
 
-from jinja2 import Environment, StrictUndefined
+# Helper functions for use in Jinja templates
 
 
-def jinja_template_to_fn(
-    template_str: str,
-    *,
-    autoescape: bool = False,
-    filters: Optional[Dict[str, Any]] = None,
-    tests: Optional[Dict[str, Any]] = None,
-    globals: Optional[Dict[str, Any]] = None,
-    strict: bool = True,
-) -> Callable[[Mapping[str, Any]], str]:
+def number_to_letter(index: int) -> str:
+    """Convert a number to a letter (0->A, 1->B, etc.)."""
+    return chr(65 + index)
+
+
+def letter_to_number(letter: str) -> int:
+    """Convert a letter to a number (A->0, B->1, etc.)."""
+    return ord(letter.upper()) - 65
+
+
+def format_list(items: List[Any], separator: str = ", ", last_separator: str = " and ") -> str:
+    """Format a list with proper separators and conjunction.
+
+    Examples:
+        format_list(["a", "b", "c"]) -> "a, b and c"
+        format_list(["a", "b"]) -> "a and b"
+        format_list(["a"]) -> "a"
     """
-    Compile a Jinja template string to a function: fn(eval_item) -> str.
+    if not items:
+        return ""
+    if len(items) == 1:
+        return str(items[0])
+    if len(items) == 2:
+        return f"{items[0]}{last_separator}{items[1]}"
+    return f"{separator.join(str(item) for item in items[:-1])}{last_separator}{items[-1]}"
 
-    `strict=True` raises if a variable is missing.
+
+def truncate_text(text: str, max_length: int, suffix: str = "...") -> str:
+    """Truncate text to a maximum length with optional suffix."""
+    if len(text) <= max_length:
+        return text
+    return text[: max_length - len(suffix)] + suffix
+
+
+def format_number(number: float, precision: int = 2) -> str:
+    """Format a number with specified decimal places."""
+    return f"{number:.{precision}f}"
+
+
+def pluralize(count: int, singular: str, plural: Optional[str] = None) -> str:
+    """Return singular or plural form based on count.
+
+    Examples:
+        pluralize(1, "item") -> "item"
+        pluralize(2, "item") -> "items"
+        pluralize(1, "child", "children") -> "child"
+        pluralize(2, "child", "children") -> "children"
     """
-    env = Environment(
-        autoescape=autoescape,
-        undefined=StrictUndefined if strict else None,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
+    if count == 1:
+        return singular
+    return plural if plural is not None else f"{singular}s"
 
-    # Useful defaults
-    env.filters["chr"] = chr
-    if filters:
-        env.filters.update(filters)
-    if tests:
-        env.tests.update(tests)
-    if globals:
-        env.globals.update(globals)
 
-    template = env.from_string(template_str)
+def extract_initials(text: str) -> str:
+    """Extract initials from a text string.
 
-    def render(eval_item: Mapping[str, Any]) -> str:
-        return str(template.render(**eval_item))
+    Examples:
+        extract_initials("John Doe") -> "JD"
+        extract_initials("Machine Learning Model") -> "MLM"
+    """
+    words = re.findall(r"\b[A-Za-z]", text)
+    return "".join(words).upper()
 
-    return render
+
+def json_pretty(obj: Any, indent: int = 2) -> str:
+    """Pretty-print an object as JSON."""
+    return json.dumps(obj, indent=indent, ensure_ascii=False)
+
+
+def percentage(value: float, total: float, precision: int = 1) -> str:
+    """Calculate and format a percentage.
+
+    Examples:
+        percentage(25, 100) -> "25.0%"
+        percentage(1, 3, 2) -> "33.33%"
+    """
+    if total == 0:
+        return "0.0%"
+    pct = (value / total) * 100
+    return f"{pct:.{precision}f}%"
+
+
+def ordinal(n: int) -> str:
+    """Convert number to ordinal format like 1st, 2nd, 3rd, etc."""
+    if 10 <= n % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+def default_jinja_globals() -> Dict[str, Any]:
+    """Get default global functions for Jinja templates."""
+    return {
+        "number_to_letter": number_to_letter,
+        "letter_to_number": letter_to_number,
+        "format_list": format_list,
+        "truncate_text": truncate_text,
+        "format_number": format_number,
+        "pluralize": pluralize,
+        "extract_initials": extract_initials,
+        "json_pretty": json_pretty,
+        "percentage": percentage,
+        "ordinal": ordinal,
+        "max": max,
+        "min": min,
+        "len": len,
+        "abs": abs,
+        "round": round,
+        "sum": sum,
+        "sorted": sorted,
+        "enumerate": enumerate,
+        "zip": zip,
+        "range": range,
+    }
+
+
+def default_jinja_filters() -> Dict[str, Any]:
+    """Get default filters for Jinja templates."""
+    return {
+        "chr": chr,
+        "ord": ord,
+        "abs": abs,
+        "round": round,
+        "len": len,
+    }
