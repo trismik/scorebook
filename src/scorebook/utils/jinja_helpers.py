@@ -11,15 +11,35 @@ def number_to_letter(index: int, uppercase: bool = True) -> str:
     """Convert a number to a letter (0->A, 1->B, etc.).
 
     Args:
-        index: The number to convert to a letter (0-based index)
+        index: The number to convert to a letter (0-based index, must be 0-25)
         uppercase: If True, returns uppercase letter; if False, returns lowercase
+
+    Returns:
+        str: A letter from A-Z (or a-z if uppercase is False)
+
+    Raises:
+        ValueError: If index is less than 0 or greater than 25
     """
+    if not 0 <= index <= 25:
+        raise ValueError("Index must be between 0 and 25 inclusive")
     letter = chr(65 + index)
     return letter if uppercase else letter.lower()
 
 
 def letter_to_number(letter: str) -> int:
-    """Convert a letter to a number (A->0, B->1, etc.)."""
+    """Convert a letter to a number (A->0, B->1, etc.).
+
+    Args:
+        letter: A single letter character (A-Z or a-z)
+
+    Returns:
+        int: The zero-based position of the letter in the alphabet
+
+    Raises:
+        ValueError: If the input is not a single letter character
+    """
+    if not letter.isalpha() or len(letter) != 1:
+        raise ValueError("Input must be a single letter character")
     return ord(letter.upper()) - 65
 
 
