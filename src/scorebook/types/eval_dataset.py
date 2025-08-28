@@ -31,6 +31,7 @@ class EvalDataset:
         :param label: The label field of the dataset.
         :param metrics: The specified metrics associated with the dataset.
         :param hf_dataset: The dataset as a hugging face dataset object.
+        :param prompt_template: Optional prompt template for building prompts from dataset items.
         """
         self.name: str = name
         self.label: str = label

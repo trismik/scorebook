@@ -172,14 +172,12 @@ def test_helper_functions():
     """Test various helper functions from jinja_helpers."""
     template = """{{ letter_to_number('B') }}
 {{ format_list(['apple', 'banana', 'cherry']) }}
-{{ pluralize(2, 'item') }}
 {{ ordinal(3) }}
 {{ percentage(25, 100) }}"""
     args = {}
     result = build_prompt(template, args)
     expected = """1
 apple, banana and cherry
-items
 3rd
 25.0%"""
     print(f"Helper functions result:\n{result}")

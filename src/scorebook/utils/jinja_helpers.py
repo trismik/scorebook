@@ -2,14 +2,20 @@
 
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # Helper functions for use in Jinja templates
 
 
-def number_to_letter(index: int) -> str:
-    """Convert a number to a letter (0->A, 1->B, etc.)."""
-    return chr(65 + index)
+def number_to_letter(index: int, uppercase: bool = True) -> str:
+    """Convert a number to a letter (0->A, 1->B, etc.).
+
+    Args:
+        index: The number to convert to a letter (0-based index)
+        uppercase: If True, returns uppercase letter; if False, returns lowercase
+    """
+    letter = chr(65 + index)
+    return letter if uppercase else letter.lower()
 
 
 def letter_to_number(letter: str) -> int:
@@ -44,20 +50,6 @@ def truncate_text(text: str, max_length: int, suffix: str = "...") -> str:
 def format_number(number: float, precision: int = 2) -> str:
     """Format a number with specified decimal places."""
     return f"{number:.{precision}f}"
-
-
-def pluralize(count: int, singular: str, plural: Optional[str] = None) -> str:
-    """Return singular or plural form based on count.
-
-    Examples:
-        pluralize(1, "item") -> "item"
-        pluralize(2, "item") -> "items"
-        pluralize(1, "child", "children") -> "child"
-        pluralize(2, "child", "children") -> "children"
-    """
-    if count == 1:
-        return singular
-    return plural if plural is not None else f"{singular}s"
 
 
 def extract_initials(text: str) -> str:
@@ -106,7 +98,6 @@ def default_jinja_globals() -> Dict[str, Any]:
         "format_list": format_list,
         "truncate_text": truncate_text,
         "format_number": format_number,
-        "pluralize": pluralize,
         "extract_initials": extract_initials,
         "json_pretty": json_pretty,
         "percentage": percentage,

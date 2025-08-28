@@ -15,7 +15,6 @@ from scorebook.utils.jinja_helpers import default_jinja_filters, default_jinja_g
 def build_prompt(
     prompt_template: str,
     prompt_args: Dict[str, Any],
-    *,
     filters: Optional[Dict[str, Any]] = None,
     globals_dict: Optional[Dict[str, Any]] = None,
 ) -> str:
