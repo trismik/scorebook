@@ -24,7 +24,7 @@ from scorebook.utils import evaluation_progress, expand_dict, is_awaitable
 async def _evaluate_async(
     inference_callable: Callable,
     eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
-    hyperparameters: Optional[Union[Dict[str, Any], List]] = None,
+    hyperparameters: Optional[Union[Dict[str, Any], List[Dict]]] = None,
     experiment_id: Optional[str] = None,
     item_limit: Optional[int] = None,
     return_type: str = "dict",
