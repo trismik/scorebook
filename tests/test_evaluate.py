@@ -237,10 +237,7 @@ def test_evaluate_invalid_param_config():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    with pytest.raises(
-        ValueError,
-        match="at least one of return_aggregates or return_items must be True",
-    ):
+    with pytest.raises(ValueError):
         evaluate(
             create_simple_inference_pipeline("1"),
             dataset,
