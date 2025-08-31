@@ -244,3 +244,37 @@ def test_evaluate_duplicate_datasets():
     # Both should have the same dataset name but be separate entries
     assert results["aggregate"][0]["dataset_name"] == "test_dataset"
     assert results["aggregate"][1]["dataset_name"] == "test_dataset"
+
+
+def test_evaluate_with_precomputed_hyperparams():
+    """Test evaluation with pre-computed hyperparameter grids."""
+    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset = EvalDataset.from_csv(
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+    )
+
+    # Create a list of pre-built hyperparameter configs
+    precomputed_configs = [
+        {"param1": "value1", "param2": 10},
+        {"param1": "value2", "param2": 20},
+        {"param1": "value3", "param2": 30},
+    ]
+
+    results = evaluate(
+        create_simple_inference_pipeline("1"),
+        dataset,
+        hyperparameters=precomputed_configs,
+        return_type="dict",
+        score_type="all",
+    )
+
+    # Should have results for each hyperparameter config
+    assert "aggregate" in results
+    assert "per_sample" in results
+    assert len(results["aggregate"]) == 3  # 3 hyperparameter configs
+    assert len(results["per_sample"]) == 15  # 5 items * 3 hyperparameter configs
+
+    # Check that hyperparameters are correctly passed through
+    assert results["aggregate"][0]["param1"] == "value1"
+    assert results["aggregate"][1]["param1"] == "value2"
+    assert results["aggregate"][2]["param1"] == "value3"
