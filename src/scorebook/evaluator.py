@@ -26,12 +26,19 @@ async def _evaluate_async(
     eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Union[Dict[str, Any], List[Dict]]] = None,
     experiment_id: Optional[str] = None,
-    item_limit: Optional[int] = None,
-    return_type: str = "dict",
-    score_type: str = "aggregate",
+    return_dict: bool = True,
+    return_aggregates: bool = True,
+    return_items: bool = False,
+    return_output: bool = False,
+    return_sample_size: Optional[int] = None,
 ) -> Union[Dict, List]:
     """Run inference across datasets/hyperparams, compute metrics, and format results."""
-    _validate_score_type(score_type)
+
+    # Validate parameters
+    if return_dict and not return_aggregates and not return_items:
+        raise ValueError(
+            "When return_dict=True, at least one of return_aggregates or return_items must be True"
+        )
 
     normalized_datasets = _normalize_datasets(eval_datasets)
 
@@ -48,8 +55,13 @@ async def _evaluate_async(
             with progress_bars.hyperparam_progress_context():
                 # Run inference for each hyperparameter configuration on this dataset
                 for hp_idx, hyperparam_config in enumerate(hyperparam_grid):
-                    items = _clip_items(eval_dataset.items, item_limit)
-                    labels = _labels_for(items, eval_dataset.label)
+
+                    if return_sample_size:
+                        items = _get_items_sample(eval_dataset.items, return_sample_size)
+                    else:
+                        items = eval_dataset.items
+
+                    labels = _get_labels_for_items(items, eval_dataset.label)
 
                     # 1) Run inference
                     outputs = await _run_inference_callable(
@@ -75,7 +87,9 @@ async def _evaluate_async(
         pass
 
     # 4) Format as requested
-    return _format_results(eval_results, return_type, score_type)
+    return _format_results(
+        eval_results, return_dict, return_aggregates, return_items, return_output
+    )
 
 
 def evaluate(
@@ -83,9 +97,11 @@ def evaluate(
     eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
-    item_limit: Optional[int] = None,
-    return_type: str = "dict",
-    score_type: str = "aggregate",
+    return_dict: bool = True,
+    return_aggregates: bool = True,
+    return_items: bool = False,
+    return_output: bool = False,
+    return_sample_size: Optional[int] = None,
 ) -> Union[Dict, List]:
     """
     Evaluate model predictions using specified metrics on given datasets.
@@ -105,12 +121,11 @@ def evaluate(
                  - A list of string identifiers
         hyperparameters: Optional dictionary containing hyperparameter sweep configuration.
         experiment_id: Optional string identifier for tracking multiple evaluation runs.
-        item_limit: Optional integer limiting the number of items to evaluate per dataset.
-        return_type: Format of the return value. Currently only "dict" is supported.
-        score_type: Type of score aggregation to return. Options:
-                   - "aggregate": Return aggregated metrics
-                   - "item": Return per-item scores
-                   - "all": Return both aggregate and per-item scores
+        return_dict: If True, returns eval results as a dict
+        return_aggregates: If True, returns aggregate scores for each dataset
+        return_items: If True, returns individual items for each dataset
+        return_output: If True, returns model outputs for each dataset item evaluated
+        return_sample_size: If set, only return a sample of the dataset items (for debugging)
 
     Returns:
         Dictionary mapping dataset names to their evaluation results. For each dataset,
@@ -134,9 +149,11 @@ def evaluate(
             eval_datasets=eval_datasets,
             hyperparameters=hyperparameters,
             experiment_id=experiment_id,
-            item_limit=item_limit,
-            return_type=return_type,
-            score_type=score_type,
+            return_dict=return_dict,
+            return_aggregates=return_aggregates,
+            return_items=return_items,
+            return_output=return_output,
+            return_sample_size=return_sample_size,
         )
     )
 
@@ -153,20 +170,17 @@ def _normalize_datasets(
     return [d for d in datasets if isinstance(d, EvalDataset)]
 
 
-def _validate_score_type(score_type: str) -> None:
-    if score_type not in {"aggregate", "item", "all"}:
-        raise ValueError("score_type must be 'aggregate', 'item', or 'all'")
-
-
 def _expand_hyperparams(hyperparameters: Optional[Dict[str, Any]]) -> Any:
     return expand_dict(hyperparameters or {})
 
 
-def _clip_items(items: List[Dict[str, Any]], item_limit: Optional[int]) -> List[Dict[str, Any]]:
+def _get_items_sample(
+    items: List[Dict[str, Any]], item_limit: Optional[int]
+) -> List[Dict[str, Any]]:
     return items[:item_limit] if item_limit else items
 
 
-def _labels_for(items: List[Dict[str, Any]], label_key: str) -> List[Any]:
+def _get_labels_for_items(items: List[Dict[str, Any]], label_key: str) -> List[Any]:
     return [item.get(label_key) for item in items]
 
 
@@ -189,8 +203,8 @@ def _iter_dataset_jobs(
 ) -> Iterable[Tuple[EvalDataset, List[Dict[str, Any]], List[Any], Dict[str, Any]]]:
     for eval_dataset in datasets:
         for hp in hyperparam_grid:
-            items = _clip_items(eval_dataset.items, item_limit)
-            labels = _labels_for(items, eval_dataset.label)
+            items = _get_items_sample(eval_dataset.items, item_limit)
+            labels = _get_labels_for_items(items, eval_dataset.label)
             yield eval_dataset, items, labels, hp
 
 
@@ -208,25 +222,48 @@ def _score_metrics(
 
 
 def _format_results(
-    eval_results: List[EvalResult], return_type: str, score_type: str
+    eval_results: List[EvalResult],
+    return_dict: bool,
+    return_aggregates: bool,
+    return_items: bool,
+    return_output: bool,
 ) -> Union[Dict, List]:
 
-    if return_type != "dict":
+    # Return results as a dict
+    if return_dict:
+
+        # Include both aggregate and item scores in dict returned
+        if return_aggregates and return_items:
+            results: Dict[str, List[Dict[str, Any]]] = {"aggregate_results": [], "item_results": []}
+            for eval_result in eval_results:
+                eval_result_dict = eval_result.to_dict()
+                results["aggregate_results"].extend(eval_result_dict["aggregate_results"])
+                if return_output:
+                    results["item_results"].extend(eval_result_dict["item_results"])
+                else:
+                    results["item_results"].extend(
+                        [
+                            {k: v for k, v in item.items() if k != "inference_output"}
+                            for item in eval_result_dict["item_results"]
+                        ]
+                    )
+            return results
+
+        # Include only aggregate scores in dict returned
+        elif return_aggregates:
+            return [eval_result.aggregate_scores for eval_result in eval_results]
+
+        # Include only item scores in dict returned
+        else:
+            if return_output:
+                return [eval_result.item_scores for eval_result in eval_results]
+            else:
+                return [
+                    {k: v for k, v in item.items() if k != "inference_output"}
+                    for eval_result in eval_results
+                    for item in eval_result.item_scores
+                ]
+
+    # Return results as an EvalResult object
+    else:
         return {er.eval_dataset.name: er for er in eval_results}
-
-    if score_type == "all":
-        combined: Dict[str, List[Dict[str, Any]]] = {"aggregate": [], "per_sample": []}
-        for er in eval_results:
-            d = er.to_dict()
-            combined["aggregate"].extend(d["aggregate"])
-            combined["per_sample"].extend(d["per_sample"])
-        return combined
-
-    if score_type == "aggregate":
-        return [er.aggregate_scores for er in eval_results]
-
-    if score_type == "item":
-        return [item for er in eval_results for item in er.item_scores]
-
-    # Should be unreachable due to validation
-    return {}

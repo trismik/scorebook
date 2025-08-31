@@ -113,7 +113,13 @@ def main() -> None:
 
     # For demonstration, limit to 25 items to manage cost and time
     # Remove item_limit parameter for full dataset evaluation
-    results = evaluate(inference_pipeline, dataset, item_limit=25, score_type="all")
+    results = evaluate(
+        inference_pipeline,
+        dataset,
+        return_sample_size=25,
+        return_aggregates=True,
+        return_items=True,
+    )
     print("\nBatch evaluation completed!")
     print(results)
 

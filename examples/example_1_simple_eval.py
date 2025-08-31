@@ -84,7 +84,7 @@ def main() -> None:
     # Execute the evaluation using scorebook's evaluate function
     # - Limits to 10 items for quick demonstration
     # - Returns structured results with metrics and per-item scores
-    results = evaluate(inference_function, dataset, item_limit=10)
+    results = evaluate(inference_function, dataset, return_sample_size=10)
     print(results)
 
     # Step 5: Save results to file

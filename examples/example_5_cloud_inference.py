@@ -105,7 +105,13 @@ Do not provide lengthy explanations unless specifically asked.
     print(f"Running OpenAI evaluation with model: {model_name}")
     print("Evaluating 10 items from local dataset...")
 
-    results = evaluate(inference_pipeline, dataset, item_limit=10, score_type="all")
+    results = evaluate(
+        inference_pipeline,
+        dataset,
+        return_sample_size=10,
+        return_aggregates=True,
+        return_items=True,
+    )
     print(results)
 
     # Step 6: Save results to file

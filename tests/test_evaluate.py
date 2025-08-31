@@ -39,7 +39,7 @@ def test_evaluate_single_dataset():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_pipeline("1"), dataset, return_type="object")
+    results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
 
     assert isinstance(results, dict)
     assert "test_dataset" in results
@@ -68,7 +68,7 @@ def test_evaluate_multiple_datasets():
     )
 
     results = evaluate(
-        create_simple_inference_pipeline("1"), [csv_dataset, json_dataset], return_type="object"
+        create_simple_inference_pipeline("1"), [csv_dataset, json_dataset], return_dict=False
     )
 
     assert set(results.keys()) == {"csv_dataset", "json_dataset"}
@@ -83,7 +83,7 @@ def test_evaluate_with_item_limit():
     )
 
     results = evaluate(
-        create_simple_inference_pipeline("1"), dataset, item_limit=2, return_type="object"
+        create_simple_inference_pipeline("1"), dataset, return_sample_size=2, return_dict=False
     )
     eval_result = results["test_dataset"]
 
@@ -97,7 +97,7 @@ def test_evaluate_with_multiple_metrics():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_pipeline("1"), dataset, return_type="object")
+    results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
     eval_result = results["test_dataset"]
 
     assert "accuracy" in eval_result.aggregate_scores
@@ -110,7 +110,7 @@ def test_evaluate_with_none_predictions():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_pipeline(None), dataset, return_type="object")
+    results = evaluate(create_simple_inference_pipeline(None), dataset, return_dict=False)
     eval_result = results["test_dataset"]
 
     assert all(item["accuracy"] is False for item in eval_result.item_scores)
@@ -145,29 +145,43 @@ def test_evaluate_return_type():
     )
 
     # Test object return type
-    obj_results = evaluate(create_simple_inference_pipeline("1"), dataset, return_type="object")
+    obj_results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
     assert isinstance(obj_results["test_dataset"], EvalResult)
 
     # Test dict return type with different score_types
     # Test aggregate (default)
-    dict_results = evaluate(create_simple_inference_pipeline("1"), dataset, return_type="dict")
+    dict_results = evaluate(
+        create_simple_inference_pipeline("1"),
+        dataset,
+        return_dict=True,
+        return_aggregates=True,
+        return_items=False,
+    )
     assert isinstance(dict_results, list)
     assert "accuracy" in dict_results[0]  # Check first result has accuracy score
 
     # Test all
     dict_results_all = evaluate(
-        create_simple_inference_pipeline("1"), dataset, return_type="dict", score_type="all"
+        create_simple_inference_pipeline("1"),
+        dataset,
+        return_dict=True,
+        return_aggregates=True,
+        return_items=True,
     )
-    assert "aggregate" in dict_results_all
-    assert "per_sample" in dict_results_all
-    assert isinstance(dict_results_all["aggregate"], list)
-    assert isinstance(dict_results_all["per_sample"], list)
-    assert len(dict_results_all["aggregate"]) > 0
-    assert len(dict_results_all["per_sample"]) > 0
+    assert "aggregate_results" in dict_results_all
+    assert "item_results" in dict_results_all
+    assert isinstance(dict_results_all["aggregate_results"], list)
+    assert isinstance(dict_results_all["item_results"], list)
+    assert len(dict_results_all["aggregate_results"]) > 0
+    assert len(dict_results_all["item_results"]) > 0
 
     # Test item
     dict_results_item = evaluate(
-        create_simple_inference_pipeline("1"), dataset, return_type="dict", score_type="item"
+        create_simple_inference_pipeline("1"),
+        dataset,
+        return_dict=True,
+        return_aggregates=False,
+        return_items=True,
     )
     assert isinstance(dict_results_item, list)
     assert len(dict_results_item) > 0
@@ -180,7 +194,7 @@ def test_evaluate_with_csv_export(tmp_path):
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_pipeline("1"), dataset, return_type="object")
+    results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
     eval_result = results["test_dataset"]
 
     output_path = tmp_path / "evaluation_results.csv"
@@ -203,7 +217,7 @@ def test_evaluate_with_json_export(tmp_path):
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_pipeline("1"), dataset, return_type="object")
+    results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
     eval_result = results["test_dataset"]
 
     output_path = tmp_path / "evaluation_results.json"
@@ -212,19 +226,28 @@ def test_evaluate_with_json_export(tmp_path):
     assert output_path.exists()
     with open(output_path, "r") as f:
         data = json.load(f)
-        assert "aggregate" in data
-        assert "per_sample" in data
+        assert "aggregate_results" in data
+        assert "item_results" in data
 
 
-def test_evaluate_invalid_score_type():
-    """Test evaluation with invalid score type."""
+def test_evaluate_invalid_param_config():
+    """Test evaluation with invalid parameter combination."""
     dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    with pytest.raises(ValueError):
-        evaluate(create_simple_inference_pipeline("1"), dataset, score_type="invalid")
+    with pytest.raises(
+        ValueError,
+        match="at least one of return_aggregates or return_items must be True",
+    ):
+        evaluate(
+            create_simple_inference_pipeline("1"),
+            dataset,
+            return_dict=True,
+            return_aggregates=False,
+            return_items=False,
+        )
 
 
 def test_evaluate_duplicate_datasets():
@@ -235,15 +258,21 @@ def test_evaluate_duplicate_datasets():
     )
 
     # Pass the same dataset twice
-    results = evaluate(create_simple_inference_pipeline("1"), [dataset, dataset], score_type="all")
+    results = evaluate(
+        create_simple_inference_pipeline("1"),
+        [dataset, dataset],
+        return_dict=True,
+        return_aggregates=True,
+        return_items=True,
+    )
 
     # Should have results from both dataset runs
-    assert len(results["aggregate"]) == 2
-    assert len(results["per_sample"]) == 10  # 5 items per dataset * 2 datasets
+    assert len(results["aggregate_results"]) == 2
+    assert len(results["item_results"]) == 10  # 5 items * 2 datasets
 
     # Both should have the same dataset name but be separate entries
-    assert results["aggregate"][0]["dataset_name"] == "test_dataset"
-    assert results["aggregate"][1]["dataset_name"] == "test_dataset"
+    assert results["aggregate_results"][0]["dataset_name"] == "test_dataset"
+    assert results["aggregate_results"][1]["dataset_name"] == "test_dataset"
 
 
 def test_evaluate_with_precomputed_hyperparams():
@@ -264,17 +293,18 @@ def test_evaluate_with_precomputed_hyperparams():
         create_simple_inference_pipeline("1"),
         dataset,
         hyperparameters=precomputed_configs,
-        return_type="dict",
-        score_type="all",
+        return_dict=True,
+        return_aggregates=True,
+        return_items=True,
     )
 
     # Should have results for each hyperparameter config
-    assert "aggregate" in results
-    assert "per_sample" in results
-    assert len(results["aggregate"]) == 3  # 3 hyperparameter configs
-    assert len(results["per_sample"]) == 15  # 5 items * 3 hyperparameter configs
+    assert "aggregate_results" in results
+    assert "item_results" in results
+    assert len(results["aggregate_results"]) == 3  # 3 hyperparameter configs
+    assert len(results["item_results"]) == 15  # 5 items * 3 hyperparameter configs
 
     # Check that hyperparameters are correctly passed through
-    assert results["aggregate"][0]["param1"] == "value1"
-    assert results["aggregate"][1]["param1"] == "value2"
-    assert results["aggregate"][2]["param1"] == "value3"
+    assert results["aggregate_results"][0]["param1"] == "value1"
+    assert results["aggregate_results"][1]["param1"] == "value2"
+    assert results["aggregate_results"][2]["param1"] == "value3"

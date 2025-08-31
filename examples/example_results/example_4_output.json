@@ -1,0 +1,350 @@
+{
+    "aggregate_results": [
+        {
+            "dataset_name": "dataset",
+            "accuracy": 0.9,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "dataset_name": "dataset",
+            "accuracy": 0.9,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "dataset_name": "dataset",
+            "accuracy": 1.0,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "dataset_name": "dataset",
+            "accuracy": 1.0,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        }
+    ],
+    "item_results": [
+        {
+            "item_id": 0,
+            "dataset_name": "dataset",
+            "inference_output": "4",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 1,
+            "dataset_name": "dataset",
+            "inference_output": "Paris",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 2,
+            "dataset_name": "dataset",
+            "inference_output": "William Shakespeare",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 3,
+            "dataset_name": "dataset",
+            "inference_output": "30",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 4,
+            "dataset_name": "dataset",
+            "inference_output": "Jupiter",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 5,
+            "dataset_name": "dataset",
+            "inference_output": "Leonardo da Vinci",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 6,
+            "dataset_name": "dataset",
+            "inference_output": "The square root of 64 is 8.",
+            "accuracy": false,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 7,
+            "dataset_name": "dataset",
+            "inference_output": "Tokyo",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 8,
+            "dataset_name": "dataset",
+            "inference_output": "Alexander Graham Bell",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 9,
+            "dataset_name": "dataset",
+            "inference_output": "5",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 0,
+            "dataset_name": "dataset",
+            "inference_output": "4",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 1,
+            "dataset_name": "dataset",
+            "inference_output": "Paris",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 2,
+            "dataset_name": "dataset",
+            "inference_output": "William Shakespeare",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 3,
+            "dataset_name": "dataset",
+            "inference_output": "30",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 4,
+            "dataset_name": "dataset",
+            "inference_output": "Jupiter",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 5,
+            "dataset_name": "dataset",
+            "inference_output": "Leonardo da Vinci",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 6,
+            "dataset_name": "dataset",
+            "inference_output": "The square root of 64 is 8.",
+            "accuracy": false,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 7,
+            "dataset_name": "dataset",
+            "inference_output": "Tokyo",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 8,
+            "dataset_name": "dataset",
+            "inference_output": "Alexander Graham Bell",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 9,
+            "dataset_name": "dataset",
+            "inference_output": "5",
+            "accuracy": true,
+            "max_new_tokens": 50,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 0,
+            "dataset_name": "dataset",
+            "inference_output": "4",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 1,
+            "dataset_name": "dataset",
+            "inference_output": "Paris",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 2,
+            "dataset_name": "dataset",
+            "inference_output": "William Shakespeare",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 3,
+            "dataset_name": "dataset",
+            "inference_output": "30",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 4,
+            "dataset_name": "dataset",
+            "inference_output": "Jupiter",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 5,
+            "dataset_name": "dataset",
+            "inference_output": "Leonardo da Vinci",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 6,
+            "dataset_name": "dataset",
+            "inference_output": "8",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 7,
+            "dataset_name": "dataset",
+            "inference_output": "Tokyo",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 8,
+            "dataset_name": "dataset",
+            "inference_output": "Alexander Graham Bell",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 9,
+            "dataset_name": "dataset",
+            "inference_output": "5",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.6
+        },
+        {
+            "item_id": 0,
+            "dataset_name": "dataset",
+            "inference_output": "4",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 1,
+            "dataset_name": "dataset",
+            "inference_output": "Paris",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 2,
+            "dataset_name": "dataset",
+            "inference_output": "William Shakespeare",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 3,
+            "dataset_name": "dataset",
+            "inference_output": "30",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 4,
+            "dataset_name": "dataset",
+            "inference_output": "Jupiter",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 5,
+            "dataset_name": "dataset",
+            "inference_output": "Leonardo da Vinci",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 6,
+            "dataset_name": "dataset",
+            "inference_output": "8",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 7,
+            "dataset_name": "dataset",
+            "inference_output": "Tokyo",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 8,
+            "dataset_name": "dataset",
+            "inference_output": "Alexander Graham Bell",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        },
+        {
+            "item_id": 9,
+            "dataset_name": "dataset",
+            "inference_output": "5",
+            "accuracy": true,
+            "max_new_tokens": 75,
+            "temperature": 0.7
+        }
+    ]
+}
