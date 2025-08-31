@@ -199,11 +199,11 @@ async def _run_inference_callable(
 def _iter_dataset_jobs(
     datasets: List[EvalDataset],
     hyperparam_grid: List[Dict[str, Any]],
-    item_limit: Optional[int],
+    return_sample_size: Optional[int],
 ) -> Iterable[Tuple[EvalDataset, List[Dict[str, Any]], List[Any], Dict[str, Any]]]:
     for eval_dataset in datasets:
         for hp in hyperparam_grid:
-            items = _get_items_sample(eval_dataset.items, item_limit)
+            items = _get_items_sample(eval_dataset.items, return_sample_size)
             labels = _get_labels_for_items(items, eval_dataset.label)
             yield eval_dataset, items, labels, hp
 
@@ -256,7 +256,7 @@ def _format_results(
         # Include only item scores in dict returned
         else:
             if return_output:
-                return [eval_result.item_scores for eval_result in eval_results]
+                return [item for eval_result in eval_results for item in eval_result.item_scores]
             else:
                 return [
                     {k: v for k, v in item.items() if k != "inference_output"}

@@ -114,7 +114,10 @@ class EvalResult:
                 writer.writerow(row)
 
     def to_json(self, file_path: str) -> None:
-        """Save evaluation results to a JSON file in a structured format (Option 2)."""
+        """Save evaluation results to a JSON file in a structured format.
+
+        The JSON file will contain both aggregate & item results, produced by the to_dict() method.
+        """
         Path(file_path).parent.mkdir(parents=True, exist_ok=True)
         with open(file_path, "w") as f:
             json.dump(self.to_dict(), f, indent=2)
