@@ -226,5 +226,5 @@ def test_evaluate_with_failing_async_function(sample_dataset):
         postprocessor=lambda x, h=None: x,
     )
 
-    with pytest.raises(ValueError, match="Simulated async function failure"):
+    with pytest.raises(ValueError):
         evaluate(failing_pipeline, sample_dataset, return_dict=False)

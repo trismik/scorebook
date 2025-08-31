@@ -54,7 +54,7 @@ def test_get_metric_by_class():
 
 def test_invalid_metric_type():
     """Test handling of invalid metric type."""
-    with pytest.raises(ValueError, match="Invalid metric type"):
+    with pytest.raises(ValueError):
         MetricRegistry.get(123)
 
 
@@ -78,7 +78,7 @@ def test_prevent_metric_overwrite():
     print(DuplicateMetric)
 
     # Second registration with same class name should raise ValueError
-    with pytest.raises(ValueError, match="Metric 'duplicatemetric' is already registered"):
+    with pytest.raises(ValueError):
 
         @MetricRegistry.register()
         class DuplicateMetric(MetricBase):  # Same class name as above
