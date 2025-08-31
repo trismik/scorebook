@@ -15,13 +15,13 @@ from scorebook.types.inference_pipeline import InferencePipeline
 def create_simple_inference_pipeline(expected_output: str = "1"):
     """Create a simple inference pipeline that always returns the same output."""
 
-    def preprocessor(item: Dict) -> Dict:
+    def preprocessor(item: Dict, hyperparameters: Dict = None) -> Dict:
         return item
 
     def inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
         return [expected_output for _ in processed_items]
 
-    def postprocessor(output: str) -> str:
+    def postprocessor(output: str, hyperparameters: Dict = None) -> str:
         return output
 
     return InferencePipeline(
@@ -128,9 +128,9 @@ def test_evaluate_invalid_inference_fn():
 
     bad_pipeline = InferencePipeline(
         model="test_model",
-        preprocessor=lambda x: x,
+        preprocessor=lambda x, h=None: x,
         inference_function=bad_inference_function,
-        postprocessor=lambda x: x,
+        postprocessor=lambda x, h=None: x,
     )
 
     with pytest.raises(ValueError):

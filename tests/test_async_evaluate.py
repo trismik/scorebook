@@ -15,14 +15,14 @@ from scorebook.types.inference_pipeline import InferencePipeline
 def create_async_inference_pipeline(expected_output: str = "1", delay: float = 0.01):
     """Create an async inference pipeline that returns the same output after a delay."""
 
-    def preprocessor(item: Dict) -> Dict:
+    def preprocessor(item: Dict, hyperparameters: Dict = None) -> Dict:
         return item
 
     async def async_inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
         await asyncio.sleep(delay)  # Simulate async work
         return [expected_output for _ in processed_items]
 
-    def postprocessor(output: str) -> str:
+    def postprocessor(output: str, hyperparameters: Dict = None) -> str:
         return output
 
     return InferencePipeline(
@@ -36,13 +36,13 @@ def create_async_inference_pipeline(expected_output: str = "1", delay: float = 0
 def create_sync_inference_pipeline(expected_output: str = "1"):
     """Create a sync inference pipeline for comparison tests."""
 
-    def preprocessor(item: Dict) -> Dict:
+    def preprocessor(item: Dict, hyperparameters: Dict = None) -> Dict:
         return item
 
     def sync_inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
         return [expected_output for _ in processed_items]
 
-    def postprocessor(output: str) -> str:
+    def postprocessor(output: str, hyperparameters: Dict = None) -> str:
         return output
 
     return InferencePipeline(
@@ -148,9 +148,9 @@ def test_evaluate_async_different_outputs(sample_dataset):
 
     variable_pipeline = InferencePipeline(
         model="test_model",
-        preprocessor=lambda x: x,
+        preprocessor=lambda x, h=None: x,
         inference_function=variable_async_inference_function,
-        postprocessor=lambda x: x,
+        postprocessor=lambda x, h=None: x,
     )
 
     results = evaluate(variable_pipeline, sample_dataset, return_type="object")
@@ -215,9 +215,9 @@ def test_evaluate_with_failing_async_function(sample_dataset):
 
     failing_pipeline = InferencePipeline(
         model="test_model",
-        preprocessor=lambda x: x,
+        preprocessor=lambda x, h=None: x,
         inference_function=failing_async_inference_function,
-        postprocessor=lambda x: x,
+        postprocessor=lambda x, h=None: x,
     )
 
     with pytest.raises(ValueError, match="Simulated async function failure"):

@@ -57,7 +57,7 @@ class InferencePipeline:
             List of processed outputs after running through the complete pipeline
         """
         if self.preprocessor:
-            input_items = [self.preprocessor(item) for item in items]
+            input_items = [self.preprocessor(item, hyperparameters) for item in items]
         else:
             input_items = items
 
@@ -67,7 +67,10 @@ class InferencePipeline:
             inference_outputs = self.inference_function(input_items, **hyperparameters)
 
         if self.postprocessor:
-            return [self.postprocessor(inference_output) for inference_output in inference_outputs]
+            return [
+                self.postprocessor(inference_output, hyperparameters)
+                for inference_output in inference_outputs
+            ]
         else:
             return cast(List[Any], inference_outputs)
 
