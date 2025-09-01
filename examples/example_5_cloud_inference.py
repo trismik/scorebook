@@ -108,7 +108,7 @@ Do not provide lengthy explanations unless specifically asked.
     results = evaluate(
         inference_pipeline,
         dataset,
-        return_sample_size=10,
+        sample_size=10,
         return_aggregates=True,
         return_items=True,
     )
