@@ -42,6 +42,7 @@ class EvalResult:
             result = {
                 "item_id": idx,
                 "dataset_name": self.eval_dataset.name,
+                "inference_output": self.inference_outputs[idx],
                 **{
                     metric: self.metric_scores[metric]["item_scores"][idx]
                     for metric in metric_names
@@ -74,13 +75,13 @@ class EvalResult:
     def to_dict(self) -> Dict[str, Any]:
         """Return a dictionary representing the evaluation results."""
         return {
-            "aggregate": [
+            "aggregate_results": [
                 {
                     **getattr(self.eval_dataset, "hyperparams", {}),
                     **self.aggregate_scores,
                 }
             ],
-            "per_sample": [item for item in self.item_scores],
+            "item_results": [item for item in self.item_scores],
         }
 
     def to_csv(self, file_path: str) -> None:
@@ -113,7 +114,10 @@ class EvalResult:
                 writer.writerow(row)
 
     def to_json(self, file_path: str) -> None:
-        """Save evaluation results to a JSON file in structured format (Option 2)."""
+        """Save evaluation results to a JSON file in a structured format.
+
+        The JSON file will contain both aggregate & item results, produced by the to_dict() method.
+        """
         Path(file_path).parent.mkdir(parents=True, exist_ok=True)
         with open(file_path, "w") as f:
             json.dump(self.to_dict(), f, indent=2)

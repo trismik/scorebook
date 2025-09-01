@@ -127,7 +127,7 @@ def main() -> None:
     # - Limits to 10 items for quick demonstration
     # - Returns structured results with metrics and per-item scores
     print("\nRunning evaluation on MMLU-Pro dataset...")
-    results = evaluate(inference_pipeline, mmlu_pro, item_limit=10)
+    results = evaluate(inference_pipeline, mmlu_pro, sample_size=10)
     print(results)
 
     # Step 8: Save results to file

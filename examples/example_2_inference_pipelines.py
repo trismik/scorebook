@@ -101,7 +101,7 @@ def main() -> None:
     )
 
     # Step 7: Run the evaluation
-    results = evaluate(inference_pipeline, dataset, item_limit=10)
+    results = evaluate(inference_pipeline, dataset, sample_size=10)
     print(results)
 
     # Step 8: Save results to file

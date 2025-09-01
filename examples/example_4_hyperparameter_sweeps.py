@@ -109,8 +109,9 @@ def main() -> None:
         inference_pipeline,
         dataset,
         hyperparameters=hyperparameters,
-        score_type="all",
-        item_limit=10,
+        return_aggregates=True,
+        return_items=True,
+        sample_size=10,
     )
 
     # Step 9: Save results to file

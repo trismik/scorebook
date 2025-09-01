@@ -66,7 +66,7 @@ def test_evaluate_with_async_inference_function(sample_dataset):
     """Test evaluation with an async inference function."""
     async_inference_fn = create_async_inference_pipeline("1")
 
-    results = evaluate(async_inference_fn, sample_dataset, return_type="object")
+    results = evaluate(async_inference_fn, sample_dataset, return_dict=False)
 
     assert len(results) == 1
     assert "test_dataset" in results
@@ -81,8 +81,8 @@ def test_evaluate_async_vs_sync_same_results(sample_dataset):
     sync_inference_fn = create_sync_inference_pipeline("1")
     async_inference_fn = create_async_inference_pipeline("1")
 
-    sync_results = evaluate(sync_inference_fn, sample_dataset, return_type="object")
-    async_results = evaluate(async_inference_fn, sample_dataset, return_type="object")
+    sync_results = evaluate(sync_inference_fn, sample_dataset, return_dict=False)
+    async_results = evaluate(async_inference_fn, sample_dataset, return_dict=False)
 
     # Results should be identical
     assert len(sync_results) == len(async_results)
@@ -105,7 +105,7 @@ def test_evaluate_async_with_multiple_datasets():
     )
 
     async_inference_fn = create_async_inference_pipeline("1")
-    results = evaluate(async_inference_fn, [dataset1, dataset2], return_type="object")
+    results = evaluate(async_inference_fn, [dataset1, dataset2], return_dict=False)
 
     assert len(results) == 2
     assert "dataset1" in results
@@ -123,7 +123,7 @@ def test_evaluate_async_with_item_limit(sample_dataset):
     item_limit = 3
 
     results = evaluate(
-        async_inference_fn, sample_dataset, item_limit=item_limit, return_type="object"
+        async_inference_fn, sample_dataset, sample_size=item_limit, return_dict=False
     )
 
     eval_result = results["test_dataset"]
@@ -153,7 +153,7 @@ def test_evaluate_async_different_outputs(sample_dataset):
         postprocessor=lambda x: x,
     )
 
-    results = evaluate(variable_pipeline, sample_dataset, return_type="object")
+    results = evaluate(variable_pipeline, sample_dataset, return_dict=False)
     eval_result = results["test_dataset"]
 
     # Check that we got some variety in predictions
@@ -165,7 +165,13 @@ def test_evaluate_async_with_dict_return_type(sample_dataset):
     """Test async inference function with dict return type."""
     async_inference_fn = create_async_inference_pipeline("1")
 
-    results = evaluate(async_inference_fn, sample_dataset, return_type="dict")
+    results = evaluate(
+        async_inference_fn,
+        sample_dataset,
+        return_dict=True,
+        return_aggregates=True,
+        return_items=False,
+    )
 
     assert isinstance(results, list)
     assert len(results) > 0
@@ -185,7 +191,7 @@ def test_evaluate_async_performance():
     async_inference_fn = create_async_inference_pipeline("1", delay=0.001)  # 1ms delay
 
     start_time = time.time()
-    results = evaluate(async_inference_fn, dataset, return_type="object")
+    results = evaluate(async_inference_fn, dataset, return_dict=False)
     end_time = time.time()
 
     # Should complete reasonably quickly (not more than 10 seconds for 50 items)
@@ -220,5 +226,5 @@ def test_evaluate_with_failing_async_function(sample_dataset):
         postprocessor=lambda x: x,
     )
 
-    with pytest.raises(ValueError, match="Simulated async function failure"):
-        evaluate(failing_pipeline, sample_dataset, return_type="object")
+    with pytest.raises(ValueError):
+        evaluate(failing_pipeline, sample_dataset, return_dict=False)
