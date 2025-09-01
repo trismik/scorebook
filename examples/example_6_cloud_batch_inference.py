@@ -116,7 +116,7 @@ def main() -> None:
     results = evaluate(
         inference_pipeline,
         dataset,
-        return_sample_size=25,
+        sample_size=25,
         return_aggregates=True,
         return_items=True,
     )

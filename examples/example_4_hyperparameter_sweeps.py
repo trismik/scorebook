@@ -111,7 +111,7 @@ def main() -> None:
         hyperparameters=hyperparameters,
         return_aggregates=True,
         return_items=True,
-        return_sample_size=10,
+        sample_size=10,
     )
 
     # Step 9: Save results to file
