@@ -271,6 +271,7 @@ def test_evaluate_duplicate_datasets():
     assert results["aggregate_results"][0]["dataset_name"] == "test_dataset"
     assert results["aggregate_results"][1]["dataset_name"] == "test_dataset"
 
+
 def test_evaluate_with_precomputed_hyperparams():
     """Test evaluation with pre-computed hyperparameter grids."""
     dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
