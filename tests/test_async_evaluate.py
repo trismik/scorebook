@@ -123,7 +123,7 @@ def test_evaluate_async_with_item_limit(sample_dataset):
     item_limit = 3
 
     results = evaluate(
-        async_inference_fn, sample_dataset, return_sample_size=item_limit, return_dict=False
+        async_inference_fn, sample_dataset, sample_size=item_limit, return_dict=False
     )
 
     eval_result = results["test_dataset"]
