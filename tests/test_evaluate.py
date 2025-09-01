@@ -15,13 +15,13 @@ from scorebook.types.inference_pipeline import InferencePipeline
 def create_simple_inference_pipeline(expected_output: str = "1"):
     """Create a simple inference pipeline that always returns the same output."""
 
-    def preprocessor(item: Dict) -> Dict:
+    def preprocessor(item: Dict, hyperparameters: Dict = None) -> Dict:
         return item
 
     def inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
         return [expected_output for _ in processed_items]
 
-    def postprocessor(output: str) -> str:
+    def postprocessor(output: str, hyperparameters: Dict = None) -> str:
         return output
 
     return InferencePipeline(
@@ -128,9 +128,9 @@ def test_evaluate_invalid_inference_fn():
 
     bad_pipeline = InferencePipeline(
         model="test_model",
-        preprocessor=lambda x: x,
+        preprocessor=lambda x, h=None: x,
         inference_function=bad_inference_function,
-        postprocessor=lambda x: x,
+        postprocessor=lambda x, h=None: x,
     )
 
     with pytest.raises(ValueError):
@@ -270,3 +270,38 @@ def test_evaluate_duplicate_datasets():
     # Both should have the same dataset name but be separate entries
     assert results["aggregate_results"][0]["dataset_name"] == "test_dataset"
     assert results["aggregate_results"][1]["dataset_name"] == "test_dataset"
+
+
+def test_evaluate_with_precomputed_hyperparams():
+    """Test evaluation with pre-computed hyperparameter grids."""
+    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset = EvalDataset.from_csv(
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+    )
+
+    # Create a list of pre-built hyperparameter configs
+    precomputed_configs = [
+        {"param1": "value1", "param2": 10},
+        {"param1": "value2", "param2": 20},
+        {"param1": "value3", "param2": 30},
+    ]
+
+    results = evaluate(
+        create_simple_inference_pipeline("1"),
+        dataset,
+        hyperparameters=precomputed_configs,
+        return_dict=True,
+        return_aggregates=True,
+        return_items=True,
+    )
+
+    # Should have results for each hyperparameter config
+    assert "aggregate_results" in results
+    assert "item_results" in results
+    assert len(results["aggregate_results"]) == 3  # 3 hyperparameter configs
+    assert len(results["item_results"]) == 15  # 5 items * 3 hyperparameter configs
+
+    # Check that hyperparameters are correctly passed through
+    assert results["aggregate_results"][0]["param1"] == "value1"
+    assert results["aggregate_results"][1]["param1"] == "value2"
+    assert results["aggregate_results"][2]["param1"] == "value3"

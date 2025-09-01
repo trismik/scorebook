@@ -24,7 +24,7 @@ from scorebook.utils import evaluation_progress, expand_dict, is_awaitable
 async def _evaluate_async(
     inference_callable: Callable,
     eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
-    hyperparameters: Optional[Dict[str, Any]] = None,
+    hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
     experiment_id: Optional[str] = None,
     return_dict: bool = True,
     return_aggregates: bool = True,
@@ -41,7 +41,13 @@ async def _evaluate_async(
         )
 
     normalized_datasets = _normalize_datasets(eval_datasets)
-    hyperparam_grid = _expand_hyperparams(hyperparameters)
+
+    if hyperparameters is None:
+        hyperparam_grid: List[Dict[str, Any]] = [{}]
+    elif not isinstance(hyperparameters, list):
+        hyperparam_grid = _expand_hyperparams(hyperparameters)
+    else:
+        hyperparam_grid = hyperparameters
 
     eval_results: List[EvalResult] = []
 
@@ -91,7 +97,7 @@ async def _evaluate_async(
 def evaluate(
     inference_callable: Callable,
     eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
-    hyperparameters: Optional[Dict[str, Any]] = None,
+    hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
     experiment_id: Optional[str] = None,
     return_dict: bool = True,
     return_aggregates: bool = True,
