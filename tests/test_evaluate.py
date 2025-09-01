@@ -83,7 +83,7 @@ def test_evaluate_with_item_limit():
     )
 
     results = evaluate(
-        create_simple_inference_pipeline("1"), dataset, return_sample_size=2, return_dict=False
+        create_simple_inference_pipeline("1"), dataset, sample_size=2, return_dict=False
     )
     eval_result = results["test_dataset"]
 

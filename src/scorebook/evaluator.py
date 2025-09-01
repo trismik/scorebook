@@ -30,7 +30,7 @@ async def _evaluate_async(
     return_aggregates: bool = True,
     return_items: bool = False,
     return_output: bool = False,
-    return_sample_size: Optional[int] = None,
+    sample_size: Optional[int] = None,
 ) -> Union[Dict, List]:
     """Run inference across datasets/hyperparams, compute metrics, and format results."""
 
@@ -52,8 +52,8 @@ async def _evaluate_async(
                 # Run inference for each hyperparameter configuration on this dataset
                 for hp_idx, hyperparam_config in enumerate(hyperparam_grid):
 
-                    if return_sample_size:
-                        items = _get_items_sample(eval_dataset.items, return_sample_size)
+                    if sample_size:
+                        items = _get_items_sample(eval_dataset.items, sample_size)
                     else:
                         items = eval_dataset.items
 
@@ -97,7 +97,7 @@ def evaluate(
     return_aggregates: bool = True,
     return_items: bool = False,
     return_output: bool = False,
-    return_sample_size: Optional[int] = None,
+    sample_size: Optional[int] = None,
 ) -> Union[Dict, List]:
     """
     Evaluate model predictions using specified metrics on given datasets.
@@ -121,7 +121,7 @@ def evaluate(
         return_aggregates: If True, returns aggregate scores for each dataset
         return_items: If True, returns individual items for each dataset
         return_output: If True, returns model outputs for each dataset item evaluated
-        return_sample_size: If set, only return a sample of the dataset items (for debugging)
+        sample_size: If set, only return a sample of the dataset items (for debugging)
 
     Returns:
         Dictionary mapping dataset names to their evaluation results. For each dataset,
@@ -149,7 +149,7 @@ def evaluate(
             return_aggregates=return_aggregates,
             return_items=return_items,
             return_output=return_output,
-            return_sample_size=return_sample_size,
+            sample_size=sample_size,
         )
     )
 
@@ -195,11 +195,11 @@ async def _run_inference_callable(
 def _iter_dataset_jobs(
     datasets: List[EvalDataset],
     hyperparam_grid: List[Dict[str, Any]],
-    return_sample_size: Optional[int],
+    sample_size: Optional[int],
 ) -> Iterable[Tuple[EvalDataset, List[Dict[str, Any]], List[Any], Dict[str, Any]]]:
     for eval_dataset in datasets:
         for hp in hyperparam_grid:
-            items = _get_items_sample(eval_dataset.items, return_sample_size)
+            items = _get_items_sample(eval_dataset.items, sample_size)
             labels = _get_labels_for_items(items, eval_dataset.label)
             yield eval_dataset, items, labels, hp
 
