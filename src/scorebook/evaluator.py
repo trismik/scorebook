@@ -25,10 +25,14 @@ async def _evaluate_async(
     inference_callable: Callable,
     eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
 <<<<<<< HEAD
+<<<<<<< HEAD
     hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
 =======
     hyperparameters: Optional[Union[Dict[str, Any], List[Dict]]] = None,
 >>>>>>> ba47e89 (type hint fix)
+=======
+    hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+>>>>>>> 877d5ed (Accept None for hyperparameters)
     experiment_id: Optional[str] = None,
     return_dict: bool = True,
     return_aggregates: bool = True,
@@ -46,7 +50,9 @@ async def _evaluate_async(
 
     normalized_datasets = _normalize_datasets(eval_datasets)
 
-    if not isinstance(hyperparameters, list):
+    if hyperparameters is None:
+        hyperparam_grid: List[Dict[str, Any]] = [{}]
+    elif not isinstance(hyperparameters, list):
         hyperparam_grid = _expand_hyperparams(hyperparameters)
     else:
         hyperparam_grid = hyperparameters
