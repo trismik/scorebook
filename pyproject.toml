@@ -11,11 +11,20 @@ requires-python = ">=3.9"
 dependencies = [
     "datasets>=3.6.0",
     "notebook (>=7.4.5,<8.0.0)",
+    "trismik",
 ]
+
+[project.scripts]
+scorebook = "scorebook.cli.main:main"
 
 [tool.poetry]
 version = "0.0.2"  # base version
 packages = [{ include = "scorebook", from = "src" }]
+
+[[tool.poetry.source]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+priority = "supplemental"
 
 
 [tool.poetry.group.dev.dependencies]

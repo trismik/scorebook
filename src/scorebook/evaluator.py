@@ -40,7 +40,7 @@ async def _evaluate_async(
             "When return_dict=True, at least one of return_aggregates or return_items must be True"
         )
 
-    normalized_datasets = _normalize_datasets(eval_datasets)
+    normalized_datasets, adaptive_datasets = _normalize_datasets(eval_datasets)
 
     if hyperparameters is None:
         hyperparam_grid: List[Dict[str, Any]] = [{}]
@@ -165,11 +165,17 @@ def evaluate(
 
 def _normalize_datasets(
     datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]]
-) -> List[EvalDataset]:
+) -> Tuple[List[EvalDataset], List[str]]:
     if not isinstance(datasets, list):
         datasets = [datasets]
     # TODO: handle other types (string registry, etc.)
-    return [d for d in datasets if isinstance(d, EvalDataset)]
+    classic_eval_datasets = [dataset for dataset in datasets if isinstance(dataset, EvalDataset)]
+    adaptive_eval_datasets = [
+        dataset
+        for dataset in datasets
+        if isinstance(dataset, str) and dataset.endswith(":adaptive")
+    ]
+    return classic_eval_datasets, adaptive_eval_datasets
 
 
 def _expand_hyperparams(hyperparameters: Optional[Dict[str, Any]]) -> Any:
