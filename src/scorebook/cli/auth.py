@@ -90,7 +90,7 @@ def whoami_command(args: argparse.Namespace) -> int:
     try:
         token = whoami()
         if token is None:
-            print("Not logged in. Run login() first.")
+            print("Not logged in. Run 'scorebook auth login' first.")
             return 1
         else:
             # TODO: Make actual API call to get user info

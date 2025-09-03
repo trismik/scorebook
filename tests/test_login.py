@@ -1,5 +1,7 @@
 """Tests for trismik login functionality."""
 
+# Import the actual module using importlib to avoid __init__.py import conflicts
+import importlib
 import os
 import tempfile
 from pathlib import Path
@@ -7,6 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
+# Import functions from the module
 from scorebook.trismik.login import (
     get_scorebook_config_dir,
     get_stored_token,
@@ -19,12 +22,14 @@ from scorebook.trismik.login import (
     whoami,
 )
 
+login_module = importlib.import_module("scorebook.trismik.login")
+
 
 @pytest.fixture
 def temp_config_dir():
     """Create a temporary config directory for testing."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        with patch("scorebook.trismik.login.get_scorebook_config_dir", return_value=temp_dir):
+        with patch.object(login_module, "get_scorebook_config_dir", return_value=temp_dir):
             yield temp_dir
 
 
@@ -167,7 +172,7 @@ class TestLogin:
 
     def test_login_invalid_token_raises_error(self):
         """Test that invalid token raises ValueError."""
-        with patch("scorebook.trismik.login.validate_token", return_value=False):
+        with patch.object(login_module, "validate_token", return_value=False):
             with pytest.raises(ValueError, match="Invalid API key provided"):
                 login("invalid-token")
 
