@@ -1,8 +1,11 @@
 """Authentication and token management for Trismik API."""
 
+import logging
 import os
 import pathlib
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 def get_scorebook_config_dir() -> str:
@@ -41,7 +44,8 @@ def get_stored_token() -> Optional[str]:
     try:
         token = pathlib.Path(token_path).read_text().strip()
         return token if token else None
-    except (OSError, IOError):
+    except (OSError, IOError) as e:
+        logger.warning(f"Failed to read token from {token_path}: {e}")
         return None
 
 

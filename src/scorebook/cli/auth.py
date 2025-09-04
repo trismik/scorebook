@@ -4,7 +4,7 @@ import argparse
 import getpass
 import sys
 
-from ..trismik.login import login, logout, whoami
+from scorebook.trismik.login import get_stored_token, get_token_path, login, logout, whoami
 
 
 def auth_command(args: argparse.Namespace) -> int:
@@ -29,8 +29,6 @@ def login_command(args: argparse.Namespace) -> int:
 
         if not token:
             # Check if we're already logged in
-            from ..trismik.login import get_stored_token
-
             stored_token = get_stored_token()
 
             if stored_token:
@@ -55,8 +53,6 @@ def login_command(args: argparse.Namespace) -> int:
         login(token)
 
         # Success message
-        from ..trismik.login import get_token_path
-
         print(f"Successfully logged in! Token saved to {get_token_path()}")
         return 0
 
