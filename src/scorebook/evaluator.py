@@ -52,34 +52,59 @@ async def _evaluate_async(
     eval_results: List[EvalResult] = []
 
     with evaluation_progress(normalized_datasets, len(hyperparam_grid)) as progress_bars:
-        # Loop through datasets, then hyperparameters for clear progress tracking
+        # Loop through datasets, then run all hyperparameters concurrently per dataset
         for dataset_idx, eval_dataset in enumerate(normalized_datasets):
             with progress_bars.hyperparam_progress_context():
-                # Run inference for each hyperparameter configuration on this dataset
-                for hp_idx, hyperparam_config in enumerate(hyperparam_grid):
 
-                    if sample_size:
-                        items = _get_items_sample(eval_dataset.items, sample_size)
-                    else:
-                        items = eval_dataset.items
+                if sample_size:
+                    items = _get_items_sample(eval_dataset.items, sample_size)
+                else:
+                    items = eval_dataset.items
 
-                    labels = _get_labels_for_items(items, eval_dataset.label)
+                labels = _get_labels_for_items(items, eval_dataset.label)
 
-                    # 1) Run inference
-                    outputs = await _run_inference_callable(
-                        inference_callable, items, hyperparam_config
+                # 1) Create and start inference tasks for all hyperparameter configs concurrently
+                original_tasks = [
+                    asyncio.create_task(
+                        _run_inference_callable(inference_callable, items, hyperparam_config)
+                    )
+                    for hyperparam_config in hyperparam_grid
+                ]
+
+                # Keep track of original order for results
+                task_to_index = {task: idx for idx, task in enumerate(original_tasks)}
+                outputs_list: List[Any] = [None] * len(original_tasks)
+
+                # 2) Wait for tasks to complete and update progress incrementally
+                remaining_tasks = set(original_tasks)
+
+                while remaining_tasks:
+                    # Wait for at least one task to complete
+                    done, pending = await asyncio.wait(
+                        remaining_tasks, return_when=asyncio.FIRST_COMPLETED
                     )
 
-                    # 2) Score metrics
+                    # Process completed tasks
+                    for task in done:
+                        outputs = await task
+                        original_idx = task_to_index[task]
+                        outputs_list[original_idx] = outputs
+                        progress_bars.update_hyperparam_progress()
+
+                    # Update remaining tasks
+                    remaining_tasks = pending
+
+                # 3) Process results in original order (all outputs are now collected)
+                for hp_idx, (hyperparam_config, outputs) in enumerate(
+                    zip(hyperparam_grid, outputs_list)
+                ):
+                    # Score metrics
                     metric_scores = _score_metrics(eval_dataset, outputs, labels)
 
-                    # 3) Wrap into EvalResult
+                    # Wrap into EvalResult
                     eval_results.append(
                         EvalResult(eval_dataset, outputs, metric_scores, hyperparam_config)
                     )
-
-                    # Update inner progress bar
-                    progress_bars.update_hyperparam_progress()
 
             # Update the outer progress bar
             progress_bars.update_dataset_progress()
