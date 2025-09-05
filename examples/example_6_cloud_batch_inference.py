@@ -47,7 +47,7 @@ def main() -> None:
     # Step 2: Define the preprocessing function for batch API
     # Convert raw dataset items into OpenAI Batch API-compatible format
     # The batch API requires a specific JSON structure with chat completions format
-    def preprocessor(eval_item: dict, hyperparameters: dict) -> dict:
+    def preprocessor(eval_item: dict, **hyperparameters: Any) -> dict:
         """Pre-process dataset items into OpenAI Batch API format."""
         prompt = eval_item["question"]
 
