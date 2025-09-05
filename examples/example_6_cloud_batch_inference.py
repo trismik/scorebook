@@ -47,7 +47,7 @@ def main() -> None:
     # Step 2: Define the preprocessing function for batch API
     # Convert raw dataset items into OpenAI Batch API-compatible format
     # The batch API requires a specific JSON structure with chat completions format
-    def preprocessor(eval_item: dict) -> dict:
+    def preprocessor(eval_item: dict, hyperparameters: dict) -> dict:
         """Pre-process dataset items into OpenAI Batch API format."""
         prompt = eval_item["question"]
 
@@ -71,7 +71,7 @@ def main() -> None:
     # Step 3: Define the postprocessing function
     # Extract the final answer from OpenAI Batch API response
     # The batch API returns responses in a different format than standard API
-    def postprocessor(response: Any) -> str:
+    def postprocessor(response: Any, **hyperparameters: Any) -> str:
         """Post-process OpenAI batch response to extract the answer."""
         # The batch function returns the message content directly
         # after parsing the batch results file
@@ -116,6 +116,7 @@ def main() -> None:
     results = evaluate(
         inference_pipeline,
         dataset,
+        hyperparameters=[{"temperature": 0.6}, {"temperature": 0.7}, {"temperature": 0.8}],
         sample_size=25,
         return_aggregates=True,
         return_items=True,

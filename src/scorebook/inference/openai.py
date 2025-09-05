@@ -12,7 +12,6 @@ import tempfile
 from typing import Any, List
 
 from openai import OpenAI
-from tqdm.asyncio import tqdm
 
 
 async def responses(
@@ -75,34 +74,17 @@ async def batch(
     file_id = _upload_batch(items, client)
     batch_id = _start_batch(file_id, client)
 
-    # Initialize progress bar
-    pbar = tqdm(total=len(items), desc="Batch processing", unit="requests")
-
     awaiting_batch = True
     while awaiting_batch:
         batch_object = await _get_batch(batch_id, client)
         batch_status = batch_object.status
 
-        if hasattr(batch_object, "request_counts") and batch_object.request_counts:
-            completed = batch_object.request_counts.completed
-            total = batch_object.request_counts.total
-            pbar.n = completed
-            pbar.set_postfix(status=batch_status, completed=f"{completed}/{total}")
-        else:
-            pbar.set_postfix(status=batch_status)
-
-        pbar.refresh()
-
         if batch_status == "completed":
             awaiting_batch = False
-            pbar.n = pbar.total
-            pbar.set_postfix(status="completed")
         elif batch_status == "failed":
             raise Exception("Batch processing failed")
         else:
             await asyncio.sleep(60)
-
-    pbar.close()
 
     # Get the final batch object to access output_file_id
     final_batch_object = await _get_batch(batch_id, client)
@@ -121,7 +103,6 @@ def _upload_batch(items: List[Any], client: Any) -> str:
     Returns:
         The file ID returned by OpenAI after uploading.
     """
-    print("Uploading batch...")
     # Instantiate OpenAI client
     if client is None:
         client = OpenAI()

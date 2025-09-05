@@ -15,13 +15,13 @@ from scorebook.types.inference_pipeline import InferencePipeline
 def create_simple_inference_pipeline(expected_output: str = "1"):
     """Create a simple inference pipeline that always returns the same output."""
 
-    def preprocessor(item: Dict, hyperparameters: Dict = None) -> Dict:
+    def preprocessor(item: Dict, **hyperparameters) -> Dict:
         return item
 
     def inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
         return [expected_output for _ in processed_items]
 
-    def postprocessor(output: str, hyperparameters: Dict = None) -> str:
+    def postprocessor(output: str, **hyperparameters) -> str:
         return output
 
     return InferencePipeline(
