@@ -79,8 +79,8 @@ Do not provide lengthy explanations unless specifically asked.
         """Post-process OpenAI response to extract the answer."""
         # Extract the text from the OpenAI response object
         try:
-            # Access the first choice's message content
-            raw_response = response.output[0].content[0].text
+            # Access the first choice's message content (correct OpenAI ChatCompletion format)
+            raw_response = response.choices[0].message.content
         except (KeyError, IndexError, AttributeError):
             raw_response = ""
 
@@ -112,6 +112,7 @@ Do not provide lengthy explanations unless specifically asked.
         sample_size=10,
         return_aggregates=True,
         return_items=True,
+        return_output=True,
     )
     print(results)
 

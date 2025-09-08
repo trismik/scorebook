@@ -8,16 +8,19 @@ API communication, request formatting, and response processing.
 
 import asyncio
 import json
+import logging
 import tempfile
 from typing import Any, List
 
-from openai import OpenAI
+from openai import AsyncOpenAI
+
+logger = logging.getLogger(__name__)
 
 
 async def responses(
     items: List[Any], model: str = "gpt-4.1-nano", client: Any = None, **hyperparameters: Any
 ) -> List[Any]:
-    """Process multiple inference requests using OpenAI's API.
+    """Process multiple inference requests using OpenAI's Async API.
 
     This asynchronous function handles multiple inference requests,
     manages the API communication, and processes the responses.
@@ -34,13 +37,67 @@ async def responses(
     Raises:
         NotImplementedError: Currently not implemented.
     """
-    if client is None:
-        client = OpenAI()
+    logger.debug("OpenAI responses function called with %d items", len(items))
+    logger.debug("Using model: %s", model)
+    logger.debug("Hyperparameters: %s", hyperparameters)
 
-    results = []
-    for item in items:
-        response = client.responses.create(model=model, input=item)
-        results.append(response)
+    if client is None:
+        logger.debug("Creating new AsyncOpenAI client")
+        client = AsyncOpenAI()
+
+    # Create all tasks concurrently for true parallelism
+    tasks = []
+    for i, item in enumerate(items):
+        logger.debug(
+            "Processing item %d: %s",
+            i,
+            str(item)[:100] + "..." if len(str(item)) > 100 else str(item),
+        )
+
+        # Handle string input from preprocessor - convert to proper messages format
+        if isinstance(item, str):
+            # Convert the string format to proper OpenAI messages array
+            messages = [{"role": "user", "content": item}]
+            logger.debug(
+                "Converted string to messages format: %s",
+                (
+                    messages[0]["content"][:100] + "..."
+                    if len(messages[0]["content"]) > 100
+                    else messages[0]["content"]
+                ),
+            )
+        elif isinstance(item, list):
+            # Already in proper messages format
+            messages = item
+            logger.debug("Item %d already in messages format", i)
+        else:
+            # Fallback: treat as user message
+            messages = [{"role": "user", "content": str(item)}]
+            logger.debug("Item %d converted to fallback format", i)
+
+        logger.debug("Creating OpenAI task %d with messages: %s", i, messages)
+        task = client.chat.completions.create(model=model, messages=messages, **hyperparameters)
+        tasks.append(task)
+
+    logger.debug("Created %d tasks, waiting for OpenAI responses...", len(tasks))
+    # Wait for all requests to complete in parallel
+    results = await asyncio.gather(*tasks)
+    logger.debug("Received %d responses from OpenAI", len(results))
+
+    for i, result in enumerate(results):
+        logger.debug("Response %d type: %s", i, type(result))
+        try:
+            if hasattr(result, "choices") and result.choices:
+                content = result.choices[0].message.content
+                logger.debug(
+                    "Response %d content: %s",
+                    i,
+                    content[:100] + "..." if content and len(content) > 100 else content,
+                )
+            else:
+                logger.debug("Response %d has no choices or unexpected format", i)
+        except Exception as e:
+            logger.error("Error logging response %d: %s", i, e)
 
     return results
 
@@ -69,10 +126,10 @@ async def batch(
         NotImplementedError: Currently not implemented.
     """
     if client is None:
-        client = OpenAI()
+        client = AsyncOpenAI()
 
-    file_id = _upload_batch(items, client)
-    batch_id = _start_batch(file_id, client)
+    file_id = await _upload_batch(items, client)
+    batch_id = await _start_batch(file_id, client)
 
     awaiting_batch = True
     while awaiting_batch:
@@ -94,7 +151,7 @@ async def batch(
     return batch_result
 
 
-def _upload_batch(items: List[Any], client: Any) -> str:
+async def _upload_batch(items: List[Any], client: Any) -> str:
     """Create a .jsonl file from preprocessed items and upload to OpenAI for batch processing.
 
     Args:
@@ -105,7 +162,7 @@ def _upload_batch(items: List[Any], client: Any) -> str:
     """
     # Instantiate OpenAI client
     if client is None:
-        client = OpenAI()
+        client = AsyncOpenAI()
 
     # Create temp .jsonl file
     with tempfile.NamedTemporaryFile(mode="w+", suffix=".jsonl", delete=False) as f:
@@ -122,13 +179,13 @@ def _upload_batch(items: List[Any], client: Any) -> str:
 
     # Upload file to OpenAI
     with open(file_path, "rb") as upload_file:
-        response = client.files.create(file=upload_file, purpose="batch")
+        response = await client.files.create(file=upload_file, purpose="batch")
 
     return str(response.id)
 
 
-def _start_batch(file_id: str, client: Any) -> str:
-    batch_response = client.batches.create(
+async def _start_batch(file_id: str, client: Any) -> str:
+    batch_response = await client.batches.create(
         input_file_id=file_id,
         endpoint="/v1/chat/completions",
         completion_window="24h",
@@ -137,13 +194,13 @@ def _start_batch(file_id: str, client: Any) -> str:
 
 
 async def _get_batch(batch_id: str, client: Any) -> Any:
-    batch_object = client.batches.retrieve(batch_id)
+    batch_object = await client.batches.retrieve(batch_id)
     return batch_object
 
 
 async def _get_results_file(output_file_id: str, client: Any) -> List[str]:
     """Download and parse the batch results file from OpenAI."""
-    response = client.files.content(output_file_id)
+    response = await client.files.content(output_file_id)
 
     # Parse the JSONL content
     content = response.content.decode("utf-8")

@@ -112,6 +112,7 @@ def main() -> Any:
         hyperparameters=hyperparameters,
         return_aggregates=True,
         return_items=True,
+        return_output=True,
         sample_size=10,
         parallel=True,
     )

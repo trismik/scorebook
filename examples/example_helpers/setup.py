@@ -55,5 +55,9 @@ def setup_logging(log_dir: str = "logs", experiment_id: Optional[str] = None) ->
     scorebook_logger = logging.getLogger("scorebook")
     scorebook_logger.setLevel(logging.DEBUG)
 
+    # Exclude OpenAI inference logs to reduce noise
+    openai_logger = logging.getLogger("scorebook.inference.openai")
+    openai_logger.setLevel(logging.WARNING)  # Only log warnings and errors
+
     print(f"Logging to {log_file}")
     return log_file
