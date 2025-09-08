@@ -16,11 +16,15 @@ Compare with example_5_cloud_inference.py to understand the differences
 between real-time and batch processing approaches.
 """
 
-import json
-from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
+from example_helpers import (
+    save_results_to_json,
+    setup_batch_model_parser,
+    setup_logging,
+    setup_output_directory,
+)
 
 from scorebook import EvalDataset, evaluate
 from scorebook.inference.openai import batch
@@ -28,25 +32,21 @@ from scorebook.metrics import Accuracy
 from scorebook.types.inference_pipeline import InferencePipeline
 
 
-def main() -> None:
+def main(model_name: str) -> Any:
     """Run the cloud batch inference example."""
-    # Load environment variables from .env file for API keys
-    load_dotenv()
-
-    output_dir = setup_output_directory()
 
     # Step 1: Load the evaluation dataset
-    # Create an EvalDataset from local JSON file
-    # - Uses 'answer' field as ground truth labels
-    # - Configures Accuracy metric for evaluation
-    # - Loads from examples/example_datasets/dataset.json
+    #    Create an EvalDataset from a local JSON file
+    #    Uses 'answer' field as ground truth labels
+    #    Configures Accuracy metric for evaluation
+    #    Loads from examples/example_datasets/dataset.json
     dataset = EvalDataset.from_json(
         "examples/example_datasets/dataset.json", label="answer", metrics=[Accuracy]
     )
 
     # Step 2: Define the preprocessing function for batch API
-    # Convert raw dataset items into OpenAI Batch API-compatible format
-    # The batch API requires a specific JSON structure with chat completions format
+    #    Convert raw dataset items into OpenAI Batch API-compatible format
+    #    The batch API requires a specific JSON structure with chat completions format
     def preprocessor(eval_item: dict, **hyperparameters: Any) -> dict:
         """Pre-process dataset items into OpenAI Batch API format."""
         prompt = eval_item["question"]
@@ -63,14 +63,14 @@ def main() -> None:
                 {"role": "user", "content": prompt},
             ],
             "max_tokens": 150,
-            "temperature": 0.7,
+            "temperature": hyperparameters.get("temperature", 0.7),
         }
 
         return batch_request
 
     # Step 3: Define the postprocessing function
-    # Extract the final answer from OpenAI Batch API response
-    # The batch API returns responses in a different format than standard API
+    #    Extract the final answer from OpenAI Batch API response
+    #    The batch API returns responses in a different format than standard API
     def postprocessor(response: Any, **hyperparameters: Any) -> str:
         """Post-process OpenAI batch response to extract the answer."""
         # The batch function returns the message content directly
@@ -88,13 +88,12 @@ def main() -> None:
         return str(response).strip() if response else ""
 
     # Step 4: Create the inference pipeline for batch processing
-    # Uses scorebook's built-in OpenAI batch function for API calls
-    # This pipeline handles the complete batch workflow:
-    # 1. Upload JSONL file to OpenAI
-    # 2. Create batch job
-    # 3. Monitor progress
-    # 4. Download and parse results
-    model_name = setup_model_selection()
+    #    Uses scorebook's built-in OpenAI batch function for API calls
+    #    This pipeline handles the complete batch workflow:
+    #        1. Upload a JSONL file to OpenAI
+    #        2. Create a batch job
+    #        3. Monitor progress
+    #        4. Download and parse results
     inference_pipeline = InferencePipeline(
         model=model_name,
         preprocessor=preprocessor,
@@ -103,10 +102,10 @@ def main() -> None:
     )
 
     # Step 5: Run the batch evaluation
-    # Execute evaluation using OpenAI Batch API with the inference pipeline
-    # - Uses score_type="all" to get both aggregate and per-item results
-    # - Processes all items in dataset (remove item_limit for full evaluation)
-    # - Batch processing is asynchronous and cost-effective
+    #    Execute evaluation using OpenAI Batch API with the inference pipeline
+    #    Uses score_type="all" to get both aggregate and per-item results
+    #    Processes all items in dataset (remove item_limit for full evaluation)
+    #    Batch processing is asynchronous and cost-effective
     print(f"Running OpenAI Batch API evaluation with model: {model_name}")
     print(f"Processing {len(dataset)} items using batch inference...")
     print("Note: Batch processing may take several minutes to complete.")
@@ -117,6 +116,7 @@ def main() -> None:
         inference_pipeline,
         dataset,
         hyperparameters=[{"temperature": 0.6}, {"temperature": 0.7}, {"temperature": 0.8}],
+        parallel=True,
         sample_size=25,
         return_aggregates=True,
         return_items=True,
@@ -124,60 +124,13 @@ def main() -> None:
     print("\nBatch evaluation completed!")
     print(results)
 
-    # Step 6: Save results to file
-    # Export evaluation results as JSON for later analysis
-    output_file = output_dir / "example_6_output.json"
-    with open(output_file, "w") as f:
-        json.dump(results, f, indent=4)
-        print(f"Results saved in {output_file}")
-
-
-# ============================================================================
-# Utility Functions
-# ============================================================================
-
-
-def setup_output_directory() -> Path:
-    """Parse command line arguments and setup output directory."""
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Run OpenAI Batch API evaluation and save results."
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default=str(Path.cwd() / "examples/example_results"),
-        help=(
-            "Directory to save evaluation outputs (JSON). "
-            "Defaults to ./examples/example_results in the current working directory."
-        ),
-    )
-    args = parser.parse_args()
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir
-
-
-def setup_model_selection() -> str:
-    """Parse model selection from command line arguments."""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Select OpenAI model for batch evaluation.")
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="gpt-4o-mini",
-        help=(
-            "OpenAI model to use for batch inference. "
-            "Note: Only select models support the Batch API. "
-            "Supported models include: gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo. "
-            "Default: gpt-4o-mini"
-        ),
-    )
-    args = parser.parse_args()
-    return str(args.model)
+    return results
 
 
 if __name__ == "__main__":
-    main()
+    load_dotenv()
+    log_file = setup_logging(experiment_id="example_6")
+    output_dir = setup_output_directory()
+    model_name = setup_batch_model_parser()
+    results_dict = main(model_name)
+    save_results_to_json(results_dict, output_dir, "example_6_output.json")
