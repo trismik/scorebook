@@ -213,3 +213,7 @@ examples/**/example_results/
 examples/demo_results/
 /results/
 /scorebook/results/
+
+# Log directories
+logs/
+/logs/

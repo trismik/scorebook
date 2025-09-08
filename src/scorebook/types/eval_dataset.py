@@ -86,6 +86,12 @@ class EvalDataset:
             raise ValueError("Dataset is not initialized")
         return iter(self._hf_dataset)
 
+    def shuffle(self) -> None:
+        """Randomly shuffle the dataset items."""
+        if self._hf_dataset is None:
+            raise ValueError("Dataset is not initialized")
+        self._hf_dataset.shuffle()
+
     @property
     def items(self) -> List[Any]:
         """Return a list of all examples in the dataset."""

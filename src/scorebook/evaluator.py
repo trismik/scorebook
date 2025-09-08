@@ -14,84 +14,19 @@ models on datasets and computing metric scores.
 """
 
 import asyncio
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+import logging
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from scorebook.types.eval_dataset import EvalDataset
-from scorebook.types.eval_result import EvalResult
+from scorebook.exceptions import (
+    DataMismatchError,
+    MetricComputationError,
+    ParallelExecutionError,
+    ParameterValidationError,
+)
+from scorebook.types import EvalDataset, EvalResult, EvalRunSpec
 from scorebook.utils import evaluation_progress, expand_dict, is_awaitable
 
-
-async def _evaluate_async(
-    inference_callable: Callable,
-    eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
-    hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
-    experiment_id: Optional[str] = None,
-    return_dict: bool = True,
-    return_aggregates: bool = True,
-    return_items: bool = False,
-    return_output: bool = False,
-    sample_size: Optional[int] = None,
-) -> Union[Dict, List]:
-    """Run inference across datasets/hyperparams, compute metrics, and format results."""
-
-    # Validate parameters
-    if return_dict and not return_aggregates and not return_items:
-        raise ValueError(
-            "When return_dict=True, at least one of return_aggregates or return_items must be True"
-        )
-
-    normalized_datasets = _normalize_datasets(eval_datasets)
-
-    if hyperparameters is None:
-        hyperparam_grid: List[Dict[str, Any]] = [{}]
-    elif not isinstance(hyperparameters, list):
-        hyperparam_grid = _expand_hyperparams(hyperparameters)
-    else:
-        hyperparam_grid = hyperparameters
-
-    eval_results: List[EvalResult] = []
-
-    with evaluation_progress(normalized_datasets, len(hyperparam_grid)) as progress_bars:
-        # Loop through datasets, then hyperparameters for clear progress tracking
-        for dataset_idx, eval_dataset in enumerate(normalized_datasets):
-            with progress_bars.hyperparam_progress_context():
-                # Run inference for each hyperparameter configuration on this dataset
-                for hp_idx, hyperparam_config in enumerate(hyperparam_grid):
-
-                    if sample_size:
-                        items = _get_items_sample(eval_dataset.items, sample_size)
-                    else:
-                        items = eval_dataset.items
-
-                    labels = _get_labels_for_items(items, eval_dataset.label)
-
-                    # 1) Run inference
-                    outputs = await _run_inference_callable(
-                        inference_callable, items, hyperparam_config
-                    )
-
-                    # 2) Score metrics
-                    metric_scores = _score_metrics(eval_dataset, outputs, labels)
-
-                    # 3) Wrap into EvalResult
-                    eval_results.append(
-                        EvalResult(eval_dataset, outputs, metric_scores, hyperparam_config)
-                    )
-
-                    # Update inner progress bar
-                    progress_bars.update_hyperparam_progress()
-
-            # Update the outer progress bar
-            progress_bars.update_dataset_progress()
-
-    # TODO: experiment_id handling (left as passthrough to preserve behavior)
-    if experiment_id:
-        pass
-
-    # 4) Format as requested
-    return _format_results(
-        eval_results, return_dict, return_aggregates, return_items, return_output
-    )
+logger = logging.getLogger(__name__)
 
 
 def evaluate(
@@ -99,6 +34,8 @@ def evaluate(
     eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
     experiment_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+    parallel: bool = False,
     return_dict: bool = True,
     return_aggregates: bool = True,
     return_items: bool = False,
@@ -128,6 +65,7 @@ def evaluate(
         return_items: If True, returns individual items for each dataset
         return_output: If True, returns model outputs for each dataset item evaluated
         sample_size: If set, only return a sample of the dataset items (for debugging)
+        parallel: If True, run inference functions in parallel (requires all functions to be async)
 
     Returns:
         Dictionary mapping dataset names to their evaluation results. For each dataset,
@@ -145,12 +83,22 @@ def evaluate(
 
         results = evaluate(inference_fn, dataset, item_limit=100)
     """
+
+    logger.info(
+        "Starting evaluation: experiment_id=%s, project_id=%s, parallel=%s",
+        experiment_id,
+        project_id,
+        parallel,
+    )
+
     return asyncio.run(
         _evaluate_async(
             inference_callable=inference_callable,
             eval_datasets=eval_datasets,
             hyperparameters=hyperparameters,
             experiment_id=experiment_id,
+            project_id=project_id,
+            parallel=parallel,
             return_dict=return_dict,
             return_aggregates=return_aggregates,
             return_items=return_items,
@@ -160,30 +108,169 @@ def evaluate(
     )
 
 
-# ===== Helper Functions =====
+async def _evaluate_async(
+    inference_callable: Callable,
+    eval_datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
+    hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+    experiment_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+    return_dict: bool = True,
+    return_aggregates: bool = True,
+    return_items: bool = False,
+    return_output: bool = False,
+    parallel: bool = False,
+    sample_size: Optional[int] = None,
+) -> Union[Dict, List]:
+    _validate_parameters(locals())
+    datasets, adaptive_datasets = _prepare_datasets(eval_datasets, sample_size)
+    hyperparameters = _prepare_hyperparameters(hyperparameters)
+
+    logger.info(
+        "Prepared %d datasets and %d hyperparameter configurations",
+        len(datasets),
+        len(hyperparameters),
+    )
+
+    runs = _build_runs(datasets, hyperparameters)
+    runs.sort(key=lambda run: (run.dataset_idx, run.hp_idx))
+
+    logger.info("Created %d evaluation runs", len(runs))
+
+    with evaluation_progress(datasets, len(hyperparameters), parallel, len(runs)) as progress_bars:
+        if parallel:
+            eval_results = await _run_parallel(inference_callable, runs, progress_bars)
+        else:
+            eval_results = await _run_sequential(inference_callable, runs, progress_bars)
+
+        logger.info("Evaluation completed successfully")
+
+    return _format_results(
+        eval_results, return_dict, return_aggregates, return_items, return_output
+    )
 
 
-def _normalize_datasets(
-    datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]]
-) -> List[EvalDataset]:
+# ===== ORCHESTRATION PATHS =====
+
+
+async def _run_parallel(
+    inference_callable: Callable,
+    runs: List[EvalRunSpec],
+    progress_bars: Any,
+) -> List[EvalResult]:
+    logger.debug("Running inference in parallel")
+
+    async def worker(run: EvalRunSpec) -> Tuple[EvalRunSpec, EvalResult]:
+        er = await _execute_run(inference_callable, run)
+        progress_bars.on_eval_run_completed(run.dataset_idx)
+        return run, er
+
+    pairs = await asyncio.gather(*[worker(r) for r in runs])
+    # Return in canonical (dataset_idx, hp_idx) order for stability
+    pairs.sort(key=lambda p: (p[0].dataset_idx, p[0].hp_idx))
+    return [er for _, er in pairs]
+
+
+async def _run_sequential(
+    inference_callable: Callable,
+    runs: List[EvalRunSpec],
+    progress_bars: Any,
+) -> List[EvalResult]:
+    logger.debug("Running inference sequentially")
+    results: List[EvalResult] = []
+    for run in runs:
+        er = await _execute_run(inference_callable, run)
+        results.append(er)
+        progress_bars.on_hyperparam_completed(run.dataset_idx)
+    return results
+
+
+# ===== EVALUATION EXECUTIONS =====
+
+
+async def _execute_run(inference_callable: Callable, run: EvalRunSpec) -> EvalResult:
+    logger.debug("Executing run for %s", run)
+
+    outputs = await _run_inference_callable(inference_callable, run.items, run.hyperparams)
+    logger.debug("Inference completed for run %s", run)
+
+    metric_scores = _score_metrics(run.eval_dataset, outputs, run.labels)
+    logger.debug("Metrics computed for run %s. - scores:  %s", run, list(metric_scores.keys()))
+
+    return EvalResult(run.eval_dataset, outputs, metric_scores, run.hyperparams)
+
+
+# ===== HELPER FUNCTIONS =====
+
+
+def _validate_parameters(params: Dict[str, Any]) -> None:
+    """Validate all parameters for evaluation."""
+
+    if params["return_dict"] and not params["return_aggregates"] and not params["return_items"]:
+        raise ParameterValidationError(
+            "When return_dict=True, at least one of return_aggregates or return_items must be True"
+        )
+
+    if params["parallel"] and not is_awaitable(params["inference_callable"]):
+        raise ParallelExecutionError(
+            "parallel=True requires the inference_callable to be async. "
+            "Please make your inference function async or set parallel=False."
+        )
+
+
+def _prepare_datasets(
+    datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
+    sample_size: Optional[int] = None,
+) -> Tuple[List[EvalDataset], List[str]]:
+    """Prepare and separate input datasets into classic and adaptive evaluation datasets."""
+
+    # Ensure datasets is always a list for consistent processing
     if not isinstance(datasets, list):
         datasets = [datasets]
-    # TODO: handle other types (string registry, etc.)
-    return [d for d in datasets if isinstance(d, EvalDataset)]
+
+    # Extract classical datasets TODO: handle other types (string registry)
+    classic_eval_datasets = [dataset for dataset in datasets if isinstance(dataset, EvalDataset)]
+
+    # Reduce datasets to a random sample
+    if sample_size:
+        logger.info("Sampling datasets to %d items each", sample_size)
+        for dataset in classic_eval_datasets:
+            dataset.shuffle()
+            if len(dataset) > sample_size:
+                original_size = len(dataset)
+                dataset._hf_dataset = dataset._hf_dataset.select(range(sample_size))
+                logger.debug(
+                    "Sampled dataset '%s' from %d to %d items",
+                    dataset.name,
+                    original_size,
+                    sample_size,
+                )
+
+    # Extract adaptive dataset strings
+    adaptive_eval_datasets = [
+        dataset.replace(":adaptive", "")
+        for dataset in datasets
+        if isinstance(dataset, str) and dataset.endswith(":adaptive")
+    ]
+
+    logger.info("Evaluating on classic datasets: %s", [ds.name for ds in classic_eval_datasets])
+    logger.info("Evaluating on adaptive datasets: %s", adaptive_eval_datasets)
+
+    return classic_eval_datasets, adaptive_eval_datasets
 
 
-def _expand_hyperparams(hyperparameters: Optional[Dict[str, Any]]) -> Any:
-    return expand_dict(hyperparameters or {})
-
-
-def _get_items_sample(
-    items: List[Dict[str, Any]], item_limit: Optional[int]
+def _prepare_hyperparameters(
+    hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]
 ) -> List[Dict[str, Any]]:
-    return items[:item_limit] if item_limit else items
+    """Prepare hyperparameters for evaluation by returning a list of hyper-param configs."""
+    if hyperparameters is None:
+        return [{}]
+    if not isinstance(hyperparameters, list):
+        expanded: List[Dict[str, Any]] = expand_dict(hyperparameters or {})
+        return expanded
 
+    logger.info("Evaluating with hyperparameters: %s", hyperparameters)
 
-def _get_labels_for_items(items: List[Dict[str, Any]], label_key: str) -> List[Any]:
-    return [item.get(label_key) for item in items]
+    return hyperparameters
 
 
 async def _run_inference_callable(
@@ -197,29 +284,47 @@ async def _run_inference_callable(
         return inference_callable(items, **hyperparams)
 
 
-# Yields (eval_dataset, items, labels, hyperparams) for every dataset x hyperparam combo.
-def _iter_dataset_jobs(
+def _build_runs(
     datasets: List[EvalDataset],
-    hyperparam_grid: List[Dict[str, Any]],
-    sample_size: Optional[int],
-) -> Iterable[Tuple[EvalDataset, List[Dict[str, Any]], List[Any], Dict[str, Any]]]:
-    for eval_dataset in datasets:
-        for hp in hyperparam_grid:
-            items = _get_items_sample(eval_dataset.items, sample_size)
-            labels = _get_labels_for_items(items, eval_dataset.label)
-            yield eval_dataset, items, labels, hp
+    hyperparameters: List[Dict[str, Any]],
+) -> List[EvalRunSpec]:
+    """Build RunSpec objects for each dataset/hyperparameter combination."""
+    runs: List[EvalRunSpec] = []
+    for d_idx, ds in enumerate(datasets):
+        items = ds.items
+        labels = [item.get(ds.label) for item in items]
+        for hp_idx, hp in enumerate(hyperparameters):
+            run_spec = EvalRunSpec(d_idx, ds, items, labels, hp, hp_idx)
+            logger.debug("Built RunSpec: %s", run_spec)
+            runs.append(run_spec)
+    return runs
 
 
 def _score_metrics(
     eval_dataset: EvalDataset, outputs: List[Any], labels: List[Any]
 ) -> Dict[str, Dict[str, Any]]:
+    """Compute metric scores for a given dataset and inference outputs."""
     metric_scores: Dict[str, Dict[str, Any]] = {}
+
+    if len(outputs) != len(labels):
+        raise DataMismatchError(len(outputs), len(labels), eval_dataset.name)
+
     for metric in eval_dataset.metrics:
-        aggregate_scores, item_scores = metric.score(outputs, labels)
-        metric_scores[metric.name] = {
-            "aggregate_scores": aggregate_scores,
-            "item_scores": item_scores,
-        }
+        try:
+            aggregate_scores, item_scores = metric.score(outputs, labels)
+            metric_scores[metric.name] = {
+                "aggregate_scores": aggregate_scores,
+                "item_scores": item_scores,
+            }
+        except Exception as e:
+            logger.error(
+                "Failed to compute metric '%s' for dataset '%s': %s",
+                metric.name,
+                eval_dataset.name,
+                str(e),
+            )
+            raise MetricComputationError(metric.name, eval_dataset.name, e)
+
     return metric_scores
 
 
@@ -268,4 +373,7 @@ def _format_results(
 
     # Return results as an EvalResult object
     else:
-        return {er.eval_dataset.name: er for er in eval_results}
+        out: Dict[str, List[EvalResult]] = {}
+        for er in eval_results:
+            out.setdefault(er.eval_dataset.name, []).append(er)
+        return out
