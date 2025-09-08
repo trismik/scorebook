@@ -7,5 +7,6 @@ and evaluation results.
 
 from scorebook.types.eval_dataset import EvalDataset
 from scorebook.types.eval_result import EvalResult
+from scorebook.types.eval_run_spec import EvalRunSpec
 
-__all__ = ["EvalDataset", "EvalResult"]
+__all__ = ["EvalDataset", "EvalResult", "EvalRunSpec"]

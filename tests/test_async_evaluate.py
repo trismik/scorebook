@@ -70,7 +70,10 @@ def test_evaluate_with_async_inference_function(sample_dataset):
 
     assert len(results) == 1
     assert "test_dataset" in results
-    eval_result = results["test_dataset"]
+    eval_results_list = results["test_dataset"]
+    assert isinstance(eval_results_list, list)
+    assert len(eval_results_list) == 1  # One result for default hyperparams
+    eval_result = eval_results_list[0]
     assert isinstance(eval_result, EvalResult)
     assert len(eval_result.inference_outputs) > 0
     assert all(pred == "1" for pred in eval_result.inference_outputs)
@@ -87,8 +90,8 @@ def test_evaluate_async_vs_sync_same_results(sample_dataset):
     # Results should be identical
     assert len(sync_results) == len(async_results)
 
-    sync_eval = sync_results["test_dataset"]
-    async_eval = async_results["test_dataset"]
+    sync_eval = sync_results["test_dataset"][0]  # Get first result from list
+    async_eval = async_results["test_dataset"][0]  # Get first result from list
 
     assert sync_eval.inference_outputs == async_eval.inference_outputs
     assert sync_eval.metric_scores == async_eval.metric_scores
@@ -111,7 +114,10 @@ def test_evaluate_async_with_multiple_datasets():
     assert "dataset1" in results
     assert "dataset2" in results
 
-    for dataset_name, eval_result in results.items():
+    for dataset_name, eval_results_list in results.items():
+        assert isinstance(eval_results_list, list)
+        assert len(eval_results_list) == 1  # One result for default hyperparams
+        eval_result = eval_results_list[0]
         assert isinstance(eval_result, EvalResult)
         assert len(eval_result.inference_outputs) > 0
         assert all(pred == "1" for pred in eval_result.inference_outputs)
@@ -126,7 +132,7 @@ def test_evaluate_async_with_item_limit(sample_dataset):
         async_inference_fn, sample_dataset, sample_size=item_limit, return_dict=False
     )
 
-    eval_result = results["test_dataset"]
+    eval_result = results["test_dataset"][0]  # Get first result from list
     assert len(eval_result.inference_outputs) == item_limit
 
 
@@ -154,7 +160,7 @@ def test_evaluate_async_different_outputs(sample_dataset):
     )
 
     results = evaluate(variable_pipeline, sample_dataset, return_dict=False)
-    eval_result = results["test_dataset"]
+    eval_result = results["test_dataset"][0]  # Get first result from list
 
     # Check that we got some variety in predictions
     predictions = eval_result.inference_outputs
@@ -197,7 +203,7 @@ def test_evaluate_async_performance():
     # Should complete reasonably quickly (not more than 10 seconds for 50 items)
     assert end_time - start_time < 10.0
 
-    eval_result = results["perf_test"]
+    eval_result = results["perf_test"][0]  # Get first result from list
     assert len(eval_result.inference_outputs) == 50
 
 

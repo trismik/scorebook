@@ -21,27 +21,25 @@ Compare with examples 1-2 to see how preprocessing differs between simple questi
 datasets and more complex multiple choice benchmarks.
 """
 
-import json
 import string
-from pathlib import Path
 from typing import Any
 
 import transformers
+from example_helpers import save_results_to_json, setup_logging, setup_output_directory
 
 from scorebook import EvalDataset, evaluate
 from scorebook.metrics import Accuracy
 from scorebook.types.inference_pipeline import InferencePipeline
 
 
-def main() -> None:
+def main() -> Any:
     """Run the Hugging Face dataset loading example."""
-    output_dir = setup_output_directory()
 
     # Step 1: Load the evaluation dataset from Hugging Face Hub
-    # Create an EvalDataset from Hugging Face Hub using the MMLU-Pro benchmark
-    # - Uses 'answer' field as ground truth labels
-    # - Configures Accuracy metric for evaluation
-    # - Uses validation split for evaluation
+    #    Create an EvalDataset from Hugging Face Hub using the MMLU-Pro benchmark
+    #    Uses 'answer' field as ground truth labels
+    #    Configures Accuracy metric for evaluation
+    #    Uses validation split for evaluation
     print("Loading MMLU-Pro dataset from Hugging Face Hub...")
     mmlu_pro = EvalDataset.from_huggingface(
         "TIGER-Lab/MMLU-Pro", label="answer", metrics=[Accuracy], split="validation"
@@ -49,9 +47,9 @@ def main() -> None:
     print(f"Loaded {len(mmlu_pro)} items from MMLU-Pro dataset")
 
     # Step 2: Initialize the language model
-    # Set up a Hugging Face transformers pipeline with Phi-4-mini-instruct model
-    # - Uses automatic torch dtype selection for optimal performance
-    # - Automatically distributes model across available devices
+    #    Set up a Hugging Face transformers pipeline with Phi-4-mini-instruct model
+    #    Uses automatic torch dtype selection for optimal performance
+    #    Automatically distributes model across available devices
     pipeline = transformers.pipeline(
         "text-generation",
         model="microsoft/Phi-4-mini-instruct",
@@ -60,8 +58,8 @@ def main() -> None:
     )
 
     # Step 3: Define the preprocessing function
-    # Convert raw MMLU-Pro dataset items into model-ready input format
-    # MMLU-Pro has a different structure than simple Q&A datasets
+    #    Convert raw MMLU-Pro dataset items into model-ready input format
+    #    MMLU-Pro has a different structure than simple Q&A datasets
     def preprocessor(eval_item: dict) -> list:
         """Convert MMLU-Pro evaluation item to model input format."""
         # Format the question with multiple choice options (A, B, C, D...)
@@ -83,8 +81,8 @@ def main() -> None:
         return messages
 
     # Step 4: Define the inference function
-    # Execute model inference on preprocessed items
-    # Takes a batch of preprocessed items and returns raw model outputs
+    #    Execute model inference on preprocessed items
+    #    Takes a batch of preprocessed items and returns raw model outputs
     def inference_function(processed_items: list[list], **hyperparameters: Any) -> list[Any]:
         """Run model inference on preprocessed items."""
         outputs = []
@@ -94,8 +92,8 @@ def main() -> None:
         return outputs
 
     # Step 5: Define the postprocessing function
-    # Extract the final prediction from raw model output
-    # For MMLU-Pro, we need to extract single letter answers (A, B, C, D, etc.)
+    #    Extract the final prediction from raw model output
+    #    For MMLU-Pro, we need to extract single letter answers (A, B, C, D, etc.)
     def postprocessor(model_output: Any) -> str:
         """Extract the letter answer from model output."""
         response = str(model_output[0]["generated_text"][-1]["content"])
@@ -113,8 +111,8 @@ def main() -> None:
         return ""
 
     # Step 6: Create the inference pipeline
-    # Combine all three stages into a modular InferencePipeline object
-    # This demonstrates how to adapt Scorebook for different dataset formats
+    #    Combine all three stages into a modular InferencePipeline object
+    #    This demonstrates how to adapt Scorebook for different dataset formats
     inference_pipeline = InferencePipeline(
         model="microsoft/Phi-4-mini-instruct",
         preprocessor=preprocessor,
@@ -123,46 +121,18 @@ def main() -> None:
     )
 
     # Step 7: Run the evaluation
-    # Execute the evaluation using the Hugging Face dataset
-    # - Limits to 10 items for quick demonstration
-    # - Returns structured results with metrics and per-item scores
+    #    Execute the evaluation using the Hugging Face dataset
+    #    Limits to 10 items for quick demonstration
+    #    Returns structured results with metrics and per-item scores
     print("\nRunning evaluation on MMLU-Pro dataset...")
     results = evaluate(inference_pipeline, mmlu_pro, sample_size=10)
     print(results)
 
-    # Step 8: Save results to file
-    # Export evaluation results as JSON for later analysis
-    with open(output_dir / "example_3_output.json", "w") as output_file:
-        json.dump(results, output_file, indent=4)
-        print(f"Results saved in {output_dir / 'example_3_output.json'}")
-
-
-# ============================================================================
-# Utility Functions
-# ============================================================================
-
-
-def setup_output_directory() -> Path:
-    """Parse command line arguments and setup output directory."""
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Run Hugging Face dataset evaluation and save results."
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default=str(Path.cwd() / "examples/example_results"),
-        help=(
-            "Directory to save evaluation outputs (JSON). "
-            "Defaults to ./examples/example_results in the current working directory."
-        ),
-    )
-    args = parser.parse_args()
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir
+    return results
 
 
 if __name__ == "__main__":
-    main()
+    log_file = setup_logging(experiment_id="example_3")
+    output_dir = setup_output_directory()
+    results_dict = main()
+    save_results_to_json(results_dict, output_dir, "example_3_output.json")

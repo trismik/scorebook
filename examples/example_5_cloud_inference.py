@@ -28,11 +28,15 @@ Compare with local model examples to understand the tradeoffs between
 cloud and local inference approaches.
 """
 
-import json
-from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
+from example_helpers import (
+    save_results_to_json,
+    setup_logging,
+    setup_openai_model_parser,
+    setup_output_directory,
+)
 
 from scorebook import EvalDataset, evaluate
 from scorebook.inference.openai import responses
@@ -40,26 +44,22 @@ from scorebook.metrics import Accuracy
 from scorebook.types.inference_pipeline import InferencePipeline
 
 
-def main() -> None:
+def main(model_name: str) -> Any:
     """Run the cloud inference example."""
-    # Load environment variables from .env file for API keys
-    load_dotenv()
-
-    output_dir = setup_output_directory()
 
     # Step 1: Load the evaluation dataset
-    # Create an EvalDataset from local JSON file
-    # - Uses 'answer' field as ground truth labels
-    # - Configures Accuracy metric for evaluation
-    # - Loads from examples/example_datasets/dataset.json
+    #    Create an EvalDataset from local JSON file
+    #    Uses 'answer' field as ground truth labels
+    #    Configures Accuracy metric for evaluation
+    #    Loads from examples/example_datasets/dataset.json
     dataset = EvalDataset.from_json(
         "examples/example_datasets/dataset.json", label="answer", metrics=[Accuracy]
     )
 
     # Step 2: Define the preprocessing function
-    # Convert raw dataset items into OpenAI API-compatible format
-    # This function formats the question for the cloud model
-    def preprocessor(eval_item: dict) -> str:
+    #    Convert raw dataset items into OpenAI API-compatible format
+    #    This function formats the question for the cloud model
+    def preprocessor(eval_item: dict, **hyperparameters: Any) -> str:
         """Pre-process dataset items into OpenAI prompt format."""
         prompt = eval_item["question"]
 
@@ -73,14 +73,14 @@ Do not provide lengthy explanations unless specifically asked.
         return f"System: {system_prompt}\n\nUser: {prompt}\n\nAssistant:"
 
     # Step 3: Define the postprocessing function
-    # Extract the final answer from OpenAI API response
-    # Handles response parsing and returns the response text
-    def postprocessor(response: Any) -> str:
+    #    Extract the final answer from OpenAI API response
+    #    Handles response parsing and returns the response text
+    def postprocessor(response: Any, **hyperparameters: Any) -> str:
         """Post-process OpenAI response to extract the answer."""
         # Extract the text from the OpenAI response object
         try:
-            # Access the first choice's message content
-            raw_response = response.output[0].content[0].text
+            # Access the first choice's message content (correct OpenAI ChatCompletion format)
+            raw_response = response.choices[0].message.content
         except (KeyError, IndexError, AttributeError):
             raw_response = ""
 
@@ -88,9 +88,8 @@ Do not provide lengthy explanations unless specifically asked.
         return str(raw_response.strip())
 
     # Step 4: Create the inference pipeline for cloud-based evaluation
-    # Combine preprocessing, OpenAI API inference, and postprocessing
-    # Uses scorebook's built-in OpenAI responses function for API calls
-    model_name = setup_model_selection()
+    #    Combine preprocessing, OpenAI API inference, and postprocessing
+    #    Uses scorebook's built-in OpenAI responses function for API calls
     inference_pipeline = InferencePipeline(
         model=model_name,
         preprocessor=preprocessor,
@@ -99,68 +98,31 @@ Do not provide lengthy explanations unless specifically asked.
     )
 
     # Step 5: Run the cloud-based evaluation
-    # Execute evaluation using OpenAI API with the inference pipeline
-    # - Uses score_type="all" to get both aggregate and per-item results
-    # - Limits to 10 items for quick demonstration and cost control
+    #    Execute evaluation using OpenAI API with the inference pipeline
+    #    Uses score_type="all" to get both aggregate and per-item results
+    #    Limits to 10 items for quick demonstration and cost control
     print(f"Running OpenAI evaluation with model: {model_name}")
     print("Evaluating 10 items from local dataset...")
 
     results = evaluate(
         inference_pipeline,
         dataset,
+        hyperparameters=[{"temperature": 0.6}, {"temperature": 0.7}, {"temperature": 0.8}],
+        parallel=True,
         sample_size=10,
         return_aggregates=True,
         return_items=True,
+        return_output=True,
     )
     print(results)
 
-    # Step 6: Save results to file
-    # Export evaluation results as JSON for later analysis
-    output_file = output_dir / "example_5_output.json"
-    with open(output_file, "w") as f:
-        json.dump(results, f, indent=4)
-        print(f"Results saved in {output_file}")
-
-
-# ============================================================================
-# Utility Functions
-# ============================================================================
-
-
-def setup_output_directory() -> Path:
-    """Parse command line arguments and setup output directory."""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Run OpenAI evaluation and save results.")
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default=str(Path.cwd() / "examples/example_results"),
-        help=(
-            "Directory to save evaluation outputs (JSON). "
-            "Defaults to ./examples/example_results in the current working directory."
-        ),
-    )
-    args = parser.parse_args()
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir
-
-
-def setup_model_selection() -> str:
-    """Parse model selection from command line arguments."""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Select OpenAI model for evaluation.")
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="gpt-4o-mini",
-        help="OpenAI model to use for inference (default: gpt-4o-mini)",
-    )
-    args = parser.parse_args()
-    return str(args.model)
+    return results
 
 
 if __name__ == "__main__":
-    main()
+    load_dotenv()
+    log_file = setup_logging(experiment_id="example_5")
+    output_dir = setup_output_directory()
+    model_name = setup_openai_model_parser()
+    results_dict = main(model_name)
+    save_results_to_json(results_dict, output_dir, "example_5_output.json")
