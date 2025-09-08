@@ -1,16 +1,15 @@
 """Evaluation run specification types for Scorebook."""
 
-from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple
+from typing import Any, Dict, List, NamedTuple
 
-if TYPE_CHECKING:
-    from scorebook.types import EvalDataset
+from scorebook.types import EvalDataset
 
 
 class EvalRunSpec(NamedTuple):
     """Represents a single evaluation run configuration."""
 
     dataset_idx: int
-    eval_dataset: "EvalDataset"
+    eval_dataset: EvalDataset
     items: List[Dict[str, Any]]
     labels: List[Any]
     hyperparams: Dict[str, Any]

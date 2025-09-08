@@ -156,10 +156,10 @@ async def _run_parallel(
     inference_callable: Callable,
     runs: List[EvalRunSpec],
     progress_bars: Any,
-) -> List["EvalResult"]:
+) -> List[EvalResult]:
     logger.debug("Running inference in parallel")
 
-    async def worker(run: EvalRunSpec) -> Tuple[EvalRunSpec, "EvalResult"]:
+    async def worker(run: EvalRunSpec) -> Tuple[EvalRunSpec, EvalResult]:
         er = await _execute_run(inference_callable, run)
         progress_bars.on_eval_run_completed(run.dataset_idx)
         return run, er
@@ -174,9 +174,9 @@ async def _run_sequential(
     inference_callable: Callable,
     runs: List[EvalRunSpec],
     progress_bars: Any,
-) -> List["EvalResult"]:
+) -> List[EvalResult]:
     logger.debug("Running inference sequentially")
-    results: List["EvalResult"] = []
+    results: List[EvalResult] = []
     for run in runs:
         er = await _execute_run(inference_callable, run)
         results.append(er)
@@ -187,7 +187,7 @@ async def _run_sequential(
 # ===== EVALUATION EXECUTIONS =====
 
 
-async def _execute_run(inference_callable: Callable, run: EvalRunSpec) -> "EvalResult":
+async def _execute_run(inference_callable: Callable, run: EvalRunSpec) -> EvalResult:
     logger.debug("Executing run for %s", run)
 
     outputs = await _run_inference_callable(inference_callable, run.items, run.hyperparams)
@@ -285,7 +285,7 @@ async def _run_inference_callable(
 
 
 def _build_runs(
-    datasets: List["EvalDataset"],
+    datasets: List[EvalDataset],
     hyperparameters: List[Dict[str, Any]],
 ) -> List[EvalRunSpec]:
     """Build RunSpec objects for each dataset/hyperparameter combination."""
