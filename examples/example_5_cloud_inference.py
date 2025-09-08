@@ -108,7 +108,7 @@ Do not provide lengthy explanations unless specifically asked.
         inference_pipeline,
         dataset,
         hyperparameters=[{"temperature": 0.6}, {"temperature": 0.7}, {"temperature": 0.8}],
-        parallel=False,
+        parallel=True,
         sample_size=10,
         return_aggregates=True,
         return_items=True,
