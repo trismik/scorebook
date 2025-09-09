@@ -28,8 +28,8 @@ from example_helpers import (
 
 from scorebook import EvalDataset, evaluate
 from scorebook.inference.openai import batch
+from scorebook.inference_pipeline import InferencePipeline
 from scorebook.metrics import Accuracy
-from scorebook.types.inference_pipeline import InferencePipeline
 
 
 def main(model_name: str) -> Any:
