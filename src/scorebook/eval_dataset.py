@@ -2,6 +2,7 @@
 
 import csv
 import json
+import random
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
 
 import yaml
@@ -364,3 +365,40 @@ class EvalDataset:
                 resolved.append(MetricRegistry.get(m))  # Use registry for str or class
 
         return resolved
+
+    def sample(self, sample_size: int) -> "EvalDataset":
+        """Create a new dataset with randomly sampled items from this dataset.
+
+        Args:
+            sample_size: The number of items to sample from the dataset
+
+        Returns:
+            A new EvalDataset with randomly sampled items
+
+        Raises:
+            ValueError: If sample_size is larger than the dataset size
+        """
+        dataset_size = len(self.items)
+
+        if sample_size > dataset_size:
+            raise ValueError(
+                f"Sample size {sample_size} is larger than dataset size {dataset_size} "
+                f"for dataset '{self.name}'"
+            )
+
+        # Create randomly sampled items
+        sampled_items = random.sample(self.items, sample_size)
+
+        # Create a new EvalDataset instance with sampled items using from_list
+        sampled_dataset = self.from_list(
+            name=self.name,
+            label=self.label,
+            metrics=self.metrics,
+            data=sampled_items,
+        )
+
+        # Preserve the prompt template if it exists
+        if self.prompt_template is not None:
+            sampled_dataset.prompt_template = self.prompt_template
+
+        return sampled_dataset

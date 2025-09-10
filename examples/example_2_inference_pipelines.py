@@ -31,8 +31,8 @@ import transformers
 from example_helpers import save_results_to_json, setup_logging, setup_output_directory
 
 from scorebook import EvalDataset, evaluate
+from scorebook.inference_pipeline import InferencePipeline
 from scorebook.metrics import Accuracy
-from scorebook.types.inference_pipeline import InferencePipeline
 
 
 def main() -> Any:

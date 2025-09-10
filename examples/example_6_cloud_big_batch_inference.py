@@ -112,10 +112,11 @@ def main(model_name: str) -> Any:
 
     # For demonstration, limit to 25 items to manage cost and time
     # Remove item_limit parameter for full dataset evaluation
+    hyperparameters = [{"temperature": round(t, 2)} for t in [i * 0.01 for i in range(1, 201)]]
     results = evaluate(
         inference_pipeline,
         dataset,
-        hyperparameters=[{"temperature": 0.6}, {"temperature": 0.7}, {"temperature": 0.8}],
+        hyperparameters=hyperparameters,
         parallel=True,
         sample_size=5,
         return_aggregates=True,
@@ -130,8 +131,8 @@ def main(model_name: str) -> Any:
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="example_6")
+    log_file = setup_logging(experiment_id="example_6.2")
     output_dir = setup_output_directory()
     model_name = setup_batch_model_parser()
     results_dict = main(model_name)
-    save_results_to_json(results_dict, output_dir, "example_6_output.json")
+    save_results_to_json(results_dict, output_dir, "example_6.2_output.json")

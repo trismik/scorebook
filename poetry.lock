@@ -5946,6 +5946,26 @@ video = ["av"]
 vision = ["Pillow (>=10.0.1,<=15.0)"]
 
 [[package]]
+name = "trismik"
+version = "0.9.3rc3"
+description = ""
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "trismik-0.9.3rc3-py3-none-any.whl", hash = "sha256:0d5a724852b98e0a20f8f79faf36c78cd97d7f79563b7bc2106660ddb064a749"},
+    {file = "trismik-0.9.3rc3.tar.gz", hash = "sha256:3f54f9ba6ea2888628e9730ddc16861fbedb3b6b6da3326541ba45eea5208457"},
+]
+
+[package.extras]
+examples = ["accelerate (>=1.7.0,<2.0.0)", "notebook (>=7.4.4,<8.0.0)", "openai (>=1.81.0,<2.0.0)", "torch (>=2.7.0,<3.0.0)", "torchaudio (>=2.7.0,<3.0.0)", "torchvision (>=0.22.0,<1.0.0)", "transformers (>=4.51.3,<5.0.0)"]
+
+[package.source]
+type = "legacy"
+url = "https://test.pypi.org/simple"
+reference = "testpypi"
+
+[[package]]
 name = "triton"
 version = "3.3.1"
 description = "A language and compiler for custom Deep Learning operations"
@@ -6595,4 +6615,4 @@ vertex = ["fsspec", "google-cloud-storage", "google-genai", "pandas", "python-do
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "687516311c5e764349b7aad9eab5a404d74365ab9ccb41c60b55a2b1536d5c04"
+content-hash = "cee7c7c3544dfa18049dc8eed5bdf4d460f3219b23fe133cda5593422c4531b1"

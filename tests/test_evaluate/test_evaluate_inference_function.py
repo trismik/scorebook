@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import Dict, List
 
-from scorebook.evaluator import evaluate
+from scorebook.eval_dataset import EvalDataset
+from scorebook.evaluate import evaluate
 from scorebook.metrics import Accuracy
-from scorebook.types.eval_dataset import EvalDataset
 
 
 def simple_inference_function(items: List[Dict], **hyperparameters) -> List[str]:
@@ -18,7 +18,7 @@ async def async_inference_function(items: List[Dict], **hyperparameters) -> List
 
 def test_evaluate_with_sync_inference_function():
     """Test evaluation with a synchronous inference function."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
@@ -32,7 +32,7 @@ def test_evaluate_with_sync_inference_function():
 
 def test_evaluate_with_async_inference_function():
     """Test evaluation with an asynchronous inference function."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
@@ -51,7 +51,7 @@ def test_evaluate_with_parametric_inference_function():
         output_value = hyperparameters.get("output", "1")
         return [output_value for _ in items]
 
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
@@ -70,7 +70,7 @@ def test_evaluate_with_parametric_inference_function():
 
 def test_evaluate_with_minimal_inference_pipeline():
     """Test evaluation with an InferencePipeline that only has inference function."""
-    from scorebook.types.inference_pipeline import InferencePipeline
+    from scorebook.inference_pipeline import InferencePipeline
 
     def simple_inference(items: List[Dict], **hyperparameters) -> List[str]:
         return ["1" for _ in items]
@@ -78,7 +78,7 @@ def test_evaluate_with_minimal_inference_pipeline():
     # Create pipeline with only inference function (no preprocessor/postprocessor)
     pipeline = InferencePipeline(model="test_model", inference_function=simple_inference)
 
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )

@@ -76,7 +76,29 @@ async def responses(
             logger.debug("Item %d converted to fallback format", i)
 
         logger.debug("Creating OpenAI task %d with messages: %s", i, messages)
-        task = client.chat.completions.create(model=model, messages=messages, **hyperparameters)
+        # Filter to only include valid OpenAI chat completions parameters
+        valid_params = {
+            "temperature",
+            "max_tokens",
+            "top_p",
+            "frequency_penalty",
+            "presence_penalty",
+            "stop",
+            "stream",
+            "logit_bias",
+            "user",
+            "seed",
+            "tools",
+            "tool_choice",
+            "response_format",
+            "n",
+            "logprobs",
+            "top_logprobs",
+        }
+        filtered_hyperparameters = {k: v for k, v in hyperparameters.items() if k in valid_params}
+        task = client.chat.completions.create(
+            model=model, messages=messages, **filtered_hyperparameters
+        )
         tasks.append(task)
 
     logger.debug("Created %d tasks, waiting for OpenAI responses...", len(tasks))

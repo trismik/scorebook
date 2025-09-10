@@ -3,14 +3,15 @@ import json
 from pathlib import Path
 from typing import Dict, List
 
+import pandas as pd
 import pytest
 
-from scorebook.evaluator import evaluate
+from scorebook.eval_dataset import EvalDataset
+from scorebook.evaluate import evaluate
 from scorebook.exceptions import ParameterValidationError
+from scorebook.inference_pipeline import InferencePipeline
 from scorebook.metrics import Accuracy
-from scorebook.types.eval_dataset import EvalDataset
-from scorebook.types.eval_result import EvalResult
-from scorebook.types.inference_pipeline import InferencePipeline
+from scorebook.types import ClassicEvalRunResult, EvalResult
 
 
 def create_simple_inference_pipeline(expected_output: str = "1"):
@@ -35,34 +36,36 @@ def create_simple_inference_pipeline(expected_output: str = "1"):
 
 def test_evaluate_single_dataset():
     """Test evaluation with a single CSV dataset."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
     results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
 
-    assert isinstance(results, dict)
-    assert "test_dataset" in results
-    eval_results_list = results["test_dataset"]
-    assert isinstance(eval_results_list, list)
-    assert len(eval_results_list) == 1  # One result for default hyperparams
-    eval_result = eval_results_list[0]
-    assert isinstance(eval_result, EvalResult)
+    # With return_dict=False, we get an EvalResult object directly
+    assert isinstance(results, EvalResult)
+
+    # Check that we have one run result
+    assert len(results.run_results) == 1
+    eval_run_result = results.run_results[0]
+    assert isinstance(eval_run_result, ClassicEvalRunResult)
 
     # Check aggregate metrics
-    assert isinstance(eval_result.aggregate_scores, dict)
-    assert "accuracy" in eval_result.aggregate_scores
+    aggregate_scores = results.aggregate_scores
+    assert isinstance(aggregate_scores, list)
+    assert len(aggregate_scores) == 1
+    assert "accuracy" in aggregate_scores[0]
 
     # Check per-item metrics
-    item_scores = eval_result.item_scores
+    item_scores = results.item_scores
     assert len(item_scores) == len(dataset.items)
 
 
 def test_evaluate_multiple_datasets():
     """Test evaluation with multiple datasets."""
-    csv_path = str(Path(__file__).parent / "data" / "Dataset.csv")
-    json_path = str(Path(__file__).parent / "data" / "Dataset.json")
+    csv_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
+    json_path = str(Path(__file__).parent.parent / "data" / "Dataset.json")
 
     csv_dataset = EvalDataset.from_csv(
         csv_path, label="label", metrics=[Accuracy], name="csv_dataset"
@@ -75,17 +78,19 @@ def test_evaluate_multiple_datasets():
         create_simple_inference_pipeline("1"), [csv_dataset, json_dataset], return_dict=False
     )
 
-    assert set(results.keys()) == {"csv_dataset", "json_dataset"}
-    # Each dataset now returns a list of EvalResult objects
-    for dataset_name, eval_results_list in results.items():
-        assert isinstance(eval_results_list, list)
-        assert len(eval_results_list) == 1  # One result for default hyperparams
-        assert isinstance(eval_results_list[0], EvalResult)
+    # With return_dict=False, we get an EvalResult object directly
+    assert isinstance(results, EvalResult)
+    # Should have 2 run results (one for each dataset)
+    assert len(results.run_results) == 2
+
+    # Check that both run results are ClassicEvalRunResult
+    for run_result in results.run_results:
+        assert isinstance(run_result, ClassicEvalRunResult)
 
 
 def test_evaluate_with_item_limit():
     """Test evaluation with item limit."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
@@ -93,40 +98,42 @@ def test_evaluate_with_item_limit():
     results = evaluate(
         create_simple_inference_pipeline("1"), dataset, sample_size=2, return_dict=False
     )
-    eval_result = results["test_dataset"][0]  # Get first result from list
 
-    assert len(eval_result.item_scores) == 2
+    # Check that we have the expected number of item scores
+    assert len(results.item_scores) == 2
 
 
 def test_evaluate_with_multiple_metrics():
     """Test evaluation with multiple metrics (Accuracy used twice for now)."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
     results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
-    eval_result = results["test_dataset"][0]  # Get first result from list
 
-    assert "accuracy" in eval_result.aggregate_scores
+    # Check aggregate scores
+    aggregate_scores = results.aggregate_scores
+    assert "accuracy" in aggregate_scores[0]
 
 
 def test_evaluate_with_none_predictions():
     """Test evaluation handling of None predictions."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
     results = evaluate(create_simple_inference_pipeline(None), dataset, return_dict=False)
-    eval_result = results["test_dataset"][0]  # Get first result from list
 
-    assert all(item["accuracy"] is False for item in eval_result.item_scores)
+    # Check that all accuracy scores are False (None predictions should be wrong)
+    item_scores = results.item_scores
+    assert all(item["accuracy"] is False for item in item_scores)
 
 
 def test_evaluate_invalid_inference_fn():
     """Test evaluation with an invalid inference pipeline."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
@@ -147,17 +154,15 @@ def test_evaluate_invalid_inference_fn():
 
 def test_evaluate_return_type():
     """Test different return types."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    # Test object return type
+    # Test object return type (EvalResult)
     obj_results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
-    eval_results_list = obj_results["test_dataset"]
-    assert isinstance(eval_results_list, list)
-    assert len(eval_results_list) == 1  # One result for default hyperparams
-    assert isinstance(eval_results_list[0], EvalResult)
+    assert isinstance(obj_results, EvalResult)
+    assert len(obj_results.run_results) == 1
 
     # Test dict return type with different score_types
     # Test aggregate (default)
@@ -200,16 +205,17 @@ def test_evaluate_return_type():
 
 def test_evaluate_with_csv_export(tmp_path):
     """Test evaluation with results export to CSV."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
     results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
-    eval_result = results["test_dataset"][0]  # Get first result from list
 
     output_path = tmp_path / "evaluation_results.csv"
-    eval_result.to_csv(output_path)
+    # Export item scores to CSV
+    df = pd.DataFrame(results.item_scores)
+    df.to_csv(output_path, index=False)
 
     assert output_path.exists()
     with open(output_path, "r") as f:
@@ -223,16 +229,21 @@ def test_evaluate_with_csv_export(tmp_path):
 
 def test_evaluate_with_json_export(tmp_path):
     """Test evaluation with results export to JSON."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
     results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
-    eval_result = results["test_dataset"][0]  # Get first result from list
 
     output_path = tmp_path / "evaluation_results.json"
-    eval_result.to_json(output_path)
+    # Export results to JSON
+    result_data = {
+        "aggregate_results": results.aggregate_scores,
+        "item_results": results.item_scores,
+    }
+    with open(output_path, "w") as f:
+        json.dump(result_data, f)
 
     assert output_path.exists()
     with open(output_path, "r") as f:
@@ -243,7 +254,7 @@ def test_evaluate_with_json_export(tmp_path):
 
 def test_evaluate_invalid_param_config():
     """Test evaluation with invalid parameter combination."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
@@ -260,7 +271,7 @@ def test_evaluate_invalid_param_config():
 
 def test_evaluate_duplicate_datasets():
     """Test that passing the same dataset multiple times preserves all results."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
@@ -279,13 +290,13 @@ def test_evaluate_duplicate_datasets():
     assert len(results["item_results"]) == 10  # 5 items * 2 datasets
 
     # Both should have the same dataset name but be separate entries
-    assert results["aggregate_results"][0]["dataset_name"] == "test_dataset"
-    assert results["aggregate_results"][1]["dataset_name"] == "test_dataset"
+    assert results["aggregate_results"][0]["dataset"] == "test_dataset"
+    assert results["aggregate_results"][1]["dataset"] == "test_dataset"
 
 
 def test_evaluate_with_precomputed_hyperparams():
     """Test evaluation with pre-computed hyperparameter grids."""
-    dataset_path = str(Path(__file__).parent / "data" / "Dataset.csv")
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )

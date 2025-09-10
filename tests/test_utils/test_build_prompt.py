@@ -120,7 +120,7 @@ def test_missing_variable_raises_error():
 def test_with_yaml_template_loading():
     """Test loading template from YAML file and using it."""
     # Load the actual template from the test data
-    yaml_path = Path(__file__).parent / "data" / "dataset_template.yaml"
+    yaml_path = Path(__file__).parent.parent / "data" / "dataset_template.yaml"
     with open(yaml_path, "r") as f:
         config = yaml.safe_load(f)
 
