@@ -117,7 +117,6 @@ Do not provide any additional explanation or output beyond the single letter.
         ["MMLUPro2025:adaptive", mmlu_pro],
         experiment_id="scorebook-example",
         project_id="c48419ff38b70f2b79265312a236b594a616f74c",
-        sample_size=10,  # Limit for demonstration and cost control
         return_dict=True,
         return_aggregates=True,
         return_items=True,
