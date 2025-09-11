@@ -55,6 +55,10 @@ def setup_logging(log_dir: str = "logs", experiment_id: Optional[str] = None) ->
     scorebook_logger = logging.getLogger("scorebook")
     scorebook_logger.setLevel(logging.DEBUG)
 
+    # Ensure trismik_services logs are captured at DEBUG level
+    trismik_services_logger = logging.getLogger("scorebook.trismik_services")
+    trismik_services_logger.setLevel(logging.DEBUG)
+
     # Exclude OpenAI inference logs to reduce noise
     openai_logger = logging.getLogger("scorebook.inference.openai")
     openai_logger.setLevel(logging.WARNING)  # Only log warnings and errors
