@@ -168,6 +168,7 @@ async def _evaluate_async(
                 experiment_id,
                 project_id,
                 metadata,
+                upload_results,
             )
         else:
             eval_results = await _run_sequential(
@@ -177,28 +178,10 @@ async def _evaluate_async(
                 experiment_id,
                 project_id,
                 metadata,
+                upload_results,
             )
 
         logger.info("Evaluation completed successfully")
-
-    if upload_results and experiment_id is not None and project_id is not None:
-        logger.info("Uploading evaluation results to Trismik")
-        for run in eval_results.run_results:
-            if isinstance(run, ClassicEvalRunResult):
-                try:
-                    logger.debug("Uploading classic eval run: %s", run.run_spec)
-                    await upload_classic_eval_run(
-                        run=run,
-                        experiment_id=experiment_id,
-                        project_id=project_id,
-                        model="unknown",  # TODO: Extract model from inference_callable/metadata
-                        metadata=metadata,
-                    )
-                    logger.info("Successfully uploaded classic eval run")
-                except Exception as e:
-                    logger.error("Failed to upload classic eval run: %s", str(e))
-            else:
-                logger.debug("Skipping upload for non-classic eval run: %s", type(run))
 
     return _format_results(
         eval_results, return_dict, return_aggregates, return_items, return_output
@@ -215,6 +198,7 @@ async def _run_parallel(
     experiment_id: Optional[str] = None,
     project_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
+    upload_results: bool = False,
 ) -> EvalResult:
     logger.debug("Running inference in parallel")
 
@@ -223,6 +207,16 @@ async def _run_parallel(
     ) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
         run_result = await _execute_run(inference, run, experiment_id, project_id, metadata)
         progress_bars.on_eval_run_completed(run.dataset_index)
+
+        # Upload classic eval run result immediately if upload_results is enabled
+        if (
+            upload_results
+            and isinstance(run_result, ClassicEvalRunResult)
+            and experiment_id is not None
+            and project_id is not None
+        ):
+            await _upload_classic_run(run_result, experiment_id, project_id, metadata)
+
         return run_result
 
     run_results = await asyncio.gather(*[worker(run) for run in runs])
@@ -240,6 +234,7 @@ async def _run_sequential(
     experiment_id: Optional[str] = None,
     project_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
+    upload_results: bool = False,
 ) -> EvalResult:
     logger.debug("Running inference sequentially")
     run_results: List[Union[ClassicEvalRunResult, AdaptiveEvalRunResult]] = []
@@ -247,6 +242,16 @@ async def _run_sequential(
         run_result = await _execute_run(inference, run, experiment_id, project_id, metadata)
         run_results.append(run_result)
         progress_bars.on_hyperparam_completed(run_result.run_spec.dataset_index)
+
+        # Upload classic eval run result immediately if upload_results is enabled
+        if (
+            upload_results
+            and isinstance(run_result, ClassicEvalRunResult)
+            and experiment_id is not None
+            and project_id is not None
+        ):
+            await _upload_classic_run(run_result, experiment_id, project_id, metadata)
+
     return EvalResult(run_results)
 
 
@@ -305,6 +310,27 @@ async def _execute_adaptive_eval_run(
 
 
 # ===== HELPER FUNCTIONS =====
+
+
+async def _upload_classic_run(
+    run_result: ClassicEvalRunResult,
+    experiment_id: str,
+    project_id: str,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Upload a ClassicEvalRunResult to Trismik."""
+    try:
+        logger.debug("Uploading classic eval run: %s", run_result.run_spec)
+        await upload_classic_eval_run(
+            run=run_result,
+            experiment_id=experiment_id,
+            project_id=project_id,
+            model="unknown",  # TODO: Extract model from inference_callable/metadata
+            metadata=metadata,
+        )
+        logger.info("Successfully uploaded classic eval run")
+    except Exception as e:
+        logger.error("Failed to upload classic eval run: %s", str(e))
 
 
 def _resolve_upload_results(
