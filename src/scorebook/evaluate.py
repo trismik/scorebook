@@ -15,7 +15,7 @@ models on datasets and computing metric scores.
 
 import asyncio
 import logging
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 from scorebook.eval_dataset import EvalDataset
 from scorebook.exceptions import (
@@ -24,7 +24,8 @@ from scorebook.exceptions import (
     ParallelExecutionError,
     ParameterValidationError,
 )
-from scorebook.trismik import run_adaptive_evaluation
+from scorebook.trismik_services import run_adaptive_evaluation
+from scorebook.trismik_services.upload_classic_eval_run import upload_classic_eval_run
 from scorebook.types import (
     AdaptiveEvalDataset,
     AdaptiveEvalRunResult,
@@ -50,6 +51,7 @@ def evaluate(
     return_aggregates: bool = True,
     return_items: bool = False,
     return_output: bool = False,
+    upload_results: Union[Literal["auto"], bool] = "auto",
     sample_size: Optional[int] = None,
 ) -> Union[Dict, List]:
     """
@@ -115,6 +117,7 @@ def evaluate(
             return_aggregates=return_aggregates,
             return_items=return_items,
             return_output=return_output,
+            upload_results=upload_results,
             sample_size=sample_size,
         )
     )
@@ -132,8 +135,11 @@ async def _evaluate_async(
     return_items: bool = False,
     return_output: bool = False,
     parallel: bool = False,
+    upload_results: Union[Literal["auto"], bool] = "auto",
     sample_size: Optional[int] = None,
 ) -> Union[Dict, List]:
+
+    upload_results = _resolve_upload_results(upload_results, experiment_id, project_id)
     _validate_parameters(locals())
     datasets = _prepare_datasets(eval_datasets, sample_size)
     hyperparameter_configs = _prepare_hyperparameter_configs(hyperparameters)
@@ -162,6 +168,7 @@ async def _evaluate_async(
                 experiment_id,
                 project_id,
                 metadata,
+                upload_results,
             )
         else:
             eval_results = await _run_sequential(
@@ -171,6 +178,7 @@ async def _evaluate_async(
                 experiment_id,
                 project_id,
                 metadata,
+                upload_results,
             )
 
         logger.info("Evaluation completed successfully")
@@ -190,6 +198,7 @@ async def _run_parallel(
     experiment_id: Optional[str] = None,
     project_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
+    upload_results: bool = False,
 ) -> EvalResult:
     logger.debug("Running inference in parallel")
 
@@ -198,6 +207,16 @@ async def _run_parallel(
     ) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
         run_result = await _execute_run(inference, run, experiment_id, project_id, metadata)
         progress_bars.on_eval_run_completed(run.dataset_index)
+
+        # Upload classic eval run result immediately if upload_results is enabled
+        if (
+            upload_results
+            and isinstance(run_result, ClassicEvalRunResult)
+            and experiment_id is not None
+            and project_id is not None
+        ):
+            await _upload_classic_run(run_result, experiment_id, project_id, metadata)
+
         return run_result
 
     run_results = await asyncio.gather(*[worker(run) for run in runs])
@@ -215,6 +234,7 @@ async def _run_sequential(
     experiment_id: Optional[str] = None,
     project_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
+    upload_results: bool = False,
 ) -> EvalResult:
     logger.debug("Running inference sequentially")
     run_results: List[Union[ClassicEvalRunResult, AdaptiveEvalRunResult]] = []
@@ -222,6 +242,16 @@ async def _run_sequential(
         run_result = await _execute_run(inference, run, experiment_id, project_id, metadata)
         run_results.append(run_result)
         progress_bars.on_hyperparam_completed(run_result.run_spec.dataset_index)
+
+        # Upload classic eval run result immediately if upload_results is enabled
+        if (
+            upload_results
+            and isinstance(run_result, ClassicEvalRunResult)
+            and experiment_id is not None
+            and project_id is not None
+        ):
+            await _upload_classic_run(run_result, experiment_id, project_id, metadata)
+
     return EvalResult(run_results)
 
 
@@ -282,6 +312,39 @@ async def _execute_adaptive_eval_run(
 # ===== HELPER FUNCTIONS =====
 
 
+async def _upload_classic_run(
+    run_result: ClassicEvalRunResult,
+    experiment_id: str,
+    project_id: str,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Upload a ClassicEvalRunResult to Trismik."""
+    try:
+        logger.debug("Uploading classic eval run: %s", run_result.run_spec)
+        await upload_classic_eval_run(
+            run=run_result,
+            experiment_id=experiment_id,
+            project_id=project_id,
+            model="unknown",  # TODO: Extract model from inference_callable/metadata
+            metadata=metadata,
+        )
+        logger.info("Successfully uploaded classic eval run")
+    except Exception as e:
+        logger.error("Failed to upload classic eval run: %s", str(e))
+
+
+def _resolve_upload_results(
+    upload_results: Union[Literal["auto"], bool],
+    experiment_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+) -> bool:
+    """Resolve the upload_results parameter based on experiment_id and project_id."""
+    if upload_results == "auto":
+        upload_results = experiment_id is not None and project_id is not None
+        logger.debug("Auto upload results resolved to: %s", upload_results)
+    return upload_results
+
+
 def _validate_parameters(params: Dict[str, Any]) -> None:
     """Validate all parameters for evaluation."""
 
@@ -294,6 +357,13 @@ def _validate_parameters(params: Dict[str, Any]) -> None:
         raise ParallelExecutionError(
             "parallel=True requires the inference_callable to be async. "
             "Please make your inference function async or set parallel=False."
+        )
+
+    if params["upload_results"] and (
+        params["experiment_id"] is None or params["project_id"] is None
+    ):
+        raise ParameterValidationError(
+            "upload_results=True requires both experiment_id and project_id to be specified"
         )
 
 
