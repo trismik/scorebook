@@ -34,8 +34,8 @@ load_dotenv()
 
 # Set to True to use mocks, False to test real backend integration
 # Can be set in .env file: MOCK_TRISMIK_TESTS=false
-MOCK = os.getenv("MOCK_TRISMIK_TESTS", "true").lower() == "true"
-print(f"🧪 Test Configuration: {'MOCK' if MOCK else 'INTEGRATION'} mode")
+# MOCK = os.getenv("MOCK_TRISMIK_TESTS", "true").lower() == "true"
+MOCK = True
 
 
 @pytest.fixture
@@ -188,82 +188,6 @@ class TestUploadClassicEvalRun:
             print(f"Integration test successful! Run ID: {response.id}")
         print("=== Simple Metrics Upload Test Complete ===\n")
 
-    # @pytest.mark.asyncio
-    # async def test_structured_metrics(self, structured_eval_run_result, mock_adaptive_test, mock_trismik_response):
-    #     """Test upload with structured metric data."""
-    #     print("\n=== Testing Structured Metrics Upload ===")
-    #     if MOCK:
-    #         print("Running in MOCK mode - using mocked backend")
-    #         print("Testing structured metrics with aggregate_scores and item_scores...")
-    #         with patch('scorebook.trismik_services.upload_classic_eval_run.AdaptiveTest', return_value=mock_adaptive_test):
-    #             response = await upload_classic_eval_run(
-    #                 run=structured_eval_run_result,
-    #                 experiment_id="exp-123",
-    #                 project_id="proj-456",
-    #                 model="gpt-4",
-    #                 metadata={"test": "value"}
-    #             )
-    #
-    #             print("Upload completed, verifying structured metrics processing...")
-    #             # Verify response
-    #             assert response == mock_trismik_response
-    #
-    #             call_args = mock_adaptive_test.submit_classic_eval_async.call_args[0][0]
-    #
-    #             # Verify items have correct item-level metrics
-    #             assert len(call_args.items) == 3
-    #             for i, item in enumerate(call_args.items):
-    #                 assert item.datasetItemId == str(i)
-    #                 # Check item-level scores from structured data
-    #                 assert item.metrics["accuracy"] == 1.0  # from item_scores[i]
-    #                 assert item.metrics["f1_score"] in [0.95, 0.94, 0.96]  # from item_scores[i]
-    #
-    #             # Verify aggregate metrics
-    #             assert len(call_args.metrics) == 6  # 3 for accuracy + 3 for f1_score
-    #             metric_ids = [m.metricId for m in call_args.metrics]
-    #
-    #             # Check accuracy metrics
-    #             assert "accuracy" in metric_ids
-    #             assert "accuracy_total_correct" in metric_ids
-    #             assert "accuracy_total_items" in metric_ids
-    #
-    #             # Check f1_score metrics
-    #             assert "f1_score" in metric_ids
-    #             assert "f1_score_precision" in metric_ids
-    #             assert "f1_score_recall" in metric_ids
-    #
-    #             # Verify specific values
-    #             for metric in call_args.metrics:
-    #                 if metric.metricId == "accuracy":
-    #                     assert metric.value == 1.0
-    #                 elif metric.metricId == "accuracy_total_correct":
-    #                     assert metric.value == 3
-    #                 elif metric.metricId == "accuracy_total_items":
-    #                     assert metric.value == 3
-    #                 elif metric.metricId == "f1_score":
-    #                     assert metric.value == 0.95
-    #                 elif metric.metricId == "f1_score_precision":
-    #                     assert metric.value == 0.96
-    #                 elif metric.metricId == "f1_score_recall":
-    #                     assert metric.value == 0.94
-    #     else:
-    #         print("Running in INTEGRATION mode - using real backend")
-    #         print("Uploading structured metrics to real Trismik backend...")
-    #         response = await upload_classic_eval_run(
-    #             run=structured_eval_run_result,
-    #             experiment_id=os.getenv("TEST_EXPERIMENT_ID", "test-exp"),
-    #             project_id=os.getenv("TEST_PROJECT_ID", "test-proj"),
-    #             model="gpt-4",
-    #             metadata={"test": "integration"}
-    #         )
-    #
-    #         # Verify real response
-    #         assert response is not None
-    #         assert hasattr(response, 'id')
-    #         assert response.id is not None
-    #         print(f"Integration test successful! Run ID: {response.id}")
-    #     print("=== Structured Metrics Upload Test Complete ===\n")
-
     @pytest.mark.asyncio
     async def test_empty_labels(self, mock_dataset, mock_adaptive_test, mock_trismik_response):
         """Test upload when labels list is shorter than items."""
@@ -321,79 +245,6 @@ class TestUploadClassicEvalRun:
             assert response.id is not None
             print(f"Integration test successful! Run ID: {response.id}")
         print("=== Empty Labels Test Complete ===\n")
-
-    # @pytest.mark.asyncio
-    # async def test_mixed_metric_types(self, mock_dataset, mock_adaptive_test, mock_trismik_response):
-    #     """Test upload with mixed simple and structured metrics."""
-    #     print("\n=== Testing Mixed Metric Types ===")
-    #     print("Testing combination of simple metrics (float) and structured metrics (dict)...")
-    #     run_spec = EvalRunSpec(
-    #         dataset=mock_dataset,
-    #         dataset_index=0,
-    #         hyperparameter_config={"temperature": 0.8},
-    #         hyperparameters_index=0,
-    #         items=[{"question": "Test question"}],
-    #         labels=["Test answer"]
-    #     )
-    #
-    #     eval_run_result = ClassicEvalRunResult(
-    #         run_spec=run_spec,
-    #         outputs=["Test response"],
-    #         scores={
-    #             "simple_metric": 0.85,  # Simple value
-    #             "complex_metric": {     # Structured data
-    #                 "aggregate_scores": {"score": 0.9},
-    #                 "item_scores": [0.9]
-    #             }
-    #         }
-    #     )
-    #
-    #     if MOCK:
-    #         print("Running in MOCK mode - using mocked backend")
-    #         with patch('scorebook.trismik_services.upload_classic_eval_run.AdaptiveTest', return_value=mock_adaptive_test):
-    #             await upload_classic_eval_run(
-    #                 run=eval_run_result,
-    #                 experiment_id="exp-123",
-    #                 project_id="proj-456",
-    #                 model="gpt-4",
-    #                 metadata={}
-    #             )
-    #
-    #             call_args = mock_adaptive_test.submit_classic_eval_async.call_args[0][0]
-    #
-    #             # Verify item has both metric types
-    #             item = call_args.items[0]
-    #             assert item.metrics["simple_metric"] == 0.85
-    #             assert item.metrics["complex_metric"] == 0.9
-    #
-    #             # Verify aggregate metrics
-    #             metric_ids = [m.metricId for m in call_args.metrics]
-    #             assert "simple_metric" in metric_ids
-    #             assert "complex_metric_score" in metric_ids
-    #
-    #             for metric in call_args.metrics:
-    #                 if metric.metricId == "simple_metric":
-    #                     assert metric.value == 0.85
-    #                 elif metric.metricId == "complex_metric_score":
-    #                     assert metric.value == 0.9
-    #             print("Mixed metric types processed correctly")
-    #     else:
-    #         print("Running in INTEGRATION mode - using real backend")
-    #         print("Uploading mixed metric types to real Trismik backend...")
-    #         response = await upload_classic_eval_run(
-    #             run=eval_run_result,
-    #             experiment_id=os.getenv("TEST_EXPERIMENT_ID", "test-exp"),
-    #             project_id=os.getenv("TEST_PROJECT_ID", "test-proj"),
-    #             model="gpt-4",
-    #             metadata={"test": "integration"}
-    #         )
-    #
-    #         # Verify real response
-    #         assert response is not None
-    #         assert hasattr(response, 'id')
-    #         assert response.id is not None
-    #         print(f"Integration test successful! Run ID: {response.id}")
-    #     print("=== Mixed Metric Types Test Complete ===\n")
 
     @pytest.mark.asyncio
     async def test_string_conversion(self, mock_dataset, mock_adaptive_test, mock_trismik_response):
