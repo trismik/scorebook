@@ -1,26 +1,18 @@
 """
-Simple Scorebook Evaluation Example.
+Example 1 - A Simple Scorebook Evaluation.
 
-This example demonstrates the fundamental workflow for evaluating a language model using Scorebook.
+This example demonstrates the fundamental workflow for evaluating a model using Scorebook.
+
 It shows how to:
+    1. Load an evaluation dataset from local JSON file
+    2. Define an inference function using Hugging Face's transformers library
+    3. Run the evaluation and collect results
 
-1. Load an evaluation dataset from local JSON file
-2. Set up a language model using Hugging Face transformers
-3. Define a custom inference function with preprocessing and postprocessing
-4. Run the evaluation and collect results
-5. Save results for analysis
-
-The example uses:
-- Dataset: Local JSON dataset (question/answer pairs)
-- Model: Microsoft Phi-4-mini-instruct
-- Metric: Accuracy
-- Sample size: 10 items (for quick demonstration)
-
-This serves as a starting point for understanding Scorebook's core evaluation capabilities
-before exploring more advanced features like inference pipelines and hyperparameter sweeps.
+This serves as a starting point for understanding Scorebook's core evaluation capabilities.
 """
 
-from typing import Any
+from pprint import pprint
+from typing import Any, Dict, List
 
 import transformers
 from example_helpers import save_results_to_json, setup_logging, setup_output_directory
@@ -30,21 +22,15 @@ from scorebook.metrics import Accuracy
 
 
 def main() -> Any:
-    """Run a simple evaluation example."""
+    """Run a simple Scorebook evaluation."""
 
-    # Step 1: Load the evaluation dataset
-    #    Create an EvalDataset from a local JSON file
-    #    Uses 'answer' field as ground truth labels
-    #    Configures Accuracy metric for evaluation
-    #    Loads from examples/example_datasets/dataset.json
-    dataset = EvalDataset.from_json(
+    # Step 1: Load an evaluation dataset, defining a label field and metric for scoring
+    eval_dataset = EvalDataset.from_json(
         "examples/example_datasets/dataset.json", label="answer", metrics=[Accuracy]
     )
 
-    # Step 2: Initialize the language model
-    #    Set up a Hugging Face transformers pipeline with Phi-4-mini-instruct model
-    #    Uses automatic torch dtype selection for optimal performance
-    #    Automatically distributes model across available devices
+    # Step 2: Define an inference function
+    # For this example, we use Hugging Face's transformer library with Microsoft's Phi-4-mini
     pipeline = transformers.pipeline(
         "text-generation",
         model="microsoft/Phi-4-mini-instruct",
@@ -52,39 +38,41 @@ def main() -> Any:
         device_map="auto",
     )
 
-    # Step 3: Define the inference function
-    #    This function handles the complete inference workflow:
-    #    preprocessing → model inference → postprocessing
-    def inference_function(eval_items: list[dict], **hyperparameters: Any) -> list[Any]:
-        """Pre-processes dataset items, inference and post-processing result."""
-        results = []
-        for eval_item in eval_items:
-            # Preprocess: Use the question directly from the local dataset
-            prompt = eval_item["question"]
+    # Define an inference function with the following signature
+    def inference(eval_items: List[Dict], **hyperparameter_config: Any) -> list[Any]:
+        """Return a list of model outputs for a list of evaluation items.
 
-            # Create chat messages
+        Args:
+            eval_items: Evaluation items from an EvalDataset.
+            hyperparameter_config: Model hyperparameters.
+
+        Returns:
+            The model outputs for a list of evaluation items.
+        """
+        inference_results = []
+        for eval_item in eval_items:
+
+            # Prepare eval items into valid model input
             messages = [
                 {
                     "role": "system",
                     "content": "Answer the question directly and concisely.",
                 },
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": eval_item["question"]},
             ]
 
-            # Run inference and extract the model's response
+            # Run inference on the item
             output = pipeline(messages)
-            output = output[0]["generated_text"][-1]["content"]
-            results.append(output)
 
-        return results
+            # Extract and collect the output generated from the model's response
+            inference_results.append(output[0]["generated_text"][-1]["content"])
 
-    # Step 4: Run the evaluation
-    #    Execute the evaluation using scorebook's evaluate function
-    #    Limits to 10 items for quick demonstration
-    #    Returns structured results with metrics and per-item scores
-    results = evaluate(inference_function, dataset, sample_size=10, parallel=False)
-    print(results)
+        return inference_results
 
+    # Step 3: Run the evaluation using the inference function and dataset
+    results = evaluate(inference, eval_dataset)
+
+    pprint(results)
     return results
 
 

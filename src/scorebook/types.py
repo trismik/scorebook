@@ -54,6 +54,7 @@ class ClassicEvalRunResult:
     run_spec: EvalRunSpec
     outputs: List[Any]
     scores: Dict[str, Any]
+    run_id: Optional[str] = None
 
     @property
     def item_scores(self) -> List[Dict[str, Any]]:
@@ -70,6 +71,10 @@ class ClassicEvalRunResult:
                 "inference_output": output,
                 **self.run_spec.hyperparameter_config,
             }
+
+            # Add run_id if available
+            if self.run_id is not None:
+                result["run_id"] = self.run_id
 
             # Add individual item scores if available
             for metric_name, metric_data in self.scores.items():
@@ -91,6 +96,10 @@ class ClassicEvalRunResult:
             "dataset": self.run_spec.dataset.name,
             **self.run_spec.hyperparameter_config,
         }
+
+        # Add run_id if available
+        if self.run_id is not None:
+            result["run_id"] = self.run_id
 
         # Add aggregate scores from metrics
         for metric_name, metric_data in self.scores.items():

@@ -25,6 +25,7 @@ from scorebook.exceptions import (
     ParameterValidationError,
 )
 from scorebook.trismik_services import run_adaptive_evaluation
+from scorebook.trismik_services.login import get_token
 from scorebook.trismik_services.upload_classic_eval_run import upload_classic_eval_run
 from scorebook.types import (
     AdaptiveEvalDataset,
@@ -139,8 +140,9 @@ async def _evaluate_async(
     sample_size: Optional[int] = None,
 ) -> Union[Dict, List]:
 
+    original_upload_results = upload_results
     upload_results = _resolve_upload_results(upload_results, experiment_id, project_id)
-    _validate_parameters(locals())
+    _validate_parameters(locals(), original_upload_results)
     datasets = _prepare_datasets(eval_datasets, sample_size)
     hyperparameter_configs = _prepare_hyperparameter_configs(hyperparameters)
 
@@ -161,7 +163,7 @@ async def _evaluate_async(
         datasets, len(hyperparameter_configs), parallel, len(eval_run_specs)
     ) as progress_bars:
         if parallel:
-            eval_results = await _run_parallel(
+            eval_result = await _run_parallel(
                 inference_callable,
                 eval_run_specs,
                 progress_bars,
@@ -171,7 +173,7 @@ async def _evaluate_async(
                 upload_results,
             )
         else:
-            eval_results = await _run_sequential(
+            eval_result = await _run_sequential(
                 inference_callable,
                 eval_run_specs,
                 progress_bars,
@@ -183,9 +185,7 @@ async def _evaluate_async(
 
         logger.info("Evaluation completed successfully")
 
-    return _format_results(
-        eval_results, return_dict, return_aggregates, return_items, return_output
-    )
+    return _format_results(eval_result, return_dict, return_aggregates, return_items, return_output)
 
 
 # ===== ORCHESTRATION PATHS =====
@@ -215,7 +215,8 @@ async def _run_parallel(
             and experiment_id is not None
             and project_id is not None
         ):
-            await _upload_classic_run(run_result, experiment_id, project_id, metadata)
+            run_id = await _upload_classic_run(run_result, experiment_id, project_id, metadata)
+            run_result.run_id = run_id
 
         return run_result
 
@@ -250,7 +251,8 @@ async def _run_sequential(
             and experiment_id is not None
             and project_id is not None
         ):
-            await _upload_classic_run(run_result, experiment_id, project_id, metadata)
+            run_id = await _upload_classic_run(run_result, experiment_id, project_id, metadata)
+            run_result.run_id = run_id
 
     return EvalResult(run_results)
 
@@ -312,40 +314,21 @@ async def _execute_adaptive_eval_run(
 # ===== HELPER FUNCTIONS =====
 
 
-async def _upload_classic_run(
-    run_result: ClassicEvalRunResult,
-    experiment_id: str,
-    project_id: str,
-    metadata: Optional[Dict[str, Any]] = None,
-) -> None:
-    """Upload a ClassicEvalRunResult to Trismik."""
-    try:
-        logger.debug("Uploading classic eval run: %s", run_result.run_spec)
-        await upload_classic_eval_run(
-            run=run_result,
-            experiment_id=experiment_id,
-            project_id=project_id,
-            model="unknown",  # TODO: Extract model from inference_callable/metadata
-            metadata=metadata,
-        )
-        logger.info("Successfully uploaded classic eval run")
-    except Exception as e:
-        logger.error("Failed to upload classic eval run: %s", str(e))
-
-
 def _resolve_upload_results(
     upload_results: Union[Literal["auto"], bool],
     experiment_id: Optional[str] = None,
     project_id: Optional[str] = None,
 ) -> bool:
-    """Resolve the upload_results parameter based on experiment_id and project_id."""
+    """Resolve the upload_results parameter based on login status."""
     if upload_results == "auto":
-        upload_results = experiment_id is not None and project_id is not None
+        upload_results = get_token() is not None
         logger.debug("Auto upload results resolved to: %s", upload_results)
     return upload_results
 
 
-def _validate_parameters(params: Dict[str, Any]) -> None:
+def _validate_parameters(
+    params: Dict[str, Any], original_upload_results: Union[Literal["auto"], bool]
+) -> None:
     """Validate all parameters for evaluation."""
 
     if params["return_dict"] and not params["return_aggregates"] and not params["return_items"]:
@@ -357,13 +340,6 @@ def _validate_parameters(params: Dict[str, Any]) -> None:
         raise ParallelExecutionError(
             "parallel=True requires the inference_callable to be async. "
             "Please make your inference function async or set parallel=False."
-        )
-
-    if params["upload_results"] and (
-        params["experiment_id"] is None or params["project_id"] is None
-    ):
-        raise ParameterValidationError(
-            "upload_results=True requires both experiment_id and project_id to be specified"
         )
 
 
@@ -561,6 +537,29 @@ def _score_metrics(
             raise MetricComputationError(metric.name, eval_dataset.name, e)
 
     return metric_scores
+
+
+async def _upload_classic_run(
+    run_result: ClassicEvalRunResult,
+    experiment_id: str,
+    project_id: str,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Optional[str]:
+    """Upload a ClassicEvalRunResult to Trismik."""
+    try:
+        logger.debug("Uploading classic eval run: %s", run_result.run_spec)
+        response = await upload_classic_eval_run(
+            run=run_result,
+            experiment_id=experiment_id,
+            project_id=project_id,
+            model="unknown",  # TODO: Extract model from inference_callable/metadata
+            metadata=metadata,
+        )
+        logger.info("Successfully uploaded classic eval run: %s", response.id)
+        return str(response.id)
+    except Exception as e:
+        logger.error("Failed to upload classic eval run: %s", str(e))
+        return None
 
 
 def _format_results(

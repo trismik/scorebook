@@ -2,11 +2,11 @@
 Submitting Evaluation Results Example.
 
 This example demonstrates how to automatically submit evaluation results to Trismik
-using Scorebook's auto upload functionality. When upload_results="auto" and both
-experiment_id and project_id are provided, results are automatically uploaded.
+using Scorebook's auto upload functionality. When upload_results="auto" and the user
+is logged in to Trismik, results are automatically uploaded.
 
 Key Features Demonstrated:
-1. **Auto Upload**: Automatic result submission when experiment/project IDs are provided
+1. **Auto Upload**: Automatic result submission when logged in to Trismik
 2. **Experiment Tracking**: Organize evaluations within experiments and projects
 3. **Metadata Inclusion**: Add custom metadata to evaluation runs
 
@@ -15,8 +15,8 @@ Prerequisites:
 - Active Trismik project and experiment IDs
 
 The auto upload logic:
-- If upload_results="auto" and no experiment_id/project_id � upload_results becomes False
-- If upload_results="auto" and both experiment_id/project_id provided � upload_results becomes True
+- If upload_results="auto" and user is not logged in → upload_results becomes False
+- If upload_results="auto" and user is logged in → upload_results becomes True
 """
 
 from typing import Any
@@ -73,7 +73,8 @@ def main() -> Any:
         sample_size=10,
         experiment_id="scorebook-example-7",
         project_id="c48419ff38b70f2b79265312a236b594a616f74c",
-        upload_results="auto",  # Will automatically upload since IDs are provided
+        upload_results="auto",  # Will automatically upload if user is logged in
+        return_items=True,
         metadata={
             "model_name": "microsoft/Phi-4-mini-instruct",
             "evaluation_type": "auto_upload_example",
