@@ -1,15 +1,4 @@
-"""
-Example 1 - A Simple Scorebook Evaluation.
-
-This example demonstrates the fundamental workflow for evaluating a model using Scorebook.
-
-It shows how to:
-    1. Load an evaluation dataset from local JSON file
-    2. Define an inference function using Hugging Face's transformers library
-    3. Run the evaluation and collect results
-
-This serves as a starting point for understanding Scorebook's core evaluation capabilities.
-"""
+"""Example 1 - A Simple Scorebook Evaluation."""
 
 from pprint import pprint
 from typing import Any, Dict, List
@@ -22,14 +11,20 @@ from scorebook.metrics import Accuracy
 
 
 def main() -> Any:
-    """Run a simple Scorebook evaluation."""
+    """Run a simple Scorebook evaluation.
 
-    # Step 1: Load an evaluation dataset, defining a label field and metric for scoring
-    eval_dataset = EvalDataset.from_json(
-        "examples/example_datasets/dataset.json", label="answer", metrics=[Accuracy]
-    )
+    This example demonstrates the fundamental workflow for evaluating a model using Scorebook.
 
-    # Step 2: Define an inference function
+    It shows how to:
+        1. Define an inference function using Hugging Face's transformers library
+        2. Load an evaluation dataset from a local JSON file
+        3. Run the evaluation and collect results
+
+    This serves as a starting point for understanding Scorebook's core evaluation capabilities.
+    """
+
+    # Step 1: Define an inference function
+
     # For this example, we use Hugging Face's transformer library with Microsoft's Phi-4-mini
     pipeline = transformers.pipeline(
         "text-generation",
@@ -38,8 +33,8 @@ def main() -> Any:
         device_map="auto",
     )
 
-    # Define an inference function with the following signature
-    def inference(eval_items: List[Dict], **hyperparameter_config: Any) -> list[Any]:
+    # Inference function can be defined with the following signature:
+    def inference(eval_items: List[Dict], **hyperparameter_config: Any) -> List[Any]:
         """Return a list of model outputs for a list of evaluation items.
 
         Args:
@@ -56,21 +51,33 @@ def main() -> Any:
             messages = [
                 {
                     "role": "system",
-                    "content": "Answer the question directly and concisely.",
+                    "content": hyperparameter_config["system_message"],
                 },
                 {"role": "user", "content": eval_item["question"]},
             ]
 
             # Run inference on the item
-            output = pipeline(messages)
+            output = pipeline(messages, temperature=hyperparameter_config["temperature"])
 
             # Extract and collect the output generated from the model's response
             inference_results.append(output[0]["generated_text"][-1]["content"])
 
         return inference_results
 
+    # Step 2: Load an evaluation dataset, defining a label field and metric for scoring
+    eval_dataset = EvalDataset.from_json(
+        file_path="examples/example_datasets/dataset.json", label="answer", metrics=Accuracy
+    )
+
     # Step 3: Run the evaluation using the inference function and dataset
-    results = evaluate(inference, eval_dataset)
+    results = evaluate(
+        inference,
+        eval_dataset,
+        hyperparameters={  # Optionally pass a hyperparameter configuration
+            "temperature": 0.7,
+            "system_message": "Answer the question directly and concisely.",
+        },
+    )
 
     pprint(results)
     return results

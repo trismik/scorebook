@@ -66,7 +66,7 @@ def test_evaluate_with_async_inference_function(sample_dataset):
     """Test evaluation with an async inference function."""
     async_inference_fn = create_async_inference_pipeline("1")
 
-    results = evaluate(async_inference_fn, sample_dataset, return_dict=False)
+    results = evaluate(async_inference_fn, sample_dataset, return_dict=False, upload_results=False)
 
     # With return_dict=False, we get an EvalResult object directly
     assert isinstance(results, EvalResult)
@@ -82,8 +82,12 @@ def test_evaluate_async_vs_sync_same_results(sample_dataset):
     sync_inference_fn = create_sync_inference_pipeline("1")
     async_inference_fn = create_async_inference_pipeline("1")
 
-    sync_results = evaluate(sync_inference_fn, sample_dataset, return_dict=False)
-    async_results = evaluate(async_inference_fn, sample_dataset, return_dict=False)
+    sync_results = evaluate(
+        sync_inference_fn, sample_dataset, return_dict=False, upload_results=False
+    )
+    async_results = evaluate(
+        async_inference_fn, sample_dataset, return_dict=False, upload_results=False
+    )
 
     # Results should be identical
     assert len(sync_results.run_results) == len(async_results.run_results)
@@ -106,7 +110,9 @@ def test_evaluate_async_with_multiple_datasets():
     )
 
     async_inference_fn = create_async_inference_pipeline("1")
-    results = evaluate(async_inference_fn, [dataset1, dataset2], return_dict=False)
+    results = evaluate(
+        async_inference_fn, [dataset1, dataset2], return_dict=False, upload_results=False
+    )
 
     # With return_dict=False, we get an EvalResult object directly
     assert isinstance(results, EvalResult)
@@ -125,7 +131,11 @@ def test_evaluate_async_with_item_limit(sample_dataset):
     item_limit = 3
 
     results = evaluate(
-        async_inference_fn, sample_dataset, sample_size=item_limit, return_dict=False
+        async_inference_fn,
+        sample_dataset,
+        sample_size=item_limit,
+        return_dict=False,
+        upload_results=False,
     )
 
     # Check the number of item scores matches the limit
@@ -155,7 +165,7 @@ def test_evaluate_async_different_outputs(sample_dataset):
         postprocessor=lambda x, h=None: x,
     )
 
-    results = evaluate(variable_pipeline, sample_dataset, return_dict=False)
+    results = evaluate(variable_pipeline, sample_dataset, return_dict=False, upload_results=False)
 
     # Get the run result
     eval_run_result = results.run_results[0]
@@ -175,6 +185,7 @@ def test_evaluate_async_with_dict_return_type(sample_dataset):
         return_dict=True,
         return_aggregates=True,
         return_items=False,
+        upload_results=False,
     )
 
     assert isinstance(results, list)
@@ -195,7 +206,7 @@ def test_evaluate_async_performance():
     async_inference_fn = create_async_inference_pipeline("1", delay=0.001)  # 1ms delay
 
     start_time = time.time()
-    results = evaluate(async_inference_fn, dataset, return_dict=False)
+    results = evaluate(async_inference_fn, dataset, return_dict=False, upload_results=False)
     end_time = time.time()
 
     # Should complete reasonably quickly (not more than 10 seconds for 50 items)
@@ -231,4 +242,4 @@ def test_evaluate_with_failing_async_function(sample_dataset):
     )
 
     with pytest.raises(ValueError):
-        evaluate(failing_pipeline, sample_dataset, return_dict=False)
+        evaluate(failing_pipeline, sample_dataset, return_dict=False, upload_results=False)

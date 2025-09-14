@@ -23,7 +23,7 @@ def test_evaluate_with_sync_inference_function():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(simple_inference_function, dataset, sample_size=5)
+    results = evaluate(simple_inference_function, dataset, sample_size=5, upload_results=False)
 
     assert isinstance(results, list)
     assert len(results) > 0
@@ -37,7 +37,7 @@ def test_evaluate_with_async_inference_function():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(async_inference_function, dataset, sample_size=5)
+    results = evaluate(async_inference_function, dataset, sample_size=5, upload_results=False)
 
     assert isinstance(results, list)
     assert len(results) > 0
@@ -61,6 +61,7 @@ def test_evaluate_with_parametric_inference_function():
         dataset,
         hyperparameters={"output": "0"},
         sample_size=5,
+        upload_results=False,
     )
 
     assert isinstance(results, list)
@@ -83,7 +84,7 @@ def test_evaluate_with_minimal_inference_pipeline():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(pipeline, dataset, sample_size=5)
+    results = evaluate(pipeline, dataset, sample_size=5, upload_results=False)
 
     assert isinstance(results, list)
     assert len(results) > 0
