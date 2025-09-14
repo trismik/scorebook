@@ -26,14 +26,14 @@ async def upload_classic_eval_run(
     metadata: Optional[Dict[str, Any]],
 ) -> TrismikClassicEvalResponse:
     """Upload a classic evaluation run result to Trismik platform.
-    
+
     Args:
         run: The evaluation run result to upload
-        experiment_id: Trismik experiment identifier  
+        experiment_id: Trismik experiment identifier
         project_id: Trismik project identifier
         model: Model name used for evaluation
         metadata: Optional metadata dictionary
-        
+
     Returns:
         Response from Trismik API containing the upload result
     """
