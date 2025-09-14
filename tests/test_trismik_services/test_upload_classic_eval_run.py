@@ -23,14 +23,10 @@ import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from dotenv import load_dotenv
 
 from scorebook.eval_dataset import EvalDataset
 from scorebook.trismik_services.upload_classic_eval_run import upload_classic_eval_run
 from scorebook.types import ClassicEvalRunResult, EvalRunSpec
-
-# Load environment variables from .env file
-load_dotenv()
 
 # Set to True to use mocks, False to test real backend integration
 # Can be set in .env file: MOCK_TRISMIK_TESTS=false
