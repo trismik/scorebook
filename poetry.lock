@@ -5947,23 +5947,18 @@ vision = ["Pillow (>=10.0.1,<=15.0)"]
 
 [[package]]
 name = "trismik"
-version = "0.9.3rc3"
+version = "0.9.4"
 description = ""
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "trismik-0.9.3rc3-py3-none-any.whl", hash = "sha256:0d5a724852b98e0a20f8f79faf36c78cd97d7f79563b7bc2106660ddb064a749"},
-    {file = "trismik-0.9.3rc3.tar.gz", hash = "sha256:3f54f9ba6ea2888628e9730ddc16861fbedb3b6b6da3326541ba45eea5208457"},
+    {file = "trismik-0.9.4-py3-none-any.whl", hash = "sha256:597f010d2a81276927b5e7f28a752716f746b1cb2c1a31ae44dc60b4eaad458f"},
+    {file = "trismik-0.9.4.tar.gz", hash = "sha256:227e0109f02307ec35fd1004a3a2802b2e84de669d74e961033d4c1a70f216fe"},
 ]
 
 [package.extras]
 examples = ["accelerate (>=1.7.0,<2.0.0)", "notebook (>=7.4.4,<8.0.0)", "openai (>=1.81.0,<2.0.0)", "torch (>=2.7.0,<3.0.0)", "torchaudio (>=2.7.0,<3.0.0)", "torchvision (>=0.22.0,<1.0.0)", "transformers (>=4.51.3,<5.0.0)"]
-
-[package.source]
-type = "legacy"
-url = "https://test.pypi.org/simple"
-reference = "testpypi"
 
 [[package]]
 name = "triton"
@@ -6615,4 +6610,4 @@ vertex = ["fsspec", "google-cloud-storage", "google-genai", "pandas", "python-do
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "6682f05b70b4d6ed2bff04aad67c62e79912b87f3d6b02e945f59a91d6b8af0d"
+content-hash = "307523d4eaccc8a4336c33d718a54e7aa6f49af28c7c1be3681cebb677235ad5"

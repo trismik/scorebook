@@ -41,7 +41,9 @@ def test_evaluate_single_dataset():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
+    results = evaluate(
+        create_simple_inference_pipeline("1"), dataset, return_dict=False, upload_results=False
+    )
 
     # With return_dict=False, we get an EvalResult object directly
     assert isinstance(results, EvalResult)
@@ -75,7 +77,10 @@ def test_evaluate_multiple_datasets():
     )
 
     results = evaluate(
-        create_simple_inference_pipeline("1"), [csv_dataset, json_dataset], return_dict=False
+        create_simple_inference_pipeline("1"),
+        [csv_dataset, json_dataset],
+        return_dict=False,
+        upload_results=False,
     )
 
     # With return_dict=False, we get an EvalResult object directly
@@ -96,7 +101,11 @@ def test_evaluate_with_item_limit():
     )
 
     results = evaluate(
-        create_simple_inference_pipeline("1"), dataset, sample_size=2, return_dict=False
+        create_simple_inference_pipeline("1"),
+        dataset,
+        sample_size=2,
+        return_dict=False,
+        upload_results=False,
     )
 
     # Check that we have the expected number of item scores
@@ -110,7 +119,9 @@ def test_evaluate_with_multiple_metrics():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
+    results = evaluate(
+        create_simple_inference_pipeline("1"), dataset, return_dict=False, upload_results=False
+    )
 
     # Check aggregate scores
     aggregate_scores = results.aggregate_scores
@@ -124,7 +135,9 @@ def test_evaluate_with_none_predictions():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_pipeline(None), dataset, return_dict=False)
+    results = evaluate(
+        create_simple_inference_pipeline(None), dataset, return_dict=False, upload_results=False
+    )
 
     # Check that all accuracy scores are False (None predictions should be wrong)
     item_scores = results.item_scores
@@ -149,7 +162,7 @@ def test_evaluate_invalid_inference_fn():
     )
 
     with pytest.raises(ValueError):
-        evaluate(bad_pipeline, dataset)
+        evaluate(bad_pipeline, dataset, upload_results=False)
 
 
 def test_evaluate_return_type():
@@ -160,7 +173,9 @@ def test_evaluate_return_type():
     )
 
     # Test object return type (EvalResult)
-    obj_results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
+    obj_results = evaluate(
+        create_simple_inference_pipeline("1"), dataset, return_dict=False, upload_results=False
+    )
     assert isinstance(obj_results, EvalResult)
     assert len(obj_results.run_results) == 1
 
@@ -172,6 +187,7 @@ def test_evaluate_return_type():
         return_dict=True,
         return_aggregates=True,
         return_items=False,
+        upload_results=False,
     )
     assert isinstance(dict_results, list)
     assert "accuracy" in dict_results[0]  # Check first result has accuracy score
@@ -183,6 +199,7 @@ def test_evaluate_return_type():
         return_dict=True,
         return_aggregates=True,
         return_items=True,
+        upload_results=False,
     )
     assert "aggregate_results" in dict_results_all
     assert "item_results" in dict_results_all
@@ -198,6 +215,7 @@ def test_evaluate_return_type():
         return_dict=True,
         return_aggregates=False,
         return_items=True,
+        upload_results=False,
     )
     assert isinstance(dict_results_item, list)
     assert len(dict_results_item) > 0
@@ -210,7 +228,9 @@ def test_evaluate_with_csv_export(tmp_path):
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
+    results = evaluate(
+        create_simple_inference_pipeline("1"), dataset, return_dict=False, upload_results=False
+    )
 
     output_path = tmp_path / "evaluation_results.csv"
     # Export item scores to CSV
@@ -234,7 +254,9 @@ def test_evaluate_with_json_export(tmp_path):
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(create_simple_inference_pipeline("1"), dataset, return_dict=False)
+    results = evaluate(
+        create_simple_inference_pipeline("1"), dataset, return_dict=False, upload_results=False
+    )
 
     output_path = tmp_path / "evaluation_results.json"
     # Export results to JSON
@@ -266,6 +288,7 @@ def test_evaluate_invalid_param_config():
             return_dict=True,
             return_aggregates=False,
             return_items=False,
+            upload_results=False,
         )
 
 
@@ -283,6 +306,7 @@ def test_evaluate_duplicate_datasets():
         return_dict=True,
         return_aggregates=True,
         return_items=True,
+        upload_results=False,
     )
 
     # Should have results from both dataset runs
@@ -315,6 +339,7 @@ def test_evaluate_with_precomputed_hyperparams():
         return_dict=True,
         return_aggregates=True,
         return_items=True,
+        upload_results=False,
     )
 
     # Should have results for each hyperparameter config

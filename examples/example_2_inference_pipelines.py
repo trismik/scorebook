@@ -1,31 +1,7 @@
-"""
-Modular Inference Pipeline Example.
+"""Example 2 - Using Inference Pipelines."""
 
-This example demonstrates Scorebook's modular InferencePipeline approach for model evaluation.
-Unlike a single inference function, pipelines separate the evaluation workflow into three
-distinct, reusable stages:
-
-1. **Preprocessing**: Convert raw dataset items into model-ready input format
-2. **Inference**: Execute model predictions on preprocessed data
-3. **Postprocessing**: Extract final answers from raw model outputs
-
-Key Benefits of Inference Pipelines:
-- **Modularity**: Each stage can be developed, tested, and reused independently
-- **Flexibility**: Easy to swap different preprocessors, models, or postprocessors
-- **Maintainability**: Clear separation of concerns makes code easier to understand
-- **Reusability**: Components can be shared across different evaluation setups
-
-This approach is particularly useful when:
-- Working with complex preprocessing requirements
-- Switching between different models or formats
-- Building reusable evaluation components
-- Collaborating with teams on evaluation workflows
-
-Compare with example_1_simple_eval.py to see the difference between monolithic
-inference functions and modular pipeline approaches.
-"""
-
-from typing import Any
+from pprint import pprint
+from typing import Any, Dict, List
 
 import transformers
 from example_helpers import save_results_to_json, setup_logging, setup_output_directory
@@ -36,14 +12,44 @@ from scorebook.metrics import Accuracy
 
 
 def main() -> Any:
-    """Run the inference pipelines example."""
+    """Run a simple Scorebook evaluation using an InferencePipeline.
 
-    # Step 1: Load the evaluation dataset
-    dataset = EvalDataset.from_json(
-        "examples/example_datasets/dataset.json", label="answer", metrics=[Accuracy]
-    )
+    This example demonstrates how to use Scorebook's InferencePipeline in evaluations.
 
-    # Step 2: Initialize the language model
+    Inference pipelines separate the evaluation workflow into three distinct stages:
+        1. Pre-processing: Convert raw dataset items into model-ready input format
+        2. Inference: Execute model predictions on preprocessed data
+        3. Post-processing: Extract final answers from raw model outputs
+
+    These stages can be encapsulated in reusable functions and used to create pipelines.
+    An inference pipeline can be passed into the evaluate function's inference parameter.
+    """
+
+    # === Pre-Processing ===
+
+    # The preprocessor function is responsible for mapping items in an Eval Dataset to model inputs
+    def preprocessor(eval_item: Dict, **hyperparameter_config: Any) -> List[Any]:
+        """Convert an evaluation item to a valid model input.
+
+        Args:
+            eval_item: An evaluation item from an EvalDataset.
+            hyperparameter_config: Model hyperparameters.
+
+        Returns:
+            A structured representation of an evaluation item for model input.
+        """
+        messages = [
+            {
+                "role": "system",
+                "content": hyperparameter_config["system_message"],
+            },
+            {"role": "user", "content": eval_item["question"]},
+        ]
+
+        return messages
+
+    # === Inference ===
+
     pipeline = transformers.pipeline(
         "text-generation",
         model="microsoft/Phi-4-mini-instruct",
@@ -51,57 +57,65 @@ def main() -> Any:
         device_map="auto",
     )
 
-    # Step 3: Define the preprocessing function
-    #    Convert raw dataset items into model-ready input format
-    #    This function handles formatting the question for the model
-    def preprocessor(eval_item: dict) -> list:
-        """Convert evaluation item to model input format."""
-        prompt = eval_item["question"]
+    # An inference function for an InferencePipeline that returns a list of raw outputs
+    def inference(preprocessed_items: List[Any], **hyperparameter_config: Any) -> List[Any]:
+        """Run model inference on preprocessed eval items.
 
-        messages = [
-            {
-                "role": "system",
-                "content": "Answer the question directly and concisely.",
-            },
-            {"role": "user", "content": prompt},
+        Args:
+            preprocessed_items: The list of evaluation items for an EvalDataset.
+            hyperparameter_config: Model hyperparameters.
+
+        Returns:
+            A list of model outputs for an EvalDataset.
+        """
+        return [
+            pipeline(model_input, temperature=hyperparameter_config["temperature"])
+            for model_input in preprocessed_items
         ]
 
-        return messages
+    # === Post-Processing ===
 
-    # Step 4: Define the inference function
-    #    Execute model inference on preprocessed items
-    #    Takes a batch of preprocessed items and returns raw model outputs
-    def inference_function(processed_items: list[list], **hyperparameters: Any) -> list[Any]:
-        """Run model inference on preprocessed items."""
-        outputs = []
-        for messages in processed_items:
-            output = pipeline(messages)
-            outputs.append(output)
-        return outputs
+    # The postprocessor function parses model output for metric scoring
+    def postprocessor(model_output: Any, **hyperparameter_config: Any) -> str:
+        """Extract the final parsed answer from the model output.
 
-    # Step 5: Define the postprocessing function
-    #    Extract the final prediction from raw model output
-    #    Converts model output into the format needed for metric calculation
-    def postprocessor(model_output: Any) -> str:
-        """Extract the final answer from model output."""
+        Args:
+            model_output: An evaluation item from an EvalDataset.
+            hyperparameter_config: Model hyperparameters.
+
+        Returns:
+            Parsed answer from the model output to be used for scoring.
+        """
         return str(model_output[0]["generated_text"][-1]["content"])
 
-    # Step 6: Create the inference pipeline
-    #    Combine all three stages into a modular InferencePipeline object
-    #    This demonstrates Scorebook's modular approach to model evaluation
-    #    Separates concerns: preprocessing, inference, and postprocessing
-    #    Makes components reusable across different models or datasets
+    # === Evaluation With An InferencePipeline ===
+
+    # Step 1: Create an inference pipeline, using the 3 functions defined
     inference_pipeline = InferencePipeline(
         model="microsoft/Phi-4-mini-instruct",
         preprocessor=preprocessor,
-        inference_function=inference_function,
+        inference_function=inference,
         postprocessor=postprocessor,
     )
 
-    # Step 7: Run the evaluation
-    results = evaluate(inference_pipeline, dataset, sample_size=10)
-    print(results)
+    # Step 2: Load the evaluation dataset
+    eval_dataset = EvalDataset.from_json(
+        file_path="examples/example_datasets/dataset.json", label="answer", metrics=Accuracy
+    )
 
+    # Step 3: Run the evaluation using the inference pipeline and dataset
+    results = evaluate(
+        inference_pipeline,
+        eval_dataset,
+        hyperparameters={
+            "temperature": 0.7,
+            "system_message": "Answer the question directly and concisely.",
+        },
+        return_items=True,  # Enable to include results for individual items in the dict returned.
+        return_output=True,  # Enable to include the model's output for individual items.
+    )
+
+    pprint(results)
     return results
 
 
