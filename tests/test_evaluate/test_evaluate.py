@@ -161,8 +161,11 @@ def test_evaluate_invalid_inference_fn():
         postprocessor=lambda x, h=None: x,
     )
 
-    with pytest.raises(ValueError):
-        evaluate(bad_pipeline, dataset, upload_results=False)
+    result = evaluate(bad_pipeline, dataset, return_dict=False, upload_results=False)
+
+    # Should return a failed run result instead of raising exception
+    assert len(result.run_results) == 1
+    assert not result.run_results[0].run_completed
 
 
 def test_evaluate_return_type():
@@ -352,3 +355,151 @@ def test_evaluate_with_precomputed_hyperparams():
     assert results["aggregate_results"][0]["param1"] == "value1"
     assert results["aggregate_results"][1]["param1"] == "value2"
     assert results["aggregate_results"][2]["param1"] == "value3"
+
+
+def test_evaluate_mixed_success_failure_runs():
+    """Test that when some runs fail, others still complete successfully."""
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
+    dataset = EvalDataset.from_csv(
+        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+    )
+
+    def conditional_failing_inference_function(
+        processed_items: List[Dict], **hyperparameters
+    ) -> List[str]:
+        """Inference function that fails only for specific hyperparameter values."""
+        fail_on_param = hyperparameters.get("fail_on_param", False)
+        if fail_on_param:
+            raise ValueError("Intentional failure for testing")
+        return ["1" for _ in processed_items]
+
+    def preprocessor(item: Dict, **hyperparameters) -> Dict:
+        return item
+
+    def postprocessor(output: str, **hyperparameters) -> str:
+        return output
+
+    failing_pipeline = InferencePipeline(
+        model="test_model",
+        preprocessor=preprocessor,
+        inference_function=conditional_failing_inference_function,
+        postprocessor=postprocessor,
+    )
+
+    # Test with multiple hyperparameter configs where some should fail
+    hyperparams_configs = [
+        {"config_name": "success_1", "fail_on_param": False},
+        {"config_name": "failure_1", "fail_on_param": True},
+        {"config_name": "success_2", "fail_on_param": False},
+        {"config_name": "failure_2", "fail_on_param": True},
+        {"config_name": "success_3", "fail_on_param": False},
+    ]
+
+    results = evaluate(
+        failing_pipeline,
+        dataset,
+        hyperparameters=hyperparams_configs,
+        return_dict=False,
+        upload_results=False,
+    )
+
+    # Should have 5 run results (one for each hyperparameter config)
+    assert len(results.run_results) == 5
+
+    # Check that we have both successful and failed runs
+    successful_runs = [r for r in results.run_results if r.run_completed]
+    failed_runs = [r for r in results.run_results if not r.run_completed]
+
+    assert len(successful_runs) == 3  # success_1, success_2, success_3
+    assert len(failed_runs) == 2  # failure_1, failure_2
+
+    # Verify successful runs have proper outputs and metrics
+    for run in successful_runs:
+        assert run.outputs is not None
+        assert len(run.outputs) == 5  # 5 items in dataset
+        assert all(output == "1" for output in run.outputs)
+        assert run.scores is not None
+        assert "accuracy" in run.scores
+
+    # Verify failed runs have None outputs and metrics
+    for run in failed_runs:
+        # Failed runs should have None outputs and scores
+        assert run.outputs is None
+        assert run.scores is None
+
+    # Check that hyperparameters are preserved correctly
+    success_configs = [r.run_spec.hyperparameter_config["config_name"] for r in successful_runs]
+    failure_configs = [r.run_spec.hyperparameter_config["config_name"] for r in failed_runs]
+
+    assert set(success_configs) == {"success_1", "success_2", "success_3"}
+    assert set(failure_configs) == {"failure_1", "failure_2"}
+
+
+def test_evaluate_mixed_success_failure_multiple_datasets():
+    """Test that when some runs fail across multiple datasets, others still complete."""
+    csv_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
+    json_path = str(Path(__file__).parent.parent / "data" / "Dataset.json")
+
+    csv_dataset = EvalDataset.from_csv(
+        csv_path, label="label", metrics=[Accuracy], name="csv_dataset"
+    )
+    json_dataset = EvalDataset.from_json(
+        json_path, label="label", metrics=[Accuracy], name="json_dataset"
+    )
+
+    def dataset_selective_failing_inference(
+        processed_items: List[Dict], **hyperparameters
+    ) -> List[str]:
+        """Inference function that fails only when fail_this_run is True."""
+        fail_this_run = hyperparameters.get("fail_this_run", False)
+        if fail_this_run:
+            raise ValueError("Intentional failure for testing")
+        return ["1" for _ in processed_items]
+
+    failing_pipeline = InferencePipeline(
+        model="test_model",
+        preprocessor=lambda x, **h: x,
+        inference_function=dataset_selective_failing_inference,
+        postprocessor=lambda x, **h: x,
+    )
+
+    # Use different hyperparameters for each dataset: one fails, one succeeds
+    hyperparams_configs = [
+        {"dataset_type": "csv", "fail_this_run": True},  # CSV should fail
+        {"dataset_type": "json", "fail_this_run": False},  # JSON should succeed
+    ]
+
+    results = evaluate(
+        failing_pipeline,
+        [csv_dataset, json_dataset],
+        hyperparameters=hyperparams_configs,
+        return_dict=False,
+        upload_results=False,
+    )
+
+    # Should have 4 run results (2 datasets × 2 hyperparameter configs)
+    assert len(results.run_results) == 4
+
+    # Separate successful and failed runs
+    successful_runs = [r for r in results.run_results if r.run_completed]
+    failed_runs = [r for r in results.run_results if not r.run_completed]
+
+    # Should have 2 successful runs (both datasets with fail_this_run=False)
+    # and 2 failed runs (both datasets with fail_this_run=True)
+    assert len(successful_runs) == 2
+    assert len(failed_runs) == 2
+
+    # Verify successful runs have proper outputs and scores
+    for run in successful_runs:
+        assert run.outputs is not None
+        assert len(run.outputs) == 5  # 5 items in dataset
+        assert all(output == "1" for output in run.outputs)
+        assert run.scores is not None
+        assert "accuracy" in run.scores
+        assert not run.run_spec.hyperparameter_config["fail_this_run"]
+
+    # Verify failed runs have None outputs and scores
+    for run in failed_runs:
+        assert run.outputs is None
+        assert run.scores is None
+        assert run.run_spec.hyperparameter_config["fail_this_run"]

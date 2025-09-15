@@ -241,5 +241,8 @@ def test_evaluate_with_failing_async_function(sample_dataset):
         postprocessor=lambda x, h=None: x,
     )
 
-    with pytest.raises(ValueError):
-        evaluate(failing_pipeline, sample_dataset, return_dict=False, upload_results=False)
+    result = evaluate(failing_pipeline, sample_dataset, return_dict=False, upload_results=False)
+
+    # Should return a failed run result instead of raising exception
+    assert len(result.run_results) == 1
+    assert not result.run_results[0].run_completed

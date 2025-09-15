@@ -113,6 +113,7 @@ def main() -> Any:
         },
         return_items=True,  # Enable to include results for individual items in the dict returned.
         return_output=True,  # Enable to include the model's output for individual items.
+        upload_results=False,  # Disable uploading for this example
     )
 
     pprint(results)

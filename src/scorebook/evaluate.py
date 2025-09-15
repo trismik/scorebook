@@ -201,10 +201,12 @@ async def _run_parallel(
             and experiment_id
             and project_id
         ):
-            run_id = await _upload_classic_run(
-                run_result, experiment_id, project_id, inference, metadata
-            )
-            run_result.run_id = run_id
+            # Only upload runs that completed successfully
+            if run_result.run_completed:
+                run_id = await _upload_classic_run(
+                    run_result, experiment_id, project_id, inference, metadata
+                )
+                run_result.run_id = run_id
 
         return run_result
 
@@ -243,10 +245,12 @@ async def _run_sequential(
             and experiment_id
             and project_id
         ):
-            run_id = await _upload_classic_run(
-                run_result, experiment_id, project_id, inference, metadata
-            )
-            run_result.run_id = run_id
+            # Only upload runs that completed successfully
+            if run_result.run_completed:
+                run_id = await _upload_classic_run(
+                    run_result, experiment_id, project_id, inference, metadata
+                )
+                run_result.run_id = run_id
 
     return EvalResult(run_results)
 
@@ -281,13 +285,20 @@ async def _execute_classic_eval_run(inference: Callable, run: EvalRunSpec) -> Cl
     """Execute a classic evaluation run."""
     logger.debug("Executing classic eval run for %s", run)
 
-    inference_outputs = await _run_inference_callable(
-        inference, run.dataset.items, run.hyperparameter_config
-    )
-    metric_scores = _score_metrics(run.dataset, inference_outputs, run.labels)
+    inference_outputs = None
+    metric_scores = None
 
-    logger.debug("Classic evaluation completed for run %s", run)
-    return ClassicEvalRunResult(run, inference_outputs, metric_scores)
+    try:
+        inference_outputs = await _run_inference_callable(
+            inference, run.dataset.items, run.hyperparameter_config
+        )
+        metric_scores = _score_metrics(run.dataset, inference_outputs, run.labels)
+        logger.debug("Classic evaluation completed for run %s", run)
+        return ClassicEvalRunResult(run, True, inference_outputs, metric_scores)
+
+    except Exception as e:
+        logger.warning("Failed to complete classic eval run for %s: %s", run, str(e))
+        return ClassicEvalRunResult(run, False, inference_outputs, metric_scores)
 
 
 async def _execute_adaptive_eval_run(
@@ -331,7 +342,7 @@ def _validate_parameters(params: Dict[str, Any]) -> None:
         )
 
     # Parallel runs require an asynchronous inference callable
-    if params["parallel"] and not is_awaitable(params["inference_callable"]):
+    if params["parallel"] and not is_awaitable(params["inference"]):
         raise ParallelExecutionError(
             "parallel=True requires the inference_callable to be async. "
             "Please make your inference function async or set parallel=False."

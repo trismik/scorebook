@@ -62,6 +62,7 @@ def simple_eval_run_result(simple_eval_run_spec):
     """Create a simple ClassicEvalRunResult for testing."""
     return ClassicEvalRunResult(
         run_spec=simple_eval_run_spec,
+        run_completed=True,
         outputs=["4", "Paris", "blue"],
         scores={"accuracy": 1.0, "f1_score": 0.95},
     )
@@ -200,7 +201,7 @@ class TestUploadClassicEvalRun:
         )
 
         eval_run_result = ClassicEvalRunResult(
-            run_spec=run_spec, outputs=["4", "Paris"], scores={"accuracy": 0.5}
+            run_spec=run_spec, run_completed=True, outputs=["4", "Paris"], scores={"accuracy": 0.5}
         )
 
         if MOCK:
@@ -261,7 +262,10 @@ class TestUploadClassicEvalRun:
         )
 
         eval_run_result = ClassicEvalRunResult(
-            run_spec=run_spec, outputs=[{"response": "json"}, 789, False], scores={"accuracy": 0.33}
+            run_spec=run_spec,
+            run_completed=True,
+            outputs=[{"response": "json"}, 789, False],
+            scores={"accuracy": 0.33},
         )
 
         if MOCK:

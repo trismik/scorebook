@@ -79,6 +79,7 @@ def main(model_name: str) -> Any:
         return_items=True,
         return_output=True,
         parallel=True,  # Enable to run inference and evaluations simultaneously
+        upload_results=False,
     )
 
     print(results)
