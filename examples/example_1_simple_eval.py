@@ -77,6 +77,7 @@ def main() -> Any:
             "temperature": 0.7,
             "system_message": "Answer the question directly and concisely.",
         },
+        upload_results=False,  # Disable uploading for this example
     )
 
     pprint(results)

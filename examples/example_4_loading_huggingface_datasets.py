@@ -78,7 +78,8 @@ def main() -> Any:
         sample_size=10,  # Sample size can be used for quick testing on large datasets.
         return_items=True,
         return_output=True,
-        parallel=True,
+        parallel=False,
+        upload_results=False,  # Disable uploading for this example
     )
 
     pprint(results)

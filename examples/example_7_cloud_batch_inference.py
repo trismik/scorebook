@@ -92,6 +92,7 @@ def main(model_name: str) -> Any:
         return_aggregates=True,
         return_items=True,
         return_output=True,
+        upload_results=False,
     )
     print("\nBatch evaluation completed:\n")
 

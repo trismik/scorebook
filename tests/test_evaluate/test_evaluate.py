@@ -161,8 +161,11 @@ def test_evaluate_invalid_inference_fn():
         postprocessor=lambda x, h=None: x,
     )
 
-    with pytest.raises(ValueError):
-        evaluate(bad_pipeline, dataset, upload_results=False)
+    result = evaluate(bad_pipeline, dataset, return_dict=False, upload_results=False)
+
+    # Should return a failed run result instead of raising exception
+    assert len(result.run_results) == 1
+    assert not result.run_results[0].run_completed
 
 
 def test_evaluate_return_type():

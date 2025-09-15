@@ -99,6 +99,7 @@ def main(model_name: str) -> Any:
         return_items=True,
         return_output=True,
         parallel=True,
+        upload_results=False,
     )
 
     pprint(results)

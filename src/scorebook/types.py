@@ -52,8 +52,9 @@ class ClassicEvalRunResult:
     """Results from executing a classic evaluation run."""
 
     run_spec: EvalRunSpec
-    outputs: List[Any]
-    scores: Dict[str, Any]
+    run_completed: bool
+    outputs: Optional[List[Any]]
+    scores: Optional[Dict[str, Any]]
     run_id: Optional[str] = None
 
     @property
@@ -61,31 +62,33 @@ class ClassicEvalRunResult:
         """Return a list of dictionaries containing scores for each evaluated item."""
         results = []
 
-        for idx, output in enumerate(self.outputs):
-            if idx >= len(self.run_spec.items):
-                break
+        if self.outputs:
+            for idx, output in enumerate(self.outputs):
+                if idx >= len(self.run_spec.items):
+                    break
 
-            result = {
-                "item_id": idx,
-                "dataset_name": self.run_spec.dataset.name,
-                "inference_output": output,
-                **self.run_spec.hyperparameter_config,
-            }
+                result = {
+                    "item_id": idx,
+                    "dataset_name": self.run_spec.dataset.name,
+                    "inference_output": output,
+                    **self.run_spec.hyperparameter_config,
+                }
 
-            # Add run_id if available
-            if self.run_id is not None:
-                result["run_id"] = self.run_id
+                # Add run_id if available
+                if self.run_id is not None:
+                    result["run_id"] = self.run_id
 
-            # Add individual item scores if available
-            for metric_name, metric_data in self.scores.items():
-                if isinstance(metric_data, dict) and "item_scores" in metric_data:
-                    if idx < len(metric_data["item_scores"]):
-                        result[metric_name] = metric_data["item_scores"][idx]
-                else:
-                    # If scores is just a single value, replicate it for each item
-                    result[metric_name] = metric_data
+                # Add individual item scores if available
+                if self.scores is not None:
+                    for metric_name, metric_data in self.scores.items():
+                        if isinstance(metric_data, dict) and "item_scores" in metric_data:
+                            if idx < len(metric_data["item_scores"]):
+                                result[metric_name] = metric_data["item_scores"][idx]
+                        else:
+                            # If scores is just a single value, replicate it for each item
+                            result[metric_name] = metric_data
 
-            results.append(result)
+                results.append(result)
 
         return results
 
@@ -94,6 +97,7 @@ class ClassicEvalRunResult:
         """Return the aggregated scores for this run."""
         result = {
             "dataset": self.run_spec.dataset.name,
+            "run_completed": self.run_completed,
             **self.run_spec.hyperparameter_config,
         }
 
@@ -102,15 +106,16 @@ class ClassicEvalRunResult:
             result["run_id"] = self.run_id
 
         # Add aggregate scores from metrics
-        for metric_name, metric_data in self.scores.items():
-            if isinstance(metric_data, dict) and "aggregate_scores" in metric_data:
-                # Flatten the aggregate scores from each metric
-                for key, value in metric_data["aggregate_scores"].items():
-                    score_key = key if key == metric_name else f"{metric_name}_{key}"
-                    result[score_key] = value
-            else:
-                # If scores is just a single value, use it as is
-                result[metric_name] = metric_data
+        if self.scores is not None:
+            for metric_name, metric_data in self.scores.items():
+                if isinstance(metric_data, dict) and "aggregate_scores" in metric_data:
+                    # Flatten the aggregate scores from each metric
+                    for key, value in metric_data["aggregate_scores"].items():
+                        score_key = key if key == metric_name else f"{metric_name}_{key}"
+                        result[score_key] = value
+                else:
+                    # If scores is just a single value, use it as is
+                    result[metric_name] = metric_data
 
         return result
 
@@ -158,7 +163,7 @@ class EvalResult:
         results = []
 
         for run_result in self.run_results:
-            if isinstance(run_result, ClassicEvalRunResult):
+            if isinstance(run_result, ClassicEvalRunResult) and run_result.run_completed:
                 results.extend(run_result.item_scores)
 
         return results
