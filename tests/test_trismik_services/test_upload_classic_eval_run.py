@@ -29,8 +29,6 @@ from scorebook.trismik_services.upload_classic_eval_run import upload_classic_ev
 from scorebook.types import ClassicEvalRunResult, EvalRunSpec
 
 # Set to True to use mocks, False to test real backend integration
-# Can be set in .env file: MOCK_TRISMIK_TESTS=false
-# MOCK = os.getenv("MOCK_TRISMIK_TESTS", "true").lower() == "true"
 MOCK = True
 
 
@@ -116,9 +114,12 @@ class TestUploadClassicEvalRun:
         if MOCK:
             print("Running in MOCK mode - using mocked backend")
             # Use mocks for testing
-            with patch(
-                "scorebook.trismik_services.upload_classic_eval_run.AdaptiveTest",
-                return_value=mock_adaptive_test,
+            with (
+                patch(
+                    "scorebook.trismik_services.upload_classic_eval_run.AdaptiveTest",
+                    return_value=mock_adaptive_test,
+                ),
+                patch("scorebook.trismik_services.upload_classic_eval_run.TrismikAsyncClient"),
             ):
                 print("Uploading classic eval run with simple metrics...")
                 response = await upload_classic_eval_run(
@@ -204,9 +205,12 @@ class TestUploadClassicEvalRun:
 
         if MOCK:
             print("Running in MOCK mode - using mocked backend")
-            with patch(
-                "scorebook.trismik_services.upload_classic_eval_run.AdaptiveTest",
-                return_value=mock_adaptive_test,
+            with (
+                patch(
+                    "scorebook.trismik_services.upload_classic_eval_run.AdaptiveTest",
+                    return_value=mock_adaptive_test,
+                ),
+                patch("scorebook.trismik_services.upload_classic_eval_run.TrismikAsyncClient"),
             ):
                 await upload_classic_eval_run(
                     run=eval_run_result,
@@ -262,9 +266,12 @@ class TestUploadClassicEvalRun:
 
         if MOCK:
             print("Running in MOCK mode - using mocked backend")
-            with patch(
-                "scorebook.trismik_services.upload_classic_eval_run.AdaptiveTest",
-                return_value=mock_adaptive_test,
+            with (
+                patch(
+                    "scorebook.trismik_services.upload_classic_eval_run.AdaptiveTest",
+                    return_value=mock_adaptive_test,
+                ),
+                patch("scorebook.trismik_services.upload_classic_eval_run.TrismikAsyncClient"),
             ):
                 await upload_classic_eval_run(
                     run=eval_run_result,
@@ -323,9 +330,12 @@ class TestUploadClassicEvalRun:
             # Set log level to capture INFO messages
             caplog.set_level(logging.INFO)
 
-            with patch(
-                "scorebook.trismik_services.upload_classic_eval_run.AdaptiveTest",
-                return_value=mock_adaptive_test,
+            with (
+                patch(
+                    "scorebook.trismik_services.upload_classic_eval_run.AdaptiveTest",
+                    return_value=mock_adaptive_test,
+                ),
+                patch("scorebook.trismik_services.upload_classic_eval_run.TrismikAsyncClient"),
             ):
                 await upload_classic_eval_run(
                     run=simple_eval_run_result,
