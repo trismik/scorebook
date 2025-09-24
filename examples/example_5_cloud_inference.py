@@ -1,4 +1,4 @@
-"""Example 3 - Using Cloud Inference Providers."""
+"""Example 5 - Using Cloud Inference Providers."""
 
 from typing import Any, List
 
@@ -88,8 +88,8 @@ def main(model_name: str) -> Any:
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="example_3")
+    log_file = setup_logging(experiment_id="example_5")
     output_dir = setup_output_directory()
     model = setup_openai_model_parser()
     results_dict = main(model)
-    save_results_to_json(results_dict, output_dir, "example_3_output.json")
+    save_results_to_json(results_dict, output_dir, "example_5_output.json")

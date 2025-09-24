@@ -1,0 +1,76 @@
+{
+  "api": [
+    {
+      "type": "category",
+      "label": "API Reference",
+      "items": [
+        "scorebook_cli",
+        "scorebook_evaluate",
+        "scorebook_exceptions",
+        "scorebook_inference",
+        "scorebook_metrics",
+        "scorebook_types",
+        "scorebook_utils",
+        {
+          "type": "category",
+          "label": "Cli",
+          "items": [
+            "scorebook_cli_auth",
+            "scorebook_cli_main"
+          ]
+        },
+        {
+          "type": "category",
+          "label": "Eval",
+          "items": [
+            "scorebook_eval_dataset"
+          ]
+        },
+        {
+          "type": "category",
+          "label": "Inference",
+          "items": [
+            "scorebook_inference_bedrock",
+            "scorebook_inference_openai",
+            "scorebook_inference_pipeline",
+            "scorebook_inference_portkey",
+            "scorebook_inference_vertex"
+          ]
+        },
+        {
+          "type": "category",
+          "label": "Metrics",
+          "items": [
+            "scorebook_metrics_accuracy",
+            "scorebook_metrics_metric_base",
+            "scorebook_metrics_metric_registry",
+            "scorebook_metrics_precision"
+          ]
+        },
+        {
+          "type": "category",
+          "label": "Trismik",
+          "items": [
+            "scorebook_trismik_services",
+            "scorebook_trismik_services_adaptive_testing_service",
+            "scorebook_trismik_services_login",
+            "scorebook_trismik_services_upload_classic_eval_run"
+          ]
+        },
+        {
+          "type": "category",
+          "label": "Utils",
+          "items": [
+            "scorebook_utils_async_utils",
+            "scorebook_utils_build_prompt",
+            "scorebook_utils_io_helpers",
+            "scorebook_utils_jinja_helpers",
+            "scorebook_utils_mappers",
+            "scorebook_utils_progress_bars",
+            "scorebook_utils_transform_helpers"
+          ]
+        }
+      ]
+    }
+  ]
+}

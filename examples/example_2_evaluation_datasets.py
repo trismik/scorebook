@@ -1,4 +1,4 @@
-"""Example 4 - Evaluations with Hugging Face Datasets."""
+"""Example 2 - Evaluation Datasets."""
 
 from pprint import pprint
 from typing import Any, Dict, List
@@ -11,7 +11,7 @@ from scorebook.metrics import Accuracy
 
 
 def main() -> Any:
-    """Run a simple Scorebook evaluation using datasets from Hugging.
+    """Run a simple Scorebook using datasets from local data and HuggingFace datasets.
 
     This example demonstrates how to evaluate models with the following datasets from Hugging Face:
         - MMLU
@@ -19,7 +19,7 @@ def main() -> Any:
         - TODO: ADD ONE MORE EXAMPLE DATASET
 
     Firstly, a basic inference function is defined.
-    Secondly, the datasets are loaded using the EvalDataset.from_huggingface() method.
+    Secondly, the datasets are created using the EvalDataset's from_* class methods.
     Finally, the evaluation is run using all loaded datasets simultaneously.
     """
 
@@ -50,6 +50,41 @@ def main() -> Any:
 
         return inference_results
 
+    # === Creating Evaluation Datasets ===
+
+    evaluation_items = [
+        {"question": "What is 2 + 2?", "answer": "4"},
+        {"question": "What is the capital of France?", "answer": "Paris"},
+        {"question": "Who wrote Romeo and Juliet?", "answer": "William Shakespeare"},
+    ]
+
+    # Create an EvalDataset from a list
+    dataset_1 = EvalDataset.from_list(
+        name="basic_questions",  # Dataset name
+        label="answer",  # Key for the label value in evaluation items
+        metrics=Accuracy,  # Metric/Metrics used to calculate scores
+        data=evaluation_items,  # List of evaluation items
+    )
+    print(f"Loaded {dataset_1.name} from a list.")
+
+    # Create an EvalDataset from a JSON file
+    dataset_2 = EvalDataset.from_json(
+        name="basic_questions_2",
+        file_path="examples/example_datasets/basic_questions.json",
+        label="answer",
+        metrics=Accuracy,
+    )
+    print(f"Loaded {dataset_2.name} from a JSON file.")
+
+    # Create an EvalDataset from a CSV file
+    dataset_3 = EvalDataset.from_csv(
+        name="basic_questions_3",
+        file_path="examples/example_datasets/basic_questions.csv",
+        label="answer",
+        metrics=Accuracy,
+    )
+    print(f"Loaded {dataset_3.name} from a CSV file.")
+
     # === Hugging Face Dataset Loading ===
 
     mmlu = EvalDataset.from_huggingface(
@@ -74,11 +109,17 @@ def main() -> Any:
 
     results = evaluate(
         inference,
-        datasets=[mmlu, mmlu_pro],  # Evaluate can be used with lists datasets
-        sample_size=10,  # Sample size can be used for quick testing on large datasets.
-        return_items=True,
-        return_output=True,
-        parallel=False,
+        datasets=[  # Evaluate can be used with a list of datasets
+            dataset_1,
+            dataset_2,
+            dataset_3,
+            mmlu,
+            mmlu_pro,
+        ],
+        sample_size=3,  # Sample size can be used for quick testing on large datasets
+        return_items=True,  # Include the scores for individual items evaluated in results
+        return_output=True,  # Include the model responses for each evaluated item in item results
+        parallel=False,  #
         upload_results=False,  # Disable uploading for this example
     )
 
@@ -87,7 +128,7 @@ def main() -> Any:
 
 
 if __name__ == "__main__":
-    log_file = setup_logging(experiment_id="example_4")
+    log_file = setup_logging(experiment_id="example_2")
     output_dir = setup_output_directory()
     results_dict = main()
-    save_results_to_json(results_dict, output_dir, "example_4_output.json")
+    save_results_to_json(results_dict, output_dir, "example_2_output.json")

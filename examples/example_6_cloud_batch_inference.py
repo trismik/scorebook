@@ -1,4 +1,4 @@
-"""Example 7 - Using Cloud Inference Providers with a Batch API."""
+"""Example 6 - Using Cloud Inference Providers with a Batch API."""
 
 from pprint import pprint
 from typing import Any
@@ -102,8 +102,8 @@ def main(model_name: str) -> Any:
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="example_7")
+    log_file = setup_logging(experiment_id="example_6")
     output_dir = setup_output_directory()
     model = setup_batch_model_parser()
     results_dict = main(model)
-    save_results_to_json(results_dict, output_dir, "example_7_output.json")
+    save_results_to_json(results_dict, output_dir, "example_6_output.json")

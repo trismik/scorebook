@@ -1,0 +1,80 @@
+# GitHub Actions workflow: builds Scorebook API docs and opens a PR in trismik/website
+name: Publish API docs to website (PR)
+
+on:
+  push:
+    branches: [ main ]        # Run on every push to main in trismik/scorebook
+  workflow_dispatch:          # Allow manual runs from the Actions tab
+
+permissions:
+  contents: read              # Read code in this repo (scorebook)
+  pull-requests: write        # Needed by the PR-creation action (on the website repo checkout)
+
+jobs:
+  api-docs:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the Scorebook repo into ./scorebook
+      - name: Checkout Scorebook
+        uses: actions/checkout@v4
+        with:
+          path: scorebook
+
+      # Checkout the Website repo into ./website (needs a PAT with write access)
+      - name: Checkout Website
+        uses: actions/checkout@v4
+        with:
+          repository: trismik/website
+          path: website
+          token: ${{ secrets.DOCS_REPO_PAT }}   # Secret PAT with write access to trismik/website
+
+      # Install a clean Python for building docs
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'                # Any 3.9–3.11 works; pydoc-markdown supports <4.0
+
+      # Install Poetry (package/deps manager) via pipx so it’s isolated
+      - name: Install Poetry
+        run: pipx install poetry==1.8.3
+
+      # Install Scorebook deps + dev deps (brings in pydoc-markdown)
+      - name: Install dev deps (pydoc-markdown)
+        working-directory: scorebook
+        run: poetry install --with dev
+
+      # Generate Markdown API docs from Scorebook into the Website repo
+      - name: Generate API docs into website repo
+        working-directory: scorebook
+        run: |
+          # Ensure the output folder exists in the website repo
+          mkdir -p ../website/docs/scorebook/pydocs
+          # Run pydoc-markdown with an inline config that:
+          #  - loads the 'scorebook' package from src/
+          #  - uses default processors (filter/smart/crossref)
+          #  - renders with the Docusaurus renderer into docs/scorebook/pydocs
+          poetry run pydoc-markdown '{
+            loaders: [{ "type": "python", "search_path": ["src"], "packages": ["scorebook"] }],
+            processors: [{ "type": "filter", "skip_empty_modules": true }, { "type": "smart" }, { "type": "crossref" }],
+            renderer: {
+              "type": "docusaurus",
+              "docs_base_path": "../website/docs",
+              "relative_output_path": "scorebook/pydocs",
+              "relative_sidebar_path": "scorebook/pydocs/sidebar.json",
+              "sidebar_top_level_label": "API"
+            }
+          }'
+
+      # Commit changes in the website repo and open a PR there
+      - name: Create PR in website repo
+        uses: peter-evans/create-pull-request@v6
+        with:
+          path: website                               # Operate inside the checked-out website repo
+          token: ${{ secrets.DOCS_REPO_PAT }}         # Same PAT to push branch and open PR
+          commit-message: "Update Scorebook API docs from trismik/scorebook@${{ github.sha }}"
+          branch: "chore/scorebook-api-docs-${{ github.run_id }}"  # Unique branch per run
+          title: "Update Scorebook API docs"
+          body: |
+            Auto-generated from **trismik/scorebook@${{ github.sha }}**.
+            Updates files under `docs/scorebook/pydocs/`.
+          labels: docs, automated                     # Optional: apply labels to the PR

@@ -121,7 +121,7 @@ def main() -> Any:
 
 
 if __name__ == "__main__":
-    log_file = setup_logging(experiment_id="example_2")
+    log_file = setup_logging(experiment_id="example_3")
     output_dir = setup_output_directory()
     results_dict = main()
-    save_results_to_json(results_dict, output_dir, "example_2_output.json")
+    save_results_to_json(results_dict, output_dir, "example_3_output.json")
