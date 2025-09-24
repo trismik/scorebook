@@ -5947,15 +5947,20 @@ vision = ["Pillow (>=10.0.1,<=15.0)"]
 
 [[package]]
 name = "trismik"
-version = "0.9.4"
+version = "0.9.11"
 description = ""
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "trismik-0.9.4-py3-none-any.whl", hash = "sha256:597f010d2a81276927b5e7f28a752716f746b1cb2c1a31ae44dc60b4eaad458f"},
-    {file = "trismik-0.9.4.tar.gz", hash = "sha256:227e0109f02307ec35fd1004a3a2802b2e84de669d74e961033d4c1a70f216fe"},
+    {file = "trismik-0.9.11-py3-none-any.whl", hash = "sha256:0fc5ae95b92ed31c7aa76f67d55344ad94e5c06b9d285cc8cc7b2e751940f929"},
+    {file = "trismik-0.9.11.tar.gz", hash = "sha256:7be77071511ad70f7c31d862e6fbb8043db0fdb95a8031a08e6866f685e8f117"},
 ]
+
+[package.dependencies]
+httpx = ">=0.27.2,<1.0.0"
+nest-asyncio = ">=1.6.0,<2.0.0"
+tqdm = ">=4.67.1,<5.0.0"
 
 [package.extras]
 examples = ["accelerate (>=1.7.0,<2.0.0)", "notebook (>=7.4.4,<8.0.0)", "openai (>=1.81.0,<2.0.0)", "torch (>=2.7.0,<3.0.0)", "torchaudio (>=2.7.0,<3.0.0)", "torchvision (>=0.22.0,<1.0.0)", "transformers (>=4.51.3,<5.0.0)"]
@@ -6610,4 +6615,4 @@ vertex = ["fsspec", "google-cloud-storage", "google-genai", "pandas", "python-do
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "307523d4eaccc8a4336c33d718a54e7aa6f49af28c7c1be3681cebb677235ad5"
+content-hash = "8914215674a89dc1c25875fc45ba85df4df4a25bdd2cfb0abafe514c9d6bacaa"
