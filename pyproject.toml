@@ -11,14 +11,14 @@ requires-python = ">=3.9"
 dependencies = [
     "datasets>=3.6.0",
     "notebook (>=7.4.5,<8.0.0)",
-    "trismik>=0.9.4",
+    "trismik>=0.9.12",
 ]
 
 [project.scripts]
 scorebook = "scorebook.cli.main:main"
 
 [tool.poetry]
-version = "0.0.7"  # base version
+version = "0.0.8"  # base version
 packages = [{ include = "scorebook", from = "src" }]
 
 [[tool.poetry.source]]
