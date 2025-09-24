@@ -38,7 +38,7 @@ async def run_adaptive_evaluation(
     runner = AdaptiveTest(
         make_trismik_inference(inference),
         client=TrismikAsyncClient(
-            service_url="https://api-stage.trismik.com/adaptive-testing", api_key=get_token()
+            service_url="https://api.trismik.com/adaptive-testing", api_key=get_token()
         ),
     )
 

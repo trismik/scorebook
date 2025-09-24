@@ -40,7 +40,7 @@ async def upload_classic_eval_run(
     runner = AdaptiveTest(
         lambda x: None,
         client=TrismikAsyncClient(
-            service_url="https://api-stage.trismik.com/adaptive-testing", api_key=get_token()
+            service_url="https://api.trismik.com/adaptive-testing", api_key=get_token()
         ),
     )
 
