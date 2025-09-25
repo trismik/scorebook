@@ -13,10 +13,16 @@ from scorebook.metrics import Accuracy
 def main() -> Any:
     """Run a simple Scorebook using datasets from local data and HuggingFace datasets.
 
-    This example demonstrates how to evaluate models with the following datasets from Hugging Face:
+    This example demonstrates how to use Scorebook with local datasets and Hugging Face datasets.
+        - from_list
+        - from_json
+        - from_csv
+        - from_huggingface
+        - from_yaml
+
+    The following datasets from Hugging Face are loaded:
         - MMLU
         - MMLU-Pro
-        - TODO: ADD ONE MORE EXAMPLE DATASET
 
     Firstly, a basic inference function is defined.
     Secondly, the datasets are created using the EvalDataset's from_* class methods.

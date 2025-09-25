@@ -158,6 +158,14 @@ class EvalResult:
     run_results: List[Union[ClassicEvalRunResult, AdaptiveEvalRunResult]]
 
     @property
+    def scores(self) -> Dict[str, List[Dict[str, Any]]]:
+        """Return a dictionary containing aggregate and item scores."""
+        return {
+            "aggregate_scores": self.aggregate_scores,
+            "item_scores": self.item_scores,
+        }
+
+    @property
     def item_scores(self) -> List[Dict[str, Any]]:
         """Return a list of dictionaries containing scores for each evaluated item."""
         results = []

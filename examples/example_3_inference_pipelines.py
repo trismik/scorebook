@@ -1,4 +1,4 @@
-"""Example 2 - Using Inference Pipelines."""
+"""Example 3 - Using Inference Pipelines."""
 
 from pprint import pprint
 from typing import Any, Dict, List
@@ -100,7 +100,7 @@ def main() -> Any:
 
     # Step 2: Load the evaluation dataset
     eval_dataset = EvalDataset.from_json(
-        file_path="examples/example_datasets/dataset.json", label="answer", metrics=Accuracy
+        file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
     # Step 3: Run the evaluation using the inference pipeline and dataset

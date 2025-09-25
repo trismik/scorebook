@@ -1,4 +1,4 @@
-"""Example 8 - Uploading Evaluation Results to Trismik."""
+"""Example 8 - Uploading Evaluation Results to Trismik's dashboard."""
 
 import os
 from pprint import pprint
@@ -62,7 +62,7 @@ def main() -> Any:
         # New experiments can be created at runtime
         experiment_id="Scorebook-Example-8-Uploading-Results",
         # You must create a project on dashboard
-        project_id="5d59d2ec8dde5e1ea70c1b8d7f73ab762ed391d9",
+        project_id="1b25c494472209e23f20a3cfcc9da9c60000fb8e",
         return_items=True,
         metadata={
             "model": "microsoft/Phi-4-mini-instruct",

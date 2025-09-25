@@ -19,9 +19,8 @@ from scorebook.metrics import Accuracy
 def main(model_name: str) -> Any:
     """Run an evaluation using a model hosted in the cloud by an inference provider.
 
-    This example demonstrates how to evaluate language models using cloud-based inference
-    services with Scorebook. It showcases integration with OpenAI's API for large-scale
-    model evaluation without requiring local model hosting.
+    This example demonstrates how to evaluate cloud hosted large language models
+    It showcases integration with OpenAI's API.
 
     Prerequisites:
         - OpenAI API key set in environment variable OPENAI_API_KEY
@@ -64,7 +63,7 @@ def main(model_name: str) -> Any:
     # === Evaluation With Cloud-Based Inference ===
 
     dataset = EvalDataset.from_json(
-        file_path="examples/example_datasets/dataset.json", label="answer", metrics=Accuracy
+        file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
     results = evaluate(

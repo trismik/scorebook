@@ -15,8 +15,8 @@ def main() -> Any:
     This example demonstrates the fundamental workflow for evaluating a model using Scorebook.
 
     It shows how to:
-        1. Define an inference function using Hugging Face's transformers library
-        2. Load an evaluation dataset from a local JSON file
+        1. Create an evaluation dataset from a list of evaluation items
+        2. Define an inference function using Hugging Face's transformers library
         3. Run the evaluation and collect results
 
     This serves as a starting point for understanding Scorebook's core evaluation capabilities.

@@ -430,14 +430,14 @@ def _build_eval_run_specs(
                 )
 
             # Create adaptive eval run spec from string
-            elif isinstance(dataset, str) and dataset.endswith(":adaptive"):
+            elif isinstance(dataset, AdaptiveEvalDataset):
                 if not experiment_id or not project_id:
                     raise ScoreBookError(
                         "experiment_id and project_id are required for adaptive evaluations"
                     )
                 eval_run_specs.append(
                     _build_adaptive_eval_run_spec(
-                        dataset,
+                        dataset.name,
                         dataset_index,
                         hyperparameter_config,
                         hyperparameters_index,

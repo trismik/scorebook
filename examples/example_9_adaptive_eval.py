@@ -2,27 +2,22 @@
 
 import os
 import string
-from typing import Any
+from typing import Any, Dict, List
 
+import transformers
 from dotenv import load_dotenv
-from example_helpers import (
-    save_results_to_json,
-    setup_logging,
-    setup_openai_model_parser,
-    setup_output_directory,
-)
+from example_helpers import save_results_to_json, setup_logging, setup_output_directory
 
 from scorebook import evaluate, login
-from scorebook.inference.openai import responses
 from scorebook.inference_pipeline import InferencePipeline
 
 
-def main(model_name: str) -> Any:
+def main() -> Any:
     """Run a Trismik adaptive evaluation example.
 
     This example demonstrates how to use Trismik's adaptive evaluations.
 
-    Firstly, a basic InferencePipline using OpenAI's responses API is created
+    Firstly, a basic InferencePipeline using phi-4 is created
     Secondly, the adaptive MMLU-Pro dataset is used to evaluate the model
 
     Prerequisites:
@@ -32,8 +27,8 @@ def main(model_name: str) -> Any:
 
     # === Setup InferencePipeline ===
 
-    def preprocessor(eval_item: dict, **hyperparameters: Any) -> str:
-        """Pre-process dataset items into OpenAI prompt format."""
+    def preprocessor(eval_item: Dict, **hyperparameters: Any) -> List[Any]:
+        """Convert an evaluation item to a valid model input."""
         prompt = eval_item["question"]
 
         if "options" in eval_item:
@@ -43,31 +38,40 @@ def main(model_name: str) -> Any:
             )
 
         # Create a system message with instructions for direct answers
-        system_prompt = """
-        Answer the question with a single letter
+        system_prompt = """Answer the question with a single letter
         representing the correct answer from the list of choices.
-        Do not provide any additional explanation or output beyond the single letter.
-        """.strip()
+        Do not provide any additional explanation or output beyond the single letter."""
 
-        # Format as a conversation for OpenAI API
-        return f"System: {system_prompt}\n\nUser: {prompt}\n\nAssistant:"
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ]
 
-    def postprocessor(response: Any, **hyperparameters: Any) -> str:
-        """Post-process OpenAI response to extract the answer."""
-        # Extract the text from the OpenAI response object
-        try:
-            # Access the first choice's message content (correct OpenAI ChatCompletion format)
-            raw_response = response.choices[0].message.content
-        except (KeyError, IndexError, AttributeError):
-            raw_response = ""
+        return messages
 
-        # Return the response text, stripping whitespace
-        return str(raw_response.strip())
+    # Setup transformers pipeline for phi-4
+    pipeline = transformers.pipeline(
+        "text-generation",
+        model="microsoft/Phi-4-mini-instruct",
+        model_kwargs={"torch_dtype": "auto"},
+        device_map="auto",
+    )
+
+    def inference(preprocessed_items: List[Any], **hyperparameters: Any) -> List[Any]:
+        """Run model inference on preprocessed eval items."""
+        return [
+            pipeline(model_input, temperature=hyperparameters.get("temperature", 0.7))
+            for model_input in preprocessed_items
+        ]
+
+    def postprocessor(model_output: Any, **hyperparameters: Any) -> str:
+        """Extract the final parsed answer from the model output."""
+        return str(model_output[0]["generated_text"][-1]["content"])
 
     inference_pipeline = InferencePipeline(
-        model=model_name,
+        model="microsoft/Phi-4-mini-instruct",
         preprocessor=preprocessor,
-        inference_function=responses,
+        inference_function=inference,
         postprocessor=postprocessor,
     )
 
@@ -83,8 +87,8 @@ def main(model_name: str) -> Any:
     results = evaluate(
         inference_pipeline,
         datasets="MMLUPro2025:adaptive",  # Adaptive datasets have the suffix ":adaptive"
-        experiment_id="YOUR-EXPERIMENT-ID",
-        project_id="YOUR-PROJECT-ID",
+        experiment_id="Scorebook-Example-9-Adaptive-Evaluation",
+        project_id="1b25c494472209e23f20a3cfcc9da9c60000fb8e",
         return_dict=True,
         return_aggregates=True,
         return_items=True,
@@ -99,6 +103,5 @@ if __name__ == "__main__":
     load_dotenv()
     log_file = setup_logging(experiment_id="example_9")
     output_dir = setup_output_directory()
-    model = setup_openai_model_parser()
-    results_dict = main(model)
+    results_dict = main()
     save_results_to_json(results_dict, output_dir, "example_9_output.json")
