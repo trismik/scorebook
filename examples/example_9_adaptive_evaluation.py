@@ -84,7 +84,7 @@ def main(model_name: str) -> Any:
         inference_pipeline,
         datasets="MMLUPro2025:adaptive",  # Adaptive datasets have the suffix ":adaptive"
         experiment_id="Scorebook-Example-9-Adaptive-Evaluation",
-        project_id="1b25c494472209e23f20a3cfcc9da9c60000fb8e",
+        project_id="YOUR_PROJECT_ID",
         return_dict=True,
         return_aggregates=True,
         return_items=True,
