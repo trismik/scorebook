@@ -70,7 +70,7 @@ def main() -> Any:
         results = pipeline(
             [item["messages"] for item in preprocessed_items],
             temperature=hyperparameter_config["temperature"],
-            batch_size=2,  # Set batch size
+            batch_size=5,  # Set batch size
             do_sample=True,
             max_new_tokens=128,
             pad_token_id=pipeline.tokenizer.eos_token_id,
