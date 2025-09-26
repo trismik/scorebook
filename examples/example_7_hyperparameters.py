@@ -1,4 +1,4 @@
-"""Example 5 - Using Hyperparameter Sweeps."""
+"""Example 7 - Using Hyperparameter Sweeps."""
 
 from pprint import pprint
 from typing import Any, Dict, List
@@ -80,7 +80,7 @@ def main(model_name: str) -> Any:
     # === Evaluation Across Hyperparameters ===
 
     dataset = EvalDataset.from_json(
-        file_path="examples/example_datasets/dataset.json", label="answer", metrics=Accuracy
+        file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
     # Define hyperparameters, using lists of values to generate configurations
@@ -107,8 +107,8 @@ def main(model_name: str) -> Any:
 
 
 if __name__ == "__main__":
-    log_file = setup_logging(experiment_id="example_5")
+    log_file = setup_logging(experiment_id="example_7")
     output_dir = setup_output_directory()
     model = setup_openai_model_parser()
     results_dict = main(model)
-    save_results_to_json(results_dict, output_dir, "example_5_output.json")
+    save_results_to_json(results_dict, output_dir, "example_7_output.json")

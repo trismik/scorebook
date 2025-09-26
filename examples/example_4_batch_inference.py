@@ -1,9 +1,8 @@
-"""Example 8 - Local Batch Inference."""
+"""Example 4 - Local Batch Inference."""
 
 from pprint import pprint
 from typing import Any, Dict, List
 
-import torch
 import transformers
 from example_helpers import save_results_to_json, setup_logging, setup_output_directory
 
@@ -15,31 +14,22 @@ from scorebook.metrics import Accuracy
 def main() -> Any:
     """Run a Scorebook evaluation using local batch inference with hyperparameter sweeps.
 
-    This example demonstrates how to perform batch inference locally combined with
-    hyperparameter sweeps, where multiple evaluation items are processed simultaneously
-    across different hyperparameter configurations.
+    This example demonstrates how to perform batch inference locally
 
     This approach offers several benefits:
         1. Improved throughput by processing multiple items in parallel
         2. Better GPU utilization through batched tensor operations
         3. More efficient memory usage compared to sequential processing
-        4. Systematic hyperparameter optimization across multiple configurations
-
-    The key differences from sequential inference:
-        - The inference function receives all preprocessed items at once
-        - Multiple hyperparameter configurations are tested systematically
-        - Results include performance metrics for each configuration
     """
 
     # === Pre-Processing ===
 
     def preprocessor(eval_item: Dict, **hyperparameter_config: Any) -> Dict[str, Any]:
-        """Convert an evaluation item to a valid model input for batching.
+        """Convert an evaluation item to a valid model input.
 
         Args:
             eval_item: An evaluation item from an EvalDataset.
             hyperparameter_config: Model hyperparameters.
-
         Returns:
             A structured representation of an evaluation item for model input.
         """
@@ -56,17 +46,14 @@ def main() -> Any:
     # === Batch Inference ===
 
     # Initialize the pipeline with appropriate settings for batch processing
-    # Set padding_side='left' for decoder-only models to avoid warnings
-    tokenizer = transformers.AutoTokenizer.from_pretrained("microsoft/Phi-4-mini-instruct")
-    tokenizer.padding_side = "left"
-
+    model_name = "microsoft/Phi-4-mini-instruct"
     pipeline = transformers.pipeline(
         "text-generation",
-        model="microsoft/Phi-4-mini-instruct",
-        # tokenizer=tokenizer,
-        model_kwargs={"torch_dtype": torch.bfloat16},
-        device_map="auto",
+        model=model_name,
+        model_kwargs={"torch_dtype": "auto"},
+        device="cpu",
     )
+    pipeline.tokenizer.padding_side = "left"
 
     def batch_inference(
         preprocessed_items: List[Dict[str, Any]], **hyperparameter_config: Any
@@ -76,23 +63,20 @@ def main() -> Any:
         Args:
             preprocessed_items: List of preprocessed evaluation items.
             hyperparameter_config: Model hyperparameters.
-
         Returns:
             A list of model outputs for all evaluation items.
         """
-        # Extract messages from all preprocessed items
-        all_messages = [item["messages"] for item in preprocessed_items]
 
-        # Perform batch inference - the pipeline will process multiple inputs together
-        batch_outputs = pipeline(
-            all_messages,
+        results = pipeline(
+            [item["messages"] for item in preprocessed_items],
             temperature=hyperparameter_config["temperature"],
-            max_new_tokens=hyperparameter_config.get("max_new_tokens", 256),
+            batch_size=2,  # Set batch size
             do_sample=True,
-            batch_size=1,  # hyperparameter_config.get("batch_size", 1),
+            max_new_tokens=128,
+            pad_token_id=pipeline.tokenizer.eos_token_id,
         )
 
-        return list(batch_outputs)
+        return list(results)
 
     # === Post-Processing ===
 
@@ -100,30 +84,19 @@ def main() -> Any:
         """Extract the final parsed answer from the model output.
 
         Args:
-            model_output: Raw model output from batch inference.
+            model_output: Raw model output from inference.
             hyperparameter_config: Model hyperparameters.
-
         Returns:
             Parsed answer from the model output to be used for scoring.
         """
-        # Handle both single outputs and batch outputs
-        if isinstance(model_output, list) and len(model_output) > 0:
-            # For batch outputs, extract the generated text
-            generated_text = model_output[0]["generated_text"]
-            if isinstance(generated_text, list):
-                # Extract the assistant's response (last message)
-                return str(generated_text[-1]["content"])
-            else:
-                # Handle string format
-                return str(generated_text).split("assistant\n")[-1].strip()
-
-        return str(model_output)
+        # Extract the assistant's response (last message in the conversation)
+        return str(model_output[0]["generated_text"][-1]["content"])
 
     # === Evaluation With Batch InferencePipeline ===
 
     # Step 1: Create a batch inference pipeline
     inference_pipeline = InferencePipeline(
-        model="microsoft/Phi-4-mini-instruct",
+        model=model_name,
         preprocessor=preprocessor,
         inference_function=batch_inference,
         postprocessor=postprocessor,
@@ -131,23 +104,17 @@ def main() -> Any:
 
     # Step 2: Load the evaluation dataset
     eval_dataset = EvalDataset.from_json(
-        file_path="examples/example_datasets/dataset.json", label="answer", metrics=Accuracy
+        file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
-    # Step 3: Run the evaluation using batch inference with hyperparameter sweep
-    print("Running local batch inference evaluation with hyperparameter sweep...")
-    print(f"Processing {len(eval_dataset)} items with multiple configurations")
+    # Step 3: Run the evaluation
 
-    # Define hyperparameter sweep - using lists creates a grid of all combinations
+    # # Define hyperparameters
     hyperparameters = {
-        "system_message": "Answer the question directly and concisely.",
-        "temperature": [0.3, 0.7, 1.0],  # Test different creativity levels
-        "max_new_tokens": [128, 256],  # Test different response lengths
-        "batch_size": 1,
+        "system_message": "Answer the question directly. Provide no additional context",
+        "temperature": 0.7,
+        "max_new_tokens": 128,
     }
-
-    # This will generate 1 × 3 × 2 × 2 = 12 hyperparameter configurations
-    print(f"Testing {3 * 2 * 2} different hyperparameter configurations")
 
     results = evaluate(
         inference_pipeline,
@@ -159,13 +126,12 @@ def main() -> Any:
         upload_results=False,  # Disable uploading for this example
     )
 
-    print("\nBatch evaluation completed:")
     pprint(results)
     return results
 
 
 if __name__ == "__main__":
-    log_file = setup_logging(experiment_id="example_8")
+    log_file = setup_logging(experiment_id="example_4")
     output_dir = setup_output_directory()
     results_dict = main()
-    save_results_to_json(results_dict, output_dir, "example_8_output.json")
+    save_results_to_json(results_dict, output_dir, "example_4_output.json")
