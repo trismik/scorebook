@@ -12,7 +12,7 @@ from scorebook.metrics import Accuracy
 
 
 def main() -> Any:
-    """Run a Scorebook evaluation using local batch inference with hyperparameter sweeps.
+    """Run a Scorebook evaluation using local batch inference.
 
     This example demonstrates how to perform batch inference locally
 
@@ -109,7 +109,7 @@ def main() -> Any:
 
     # Step 3: Run the evaluation
 
-    # # Define hyperparameters
+    # Define hyperparameters
     hyperparameters = {
         "system_message": "Answer the question directly. Provide no additional context",
         "temperature": 0.7,
