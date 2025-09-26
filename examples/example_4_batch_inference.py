@@ -54,15 +54,15 @@ def main() -> Any:
     # === Batch Inference ===
 
     # Initialize the pipeline with appropriate settings for batch processing
-    # Using the same model as example 1
     model_name = "microsoft/Phi-4-mini-instruct"
 
     pipeline = transformers.pipeline(
         "text-generation",
         model=model_name,
         model_kwargs={"torch_dtype": "auto"},
-        device_map="auto",
+        device="cpu",
     )
+    pipeline.tokenizer.padding_side = "left"
 
     def batch_inference(
         preprocessed_items: List[Dict[str, Any]], **hyperparameter_config: Any
@@ -75,47 +75,17 @@ def main() -> Any:
         Returns:
             A list of model outputs for all evaluation items.
         """
-        print("\n=== Batch Inference Debug ===")
-        print(f"Processing {len(preprocessed_items)} items in batch")
-        print(f"Temperature: {hyperparameter_config['temperature']}")
 
-        # Extract messages from all preprocessed items for batch processing
-        all_messages = [item["messages"] for item in preprocessed_items]
-        print(f"Sample message structure: {all_messages[0] if all_messages else 'None'}")
-
-        # Run batch inference using the same approach as example 1
-        print("Starting batch inference...")
-        batch_outputs = pipeline(
-            all_messages, temperature=hyperparameter_config["temperature"], batch_size=1
+        results = pipeline(
+            [item["messages"] for item in preprocessed_items],
+            temperature=hyperparameter_config["temperature"],
+            batch_size=2,
+            do_sample=True,
+            max_new_tokens=128,
+            pad_token_id=pipeline.tokenizer.eos_token_id,
         )
 
-        print(f"Raw batch outputs type: {type(batch_outputs)}")
-        print(
-            f"Number of batch outputs: "
-            f"{len(batch_outputs) if hasattr(batch_outputs, '__len__') else 'N/A'}"
-        )
-        if batch_outputs:
-            print(f"First output structure: {type(batch_outputs[0])}")
-            print(
-                f"First output keys: "
-                f"{batch_outputs[0].keys() if hasattr(batch_outputs[0], 'keys') else 'N/A'}"
-            )
-
-        # Extract the generated content from each output
-        results = []
-        for i, output in enumerate(batch_outputs):
-            try:
-                content = output[0]["generated_text"][-1]["content"]
-                results.append(content)
-                print(f"Item {i}: Extracted content: {content}")
-            except Exception as e:
-                print(f"Item {i}: Error extracting content: {e}")
-                print(f"Item {i}: Output structure: {output}")
-                results.append(str(output))
-
-        print(f"Final results: {results}")
-        print("=== End Batch Inference Debug ===\n")
-        return results
+        return list(results)
 
     # === Post-Processing ===
 
@@ -128,8 +98,8 @@ def main() -> Any:
         Returns:
             Parsed answer from the model output to be used for scoring.
         """
-        # The batch inference already extracts the content, so just return it
-        return str(model_output)
+        # Extract the assistant's response (last message in the conversation)
+        return str(model_output[0]["generated_text"][-1]["content"])
 
     # === Evaluation With Batch InferencePipeline ===
 
@@ -146,11 +116,9 @@ def main() -> Any:
         file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
-    # Step 3: Run the evaluation using batch inference with hyperparameter sweep
-    print("Running local batch inference evaluation with hyperparameter sweep...")
-    print(f"Processing {len(eval_dataset)} items with multiple configurations")
+    # Step 3: Run the evaluation
 
-    # Define hyperparameters
+    # # Define hyperparameters
     hyperparameters = {
         "system_message": "Answer the question directly. Provide no additional context",
         "temperature": 0.7,
@@ -167,7 +135,6 @@ def main() -> Any:
         upload_results=False,  # Disable uploading for this example
     )
 
-    print("\nBatch evaluation completed:")
     pprint(results)
     return results
 
