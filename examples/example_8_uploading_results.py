@@ -45,7 +45,7 @@ def main() -> Any:
     # === Evaluation With Result Uploading ===
 
     dataset = EvalDataset.from_json(
-        file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
+        path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
     # Login to Trismik with a valid API key
