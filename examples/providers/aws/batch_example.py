@@ -50,7 +50,7 @@ def main() -> None:
 
         # Create new dataset with expanded items
         dataset = EvalDataset.from_list(
-            name=dataset.name, label=dataset.label, metrics=[Accuracy], data=expanded_items
+            name=dataset.name, label=dataset.label, metrics=[Accuracy], items=expanded_items
         )
 
     # Step 2: Define the preprocessing function for AWS Bedrock Batch API

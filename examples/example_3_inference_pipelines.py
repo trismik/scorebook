@@ -100,7 +100,7 @@ def main() -> Any:
 
     # Step 2: Load the evaluation dataset
     eval_dataset = EvalDataset.from_json(
-        file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
+        path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
     # Step 3: Run the evaluation using the inference pipeline and dataset

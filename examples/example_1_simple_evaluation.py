@@ -35,7 +35,7 @@ def main() -> Any:
         name="basic_questions",  # Dataset name
         label="answer",  # Key for the label value in evaluation items
         metrics="accuracy",  # Metric/Metrics used to calculate scores
-        data=evaluation_items,  # List of evaluation items
+        items=evaluation_items,  # List of evaluation items
     )
 
     # Create a model

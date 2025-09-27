@@ -80,7 +80,7 @@ def main(model_name: str) -> Any:
     # === Evaluation Across Hyperparameters ===
 
     dataset = EvalDataset.from_json(
-        file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
+        path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
     # Define hyperparameters, using lists of values to generate configurations

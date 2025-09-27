@@ -113,7 +113,7 @@ class EvalDataset:
         name: str,
         label: str,
         metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]],
-        data: List[Dict[str, Any]],
+        items: List[Dict[str, Any]],
     ) -> "EvalDataset":
         """Instantiate an EvalDataset from a list of dictionaries.
 
@@ -121,19 +121,19 @@ class EvalDataset:
             name: The name of the evaluation dataset.
             label: The field used as the evaluation label (ground truth).
             metrics: The specified metrics associated with the dataset.
-            data: List of dictionaries containing the dataset examples.
+            items: List of dictionaries containing the dataset examples.
 
         Returns:
             A scorebook EvalDataset wrapping a Hugging Face dataset.
         """
         return cls(
-            name=name, label=label, metrics=metrics, hf_dataset=HuggingFaceDataset.from_list(data)
+            name=name, label=label, metrics=metrics, hf_dataset=HuggingFaceDataset.from_list(items)
         )
 
     @classmethod
     def from_csv(
         cls,
-        file_path: str,
+        path: str,
         label: str,
         metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]],
         name: Optional[str] = None,
@@ -144,7 +144,7 @@ class EvalDataset:
         """Instantiate a scorebook dataset from a CSV file.
 
         Args:
-            file_path: Path to the CSV file.
+            path: Path to the CSV file.
             label: The field used as the evaluation label (ground truth).
             metrics: The specified metrics associated with the dataset.
             name: Optional name for the eval dataset, if not provided, the path is used
@@ -160,19 +160,19 @@ class EvalDataset:
             ValueError: If the CSV file cannot be parsed or is empty.
         """
         reader_kwargs = reader_kwargs or {}
-        path = validate_path(file_path, expected_suffix=".csv")
+        validated_path = validate_path(path, expected_suffix=".csv")
 
         try:
-            with open(path, encoding=encoding, newline=newline) as csvfile:
+            with open(validated_path, encoding=encoding, newline=newline) as csvfile:
                 reader = csv.DictReader(csvfile, **reader_kwargs)
                 data = [row for row in reader]
         except csv.Error as e:
-            raise ValueError(f"Failed to parse CSV file {file_path}: {e}") from e
+            raise ValueError(f"Failed to parse CSV file {path}: {e}") from e
 
         if not data:
-            raise ValueError(f"CSV file {file_path} is empty or contains only headers.")
+            raise ValueError(f"CSV file {path} is empty or contains only headers.")
 
-        name = name if name else path.stem
+        name = name if name else validated_path.stem
         return cls(
             name=name,
             label=label,
@@ -183,7 +183,7 @@ class EvalDataset:
     @classmethod
     def from_json(
         cls,
-        file_path: str,
+        path: str,
         label: str,
         metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]],
         name: Optional[str] = None,
@@ -206,7 +206,7 @@ class EvalDataset:
             }
 
         Args:
-            file_path: Path to the JSON file on disk.
+            path: Path to the JSON file on disk.
             label: The field used as the evaluation label (ground truth).
             metrics: The specified metrics associated with the dataset.
             name: Optional name for the eval dataset, if not provided, the path is used
@@ -219,29 +219,29 @@ class EvalDataset:
             FileNotFoundError: If the file does not exist.
             ValueError: If the JSON is invalid or the structure is unsupported.
         """
-        path = validate_path(file_path, expected_suffix=".json")
+        validated_path = validate_path(path, expected_suffix=".json")
 
         try:
-            with path.open("r", encoding="utf-8") as f:
+            with validated_path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in {file_path}: {e}") from e
+            raise ValueError(f"Invalid JSON in {path}: {e}") from e
 
         if isinstance(data, dict):
             if split is None:
-                raise ValueError(f"Split name must be provided for split-style JSON: {file_path}")
+                raise ValueError(f"Split name must be provided for split-style JSON: {path}")
             split_data = data.get(split)
             if split_data is None:
-                raise ValueError(f"Split '{split}' not found in JSON file: {file_path}")
+                raise ValueError(f"Split '{split}' not found in JSON file: {path}")
             if not isinstance(split_data, list):
-                raise ValueError(f"Split '{split}' is not a list of examples in: {file_path}")
+                raise ValueError(f"Split '{split}' is not a list of examples in: {path}")
             hf_dataset = HuggingFaceDataset.from_list(split_data)
         elif isinstance(data, list):
             hf_dataset = HuggingFaceDataset.from_list(data)
         else:
-            raise ValueError(f"Unsupported JSON structure in {file_path}. Expected list or dict.")
+            raise ValueError(f"Unsupported JSON structure in {path}. Expected list or dict.")
 
-        name = name if name else path.stem
+        name = name if name else validated_path.stem
         return cls(name=name, label=label, metrics=metrics, hf_dataset=hf_dataset)
 
     @classmethod
@@ -394,7 +394,7 @@ class EvalDataset:
             name=self.name,
             label=self.label,
             metrics=self.metrics,
-            data=sampled_items,
+            items=sampled_items,
         )
 
         # Preserve the prompt template if it exists

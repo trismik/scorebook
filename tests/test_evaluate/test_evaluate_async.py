@@ -211,7 +211,7 @@ def test_evaluate_async_performance():
     """Test that async inference functions can handle reasonable load."""
     # Create a larger dataset for performance testing
     data = [{"input": f"test_{i}", "label": str(i % 2)} for i in range(50)]
-    dataset = EvalDataset.from_list(name="perf_test", label="label", metrics=[Accuracy], data=data)
+    dataset = EvalDataset.from_list(name="perf_test", label="label", metrics=[Accuracy], items=data)
 
     async_inference_fn = create_async_inference_pipeline("1", delay=0.001)  # 1ms delay
 

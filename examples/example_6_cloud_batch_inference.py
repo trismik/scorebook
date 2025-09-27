@@ -75,7 +75,7 @@ async def main(model_name: str) -> Any:
     # === Evaluate With Batched Inference ===
 
     dataset = EvalDataset.from_json(
-        file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
+        path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
     print(f"\nRunning OpenAI Batch API evaluation with model: {model_name}")

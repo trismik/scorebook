@@ -64,7 +64,7 @@ async def main(model_name: str) -> Any:
     # === Evaluation With Cloud-Based Inference ===
 
     dataset = EvalDataset.from_json(
-        file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
+        path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
     results = await evaluate_async(
