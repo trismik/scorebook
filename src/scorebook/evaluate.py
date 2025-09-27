@@ -130,10 +130,15 @@ async def _evaluate_async(
     datasets = _prepare_datasets(datasets, sample_size)
     hyperparameter_configs = _prepare_hyperparameter_configs(hyperparameters)
 
+    dataset_count = len(datasets)
+    hyperparam_count = len(hyperparameter_configs)
+    model_name = _get_model_name(inference, metadata)
+    model_display = model_name if model_name != "unspecified" else "inference"
+
     logger.info(
         "Prepared %d datasets and %d hyperparameter configurations",
-        len(datasets),
-        len(hyperparameter_configs),
+        dataset_count,
+        hyperparam_count,
     )
 
     eval_run_specs = _build_eval_run_specs(
@@ -141,10 +146,17 @@ async def _evaluate_async(
     )
     eval_run_specs.sort(key=lambda run: (run.dataset_index, run.hyperparameters_index))
 
-    logger.info("Created %d evaluation run specs", len(eval_run_specs))
+    total_eval_runs = len(eval_run_specs)
+    total_items = _count_total_items(eval_run_specs)
+
+    logger.info("Created %d evaluation run specs", total_eval_runs)
 
     with evaluation_progress(
-        datasets, len(hyperparameter_configs), parallel, len(eval_run_specs)
+        total_eval_runs,
+        total_items,
+        dataset_count,
+        hyperparam_count,
+        model_display,
     ) as progress_bars:
         if parallel:
             eval_result = await _run_parallel(
@@ -193,7 +205,9 @@ async def _run_parallel(
         run: Union[EvalRunSpec, AdaptiveEvalRunSpec]
     ) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
         run_result = await _execute_run(inference, run, experiment_id, project_id, metadata)
-        progress_bars.on_eval_run_completed(run.dataset_index)
+        succeeded = getattr(run_result, "run_completed", True)
+        items_processed = _count_items_for_run(run) if succeeded else 0
+        progress_bars.on_run_completed(items_processed, succeeded)
 
         if (
             upload_results
@@ -236,7 +250,9 @@ async def _run_sequential(
     for run in runs:
         run_result = await _execute_run(inference, run, experiment_id, project_id, metadata)
         run_results.append(run_result)
-        progress_bars.on_hyperparam_completed(run_result.run_spec.dataset_index)
+        succeeded = getattr(run_result, "run_completed", True)
+        items_processed = _count_items_for_run(run) if succeeded else 0
+        progress_bars.on_run_completed(items_processed, succeeded)
 
         # Upload a classic eval run result immediately if upload_results is enabled
         if (
@@ -320,6 +336,21 @@ async def _execute_adaptive_eval_run(
 
 
 # ===== HELPER FUNCTIONS =====
+
+
+def _count_items_for_run(run: Union[EvalRunSpec, AdaptiveEvalRunSpec]) -> int:
+    """Return the number of evaluation items associated with a run spec."""
+
+    if isinstance(run, EvalRunSpec):
+        return len(run.items)
+
+    return 0
+
+
+def _count_total_items(runs: List[Union[EvalRunSpec, AdaptiveEvalRunSpec]]) -> int:
+    """Return the total number of evaluation items across all run specs."""
+
+    return sum(_count_items_for_run(run) for run in runs)
 
 
 def _resolve_upload_results(upload_results: Union[Literal["auto"], bool]) -> bool:
