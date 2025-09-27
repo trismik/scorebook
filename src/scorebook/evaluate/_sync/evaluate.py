@@ -32,7 +32,7 @@ from scorebook.types import (
     EvalRunSpec,
 )
 from contextlib import nullcontext
-from scorebook.utils import evaluation_progress
+from scorebook.utils import evaluation_progress_context
 
 logger = logging.getLogger(__name__)
 
@@ -95,10 +95,16 @@ def evaluate(
 
     with trismik_client or nullcontext():
         # Execute evaluation runs
-        with evaluation_progress(
+        # Calculate total items across all runs
+        total_items = sum(len(run.dataset.items) for run in eval_run_specs)
+        model_display = get_model_name(inference)
+
+        with evaluation_progress_context(
+            total_eval_runs=len(eval_run_specs),
+            total_items=total_items,
             dataset_count=len(datasets),
-            hyperparameter_config_count=len(hyperparameter_configs),
-            run_count=len(eval_run_specs),
+            hyperparam_count=len(hyperparameter_configs),
+            model_display=model_display,
         ) as progress_bars:
             eval_result = execute_runs(
                 inference,
@@ -136,7 +142,10 @@ def execute_runs(
         run_result = execute_run(
             inference, run, experiment_id, project_id, metadata, trismik_client
         )
-        progress_bars.on_eval_run_completed(run.dataset_index)
+        # Update progress bars with items processed and success status
+        items_processed = len(run.dataset.items)
+        succeeded = run_result.run_completed if hasattr(run_result, "run_completed") else True
+        progress_bars.on_run_completed(items_processed, succeeded)
 
         if (
             upload_results

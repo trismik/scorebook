@@ -4,108 +4,371 @@ import shutil
 import threading
 import time
 from contextlib import contextmanager
+from dataclasses import dataclass
 from itertools import cycle
-from typing import Generator, Optional
+from typing import Callable, Generator, Optional
 
 from tqdm import tqdm
 
+# ANSI Color codes
 RESET = "\033[0m"
 GREEN = "\033[32m"
 RED = "\033[31m"
+LIGHT_GREEN = "\033[92m"  # Lighter green for upload stats
+LIGHT_RED = "\033[91m"  # Lighter red for upload failure stats
+
+# Blue shimmer colors for sweep effect
+BLUE_BASE = "\033[34m"  # Standard blue (base color)
+BLUE_HIGHLIGHT = "\033[1;34m"  # Bright blue (subtle highlight for sweep)
+SHIMMER_WIDTH = 3  # Number of characters in the highlight sweep
+
+# Spinner blue shimmer colors (cycle through these for spinner frames)
+SPINNER_BLUE_COLORS = [
+    "\033[34m",  # Standard blue
+    "\033[1;34m",  # Bright blue
+    "\033[94m",  # Light blue
+    "\033[36m",  # Cyan
+    "\033[1;36m",  # Bright cyan
+    "\033[96m",  # Light cyan
+]
+
+# Progress bar configuration
+PROGRESS_BAR_FORMAT = "{desc}|{bar}|"
+HEADER_FORMAT = "{desc}"
+SPINNER_INTERVAL_SECONDS = 0.08
+TERMINAL_FALLBACK_SIZE = (120, 20)
+MINIMUM_HEADER_SPACING = 3
+
+# Spinner animation frames
+SPINNER_FRAMES = ["⠋", "⠙", "⠚", "⠞", "⠖", "⠦", "⠴", "⠲", "⠳", "⠓"]
+
+# Progress bar labels
+EVALUATIONS_LABEL = "Evaluations"
+ITEMS_LABEL = "Items"
 
 
-BAR_FORMAT = "{desc}|{bar}|"
+@dataclass
+class EvaluationConfig:
+    """Configuration for evaluation progress tracking."""
+
+    total_eval_runs: int
+    total_items: int
+    dataset_count: int
+    hyperparam_count: int
+    model_display: str
+
+    @property
+    def dataset_label(self) -> str:
+        """Get the appropriate dataset label (singular/plural)."""
+        return "Dataset" if self.dataset_count == 1 else "Datasets"
+
+    @property
+    def hyperparam_label(self) -> str:
+        """Get the appropriate hyperparameter label (singular/plural)."""
+        if self.hyperparam_count == 1:
+            return "Hyperparam Configuration"
+        return "Hyperparam Configurations"
+
+
+class ProgressBarFormatter:
+    """Handles formatting for progress bar descriptions and headers."""
+
+    def __init__(self, config: EvaluationConfig) -> None:
+        """Initialize the formatter with configuration."""
+        self.config = config
+        self._label_width = max(len(EVALUATIONS_LABEL), len(ITEMS_LABEL))
+        self._count_width = max(len(str(config.total_eval_runs)), len(str(config.total_items)), 1)
+
+    def format_progress_description(self, label: str, completed: int, total: int) -> str:
+        """Format a progress bar description with counts and percentage."""
+        label_str = label.ljust(self._label_width)
+        count_str = f"{completed:>{self._count_width}}/{total:>{self._count_width}}"
+
+        if total > 0:
+            percent = int((completed / total) * 100)
+            percent_str = f"{percent:>3d}%"
+        else:
+            percent_str = " --%"
+
+        return f"{label_str} {count_str} {percent_str} "
+
+    @staticmethod
+    def format_elapsed_time(elapsed_seconds: float) -> str:
+        """Format elapsed time as mm:ss or hh:mm:ss."""
+        total_seconds = int(max(elapsed_seconds, 0))
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        if hours:
+            return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        return f"{minutes:02d}:{seconds:02d}"
+
+    def format_header(
+        self,
+        spinner_frame: str,
+        elapsed_seconds: float,
+        completed_runs: int,
+        failed_runs: int,
+        uploaded_runs: int,
+        upload_failed_runs: int,
+        shimmer_text: str = "",
+    ) -> str:
+        """Compose the header line with spinner, elapsed time, and run statistics."""
+        elapsed_str = ProgressBarFormatter.format_elapsed_time(elapsed_seconds)
+        left_section = self._build_left_section(spinner_frame, elapsed_str, shimmer_text)
+        right_section = ProgressBarFormatter._build_run_status_section(
+            completed_runs, failed_runs, uploaded_runs, upload_failed_runs
+        )
+
+        return ProgressBarFormatter._combine_header_sections(left_section, right_section)
+
+    def _build_left_section(
+        self, spinner_frame: str, elapsed_str: str, shimmer_text: str = ""
+    ) -> str:
+        """Build the left section of the header with spinner and evaluation info."""
+        # Apply shimmer effect to the model display name
+        evaluating_text = f"Evaluating {self.config.model_display}"
+        model_text = shimmer_text if shimmer_text else evaluating_text
+
+        return (
+            f"{spinner_frame} {model_text} ({elapsed_str}) | "
+            f"{self.config.dataset_count} {self.config.dataset_label} | "
+            f"{self.config.hyperparam_count} {self.config.hyperparam_label}"
+        )
+
+    @staticmethod
+    def _build_run_status_section(
+        completed_runs: int, failed_runs: int, uploaded_runs: int, upload_failed_runs: int
+    ) -> tuple[str, str]:
+        """Build the run status section with plain and colored versions."""
+        # Build base run statistics
+        run_parts = [f"RUNS PASSED: {completed_runs}"]
+        colored_run_parts = [f"{GREEN}RUNS PASSED: {completed_runs}{RESET}"]
+
+        if failed_runs > 0:
+            run_parts.append(f"RUNS FAILED: {failed_runs}")
+            colored_run_parts.append(f"{RED}RUNS FAILED: {failed_runs}{RESET}")
+
+        # Add upload statistics if any uploads have occurred
+        if uploaded_runs > 0 or upload_failed_runs > 0:
+            run_parts.append(f"RUNS UPLOADED: {uploaded_runs}")
+            colored_run_parts.append(f"{LIGHT_GREEN}RUNS UPLOADED: {uploaded_runs}{RESET}")
+
+            if upload_failed_runs > 0:
+                run_parts.append(f"UPLOADS FAILED: {upload_failed_runs}")
+                colored_run_parts.append(f"{LIGHT_RED}UPLOADS FAILED: {upload_failed_runs}{RESET}")
+
+        plain = f"[{', '.join(run_parts)}]"
+        colored = f"[{', '.join(colored_run_parts)}]"
+
+        return plain, colored
+
+    @staticmethod
+    def _combine_header_sections(left_section: str, right_sections: tuple[str, str]) -> str:
+        """Combine left and right header sections with appropriate spacing."""
+        plain_right, colored_right = right_sections
+
+        # Calculate visual length (without ANSI codes) for proper spacing
+        def visual_length(text: str) -> int:
+            """Calculate the visual length of text, excluding ANSI escape codes."""
+            import re
+
+            ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+            return len(ansi_escape.sub("", text))
+
+        term_width = shutil.get_terminal_size(fallback=TERMINAL_FALLBACK_SIZE).columns
+        left_visual_length = visual_length(left_section)
+        right_visual_length = len(plain_right)  # plain_right has no ANSI codes
+
+        spacing = term_width - left_visual_length - right_visual_length
+        spacing = max(spacing, MINIMUM_HEADER_SPACING)
+
+        return f"{left_section}{' ' * spacing}{colored_right}"
+
+
+class SpinnerManager:
+    """Manages spinner animation for the progress header."""
+
+    def __init__(self) -> None:
+        """Initialize the spinner manager."""
+        self._frames = SpinnerManager._normalize_spinner_frames()
+        self._cycle: Optional[cycle] = None
+        self._stop_event = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+        self.frame_width = len(self._frames[0]) if self._frames else 0
+        self._shimmer_position = 0  # Position of the shimmer sweep
+        self._spinner_color_index = 0  # Index for spinner color cycling
+
+    @staticmethod
+    def _normalize_spinner_frames() -> list[str]:
+        """Normalize spinner frames to have consistent width."""
+        if not SPINNER_FRAMES:
+            return []
+
+        width = max(len(frame) for frame in SPINNER_FRAMES)
+        return [frame.ljust(width) for frame in SPINNER_FRAMES]
+
+    def start(self, update_callback: Callable[[str], None]) -> None:
+        """Start the spinner animation."""
+        if self._thread is not None or not self._frames:
+            return
+
+        self._stop_event.clear()
+        self._cycle = cycle(self._frames)
+        self._thread = threading.Thread(target=self._animate, args=(update_callback,), daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        """Stop the spinner animation."""
+        if self._thread is None:
+            return
+
+        self._stop_event.set()
+        self._thread.join()
+        self._thread = None
+
+    def get_initial_frame(self) -> str:
+        """Get the first spinner frame with blue shimmer effect."""
+        if not self._frames:
+            return ""
+        frame = self._frames[0]
+        color = SPINNER_BLUE_COLORS[self._spinner_color_index % len(SPINNER_BLUE_COLORS)]
+        return f"{color}{frame}{RESET}"
+
+    def get_empty_frame(self) -> str:
+        """Get an empty frame with the same width as spinner frames."""
+        return " " * self.frame_width
+
+    def get_next_spinner_frame(self) -> str:
+        """Get the next spinner frame with blue shimmer effect."""
+        if not self._frames or not self._cycle:
+            return ""
+
+        frame = next(self._cycle)
+        color = SPINNER_BLUE_COLORS[self._spinner_color_index % len(SPINNER_BLUE_COLORS)]
+        self._spinner_color_index += 1
+        return f"{color}{frame}{RESET}"
+
+    def get_shimmer_text(self, text: str) -> str:
+        """Apply sweep shimmer effect to text, returning formatted string."""
+        if not text:
+            return text
+
+        # Build the text in segments to avoid color bleeding
+        result = ""
+        i = 0
+
+        while i < len(text):
+            # Determine if we're in a highlight segment or base segment
+            if self._shimmer_position <= i < self._shimmer_position + SHIMMER_WIDTH:
+                # Start highlight segment
+                highlight_chars = ""
+                while (
+                    i < len(text)
+                    and self._shimmer_position <= i < self._shimmer_position + SHIMMER_WIDTH
+                ):
+                    highlight_chars += text[i]
+                    i += 1
+                result += f"{BLUE_HIGHLIGHT}{highlight_chars}{RESET}"
+            else:
+                # Start base segment
+                base_chars = ""
+                while i < len(text) and not (
+                    self._shimmer_position <= i < self._shimmer_position + SHIMMER_WIDTH
+                ):
+                    base_chars += text[i]
+                    i += 1
+                result += f"{BLUE_BASE}{base_chars}{RESET}"
+
+        # Advance shimmer position for next call
+        self._shimmer_position += 1
+        # Reset to beginning when we've swept past the end
+        if self._shimmer_position >= len(text) + SHIMMER_WIDTH:
+            self._shimmer_position = -SHIMMER_WIDTH
+
+        return result
+
+    def _animate(self, update_callback: Callable[[str], None]) -> None:
+        """Continuously update the spinner animation."""
+        while not self._stop_event.is_set() and self._cycle is not None:
+            frame = self.get_next_spinner_frame()
+            update_callback(frame)
+            time.sleep(SPINNER_INTERVAL_SECONDS)
 
 
 class EvaluationProgressBars:
     """Manages progress bars for evaluation runs and item processing."""
 
-    def __init__(
-        self,
-        total_eval_runs: int,
-        total_items: int,
-        dataset_count: int,
-        hyperparam_count: int,
-        model_display: str,
-    ) -> None:
+    def __init__(self, config: EvaluationConfig) -> None:
         """Initialize progress bar manager.
 
         Args:
-            total_eval_runs: Total number of evaluation runs scheduled
-            total_items: Total number of evaluation items across all runs
-            dataset_count: Number of datasets included in the evaluation
-            hyperparam_count: Number of hyperparameter configurations evaluated
-            model_display: Human readable model/inference name for the header
+            config: Configuration for the evaluation progress tracking
         """
-        self.total_eval_runs = total_eval_runs
-        self.total_items = total_items
+        self.config = config
+        self.formatter = ProgressBarFormatter(config)
+        self.spinner = SpinnerManager()
 
-        self.header_pbar: Optional[tqdm] = None
-        self.eval_runs_pbar: Optional[tqdm] = None
-        self.items_pbar: Optional[tqdm] = None
+        # Progress bar instances
+        self._header_bar: Optional[tqdm] = None
+        self._evaluations_bar: Optional[tqdm] = None
+        self._items_bar: Optional[tqdm] = None
 
-        self._eval_label = "Evaluations"
-        self._items_label = "Items"
-        self._label_width = max(len(self._eval_label), len(self._items_label))
-        self._count_width = max(len(str(self.total_eval_runs)), len(str(self.total_items)), 1)
-        self.dataset_count = dataset_count
-        self.hyperparam_count = hyperparam_count
-        self._dataset_label = "Dataset" if dataset_count == 1 else "Datasets"
-        self._dataset_label_short = self._dataset_label
-        if hyperparam_count == 1:
-            self._hyperparam_label = "Hyperparameter configuration"
-            self._hyperparam_label_short = "Hyperparam config"
-        else:
-            self._hyperparam_label = "Hyperparameter configurations"
-            self._hyperparam_label_short = "Hyperparam configs"
-        self.model_display = model_display
+        # State tracking
         self.completed_runs = 0
         self.failed_runs = 0
+        self.uploaded_runs = 0
+        self.upload_failed_runs = 0
         self._start_time: Optional[float] = None
-        self._spinner_frames = self._build_spinner_frames()
-        self._spinner_cycle = cycle(self._spinner_frames) if self._spinner_frames else None
-        self._spinner_interval = 0.15
-        self._spinner_stop = threading.Event()
-        self._spinner_thread: Optional[threading.Thread] = None
-        self._spinner_width = len(self._spinner_frames[0]) if self._spinner_frames else 0
 
     def start_progress_bars(self) -> None:
         """Start the evaluation progress bars."""
         self._start_time = time.monotonic()
-        initial_frame = self._spinner_frames[0] if self._spinner_frames else ""
-        header_desc = self._compose_header(initial_frame, 0.0)
-        self.header_pbar = tqdm(
+
+        # Initialize header bar with spinner
+        initial_frame = self.spinner.get_initial_frame()
+        evaluating_text = f"Evaluating {self.config.model_display}"
+        initial_shimmer = self.spinner.get_shimmer_text(evaluating_text)
+        header_desc = self.formatter.format_header(initial_frame, 0.0, 0, 0, 0, 0, initial_shimmer)
+        self._header_bar = tqdm(
             total=0,
             desc=header_desc,
             position=0,
             leave=True,
             dynamic_ncols=True,
-            bar_format="{desc}",
+            bar_format=HEADER_FORMAT,
         )
-        eval_desc = self._format_desc(self._eval_label, 0, self.total_eval_runs)
-        self.eval_runs_pbar = tqdm(
-            total=self.total_eval_runs,
+
+        # Initialize evaluations progress bar
+        eval_desc = self.formatter.format_progress_description(
+            EVALUATIONS_LABEL, 0, self.config.total_eval_runs
+        )
+        self._evaluations_bar = tqdm(
+            total=self.config.total_eval_runs,
             desc=eval_desc,
             unit="run",
             position=1,
             leave=True,
             dynamic_ncols=True,
-            bar_format=BAR_FORMAT,
+            bar_format=PROGRESS_BAR_FORMAT,
         )
 
-        items_desc = self._format_desc(self._items_label, 0, self.total_items)
-        self.items_pbar = tqdm(
-            total=self.total_items,
+        # Initialize items progress bar
+        items_desc = self.formatter.format_progress_description(
+            ITEMS_LABEL, 0, self.config.total_items
+        )
+        self._items_bar = tqdm(
+            total=self.config.total_items,
             desc=items_desc,
             unit="item",
             position=2,
             leave=False,
             dynamic_ncols=True,
-            bar_format=BAR_FORMAT,
+            bar_format=PROGRESS_BAR_FORMAT,
         )
 
-        self._refresh_descriptions()
-        self._start_spinner()
+        self._refresh_progress_descriptions()
+        self.spinner.start(self._update_header_spinner)
 
     def on_run_completed(self, items_processed: int, succeeded: bool) -> None:
         """Update progress when an evaluation run completes."""
@@ -114,169 +377,108 @@ class EvaluationProgressBars:
         else:
             self.failed_runs += 1
 
-        if self.eval_runs_pbar is not None:
-            self.eval_runs_pbar.update(1)
+        if self._evaluations_bar is not None:
+            self._evaluations_bar.update(1)
 
-        if self.items_pbar is not None and items_processed:
-            self.items_pbar.update(items_processed)
+        if self._items_bar is not None and items_processed:
+            self._items_bar.update(items_processed)
 
-        self._refresh_descriptions()
+        self._refresh_progress_descriptions()
+
+    def on_upload_completed(self, succeeded: bool) -> None:
+        """Update progress when an upload completes."""
+        if succeeded:
+            self.uploaded_runs += 1
+        else:
+            self.upload_failed_runs += 1
+
+    def on_upload_success(self) -> None:
+        """Update progress when an upload succeeds."""
+        self.uploaded_runs += 1
+
+    def on_upload_failed(self) -> None:
+        """Update progress when an upload fails."""
+        self.upload_failed_runs += 1
 
     def close_progress_bars(self) -> None:
-        """Close both progress bars."""
-        self._stop_spinner()
-        if self.items_pbar is not None:
-            self.items_pbar.close()
-            self.items_pbar = None
-        if self.eval_runs_pbar is not None:
-            self.eval_runs_pbar.close()
-            self.eval_runs_pbar = None
-        if self.header_pbar is not None:
-            self.header_pbar.close()
-            self.header_pbar = None
+        """Close all progress bars and cleanup resources."""
+        self.spinner.stop()
+        self._finalize_header()
+
+        if self._items_bar is not None:
+            self._items_bar.close()
+            self._items_bar = None
+        if self._evaluations_bar is not None:
+            self._evaluations_bar.close()
+            self._evaluations_bar = None
+        if self._header_bar is not None:
+            self._header_bar.close()
+            self._header_bar = None
+
         self._start_time = None
 
-    def _refresh_descriptions(self) -> None:
-        """Refresh descriptions so bars stay aligned as counts change."""
-
-        if self.eval_runs_pbar is not None:
-            eval_desc = self._format_desc(
-                self._eval_label,
-                min(self.eval_runs_pbar.n, self.total_eval_runs),
-                self.total_eval_runs,
+    def _refresh_progress_descriptions(self) -> None:
+        """Refresh progress bar descriptions to maintain alignment as counts change."""
+        if self._evaluations_bar is not None:
+            eval_desc = self.formatter.format_progress_description(
+                EVALUATIONS_LABEL,
+                min(self._evaluations_bar.n, self.config.total_eval_runs),
+                self.config.total_eval_runs,
             )
-            self.eval_runs_pbar.set_description_str(eval_desc, refresh=False)
+            self._evaluations_bar.set_description_str(eval_desc, refresh=False)
 
-        if self.items_pbar is not None:
-            items_desc = self._format_desc(
-                self._items_label,
-                min(self.items_pbar.n, self.total_items),
-                self.total_items,
+        if self._items_bar is not None:
+            items_desc = self.formatter.format_progress_description(
+                ITEMS_LABEL,
+                min(self._items_bar.n, self.config.total_items),
+                self.config.total_items,
             )
-            self.items_pbar.set_description_str(items_desc, refresh=False)
+            self._items_bar.set_description_str(items_desc, refresh=False)
 
-        if self.eval_runs_pbar is not None:
-            self.eval_runs_pbar.refresh()
-        if self.items_pbar is not None:
-            self.items_pbar.refresh()
+        # Refresh both bars
+        if self._evaluations_bar is not None:
+            self._evaluations_bar.refresh()
+        if self._items_bar is not None:
+            self._items_bar.refresh()
 
-    def _format_desc(self, label: str, completed: int, total: int) -> str:
-        """Return a padded description string with counts and percentage."""
-
-        label_str = label.ljust(self._label_width)
-        count_str = f"{completed:>{self._count_width}}/{total:>{self._count_width}}"
-        if total > 0:
-            percent = int((completed / total) * 100)
-            percent_str = f"{percent:>3d}%"
-        else:
-            percent_str = " --%"
-        return f"{label_str} {count_str} {percent_str} "
-
-    def _build_spinner_frames(self) -> list[str]:
-        """Return spinner frames that rotate three dots."""
-
-        frames = ["⠋", "⠙", "⠚", "⠞", "⠖", "⠦", "⠴", "⠲", "⠳", "⠓"]
-        width = max(len(frame) for frame in frames)
-        return [frame.ljust(width) for frame in frames]
-
-    def _start_spinner(self) -> None:
-        """Start the spinner animation above the progress bars."""
-
-        if (
-            self.header_pbar is None
-            or self._spinner_thread is not None
-            or not self._spinner_frames
-            or self._spinner_cycle is None
-        ):
-            return
-
-        self._spinner_stop.clear()
-        self._spinner_cycle = cycle(self._spinner_frames)
-        self._spinner_thread = threading.Thread(target=self._spin, daemon=True)
-        self._spinner_thread.start()
-
-    def _stop_spinner(self) -> None:
-        """Stop the spinner animation and finalize the header line."""
-
-        if self._spinner_thread is None:
-            return
-
-        self._spinner_stop.set()
-        self._spinner_thread.join()
-        self._spinner_thread = None
-
-        if self.header_pbar is not None:
-            elapsed = time.monotonic() - self._start_time if self._start_time is not None else 0.0
-            final_frame = " " * self._spinner_width if self._spinner_width else ""
-            final_desc = self._compose_header(final_frame, elapsed)
-            self.header_pbar.set_description_str(final_desc, refresh=True)
-
-    def _spin(self) -> None:
-        """Continuously update the spinner while evaluations are running."""
-
-        while not self._spinner_stop.is_set() and self._spinner_cycle is not None:
-            frame = next(self._spinner_cycle)
-            if self.header_pbar is not None:
-                elapsed = (
-                    time.monotonic() - self._start_time if self._start_time is not None else 0.0
-                )
-                header_desc = self._compose_header(frame, elapsed)
-                self.header_pbar.set_description_str(header_desc, refresh=False)
-                self.header_pbar.refresh()
-            time.sleep(self._spinner_interval)
-
-    def _compose_header(self, frame: str, elapsed_seconds: float) -> str:
-        """Compose the header line with spinner and elapsed time."""
-
-        if self._spinner_width:
-            frame_str = frame if frame else " " * self._spinner_width
-            if len(frame_str) < self._spinner_width:
-                frame_str = frame_str.ljust(self._spinner_width)
-        else:
-            frame_str = frame
-
-        elapsed_str = self._format_elapsed_time(elapsed_seconds)
-        if self.failed_runs > 0:
-            runs_section_plain = (
-                f"[RUNS PASSED: {self.completed_runs}, RUNS FAILED: {self.failed_runs}]"
+    def _update_header_spinner(self, frame: str) -> None:
+        """Update the header with a new spinner frame."""
+        if self._header_bar is not None and self._start_time is not None:
+            elapsed = time.monotonic() - self._start_time
+            evaluating_text = f"Evaluating {self.config.model_display}"
+            shimmer_text = self.spinner.get_shimmer_text(evaluating_text)
+            header_desc = self.formatter.format_header(
+                frame,
+                elapsed,
+                self.completed_runs,
+                self.failed_runs,
+                self.uploaded_runs,
+                self.upload_failed_runs,
+                shimmer_text,
             )
-            runs_section_display = (
-                f"["
-                f"{GREEN}RUNS PASSED: {self.completed_runs}{RESET}, "
-                f"{RED}RUNS FAILED: {self.failed_runs}{RESET}"
-                "]"
+            self._header_bar.set_description_str(header_desc, refresh=False)
+            self._header_bar.refresh()
+
+    def _finalize_header(self) -> None:
+        """Finalize the header line without spinner animation."""
+        if self._header_bar is not None and self._start_time is not None:
+            elapsed = time.monotonic() - self._start_time
+            final_frame = self.spinner.get_empty_frame()
+            # No shimmer for final header
+            final_desc = self.formatter.format_header(
+                final_frame,
+                elapsed,
+                self.completed_runs,
+                self.failed_runs,
+                self.uploaded_runs,
+                self.upload_failed_runs,
+                "",
             )
-        else:
-            runs_section_plain = f"[RUNS PASSED: {self.completed_runs}]"
-            runs_section_display = f"[{GREEN}RUNS PASSED: {self.completed_runs}{RESET}]"
-        left_section_prefix = f"{frame_str} ({elapsed_str})" if frame_str else f"({elapsed_str})"
-        left_section_plain = (
-            f"{left_section_prefix} Evaluating {self.model_display} | "
-            f"{self.dataset_count} {self._dataset_label_short} | "
-            f"{self.hyperparam_count} {self._hyperparam_label_short}"
-        )
-
-        term_width = shutil.get_terminal_size(fallback=(120, 20)).columns
-        spacing = term_width - len(left_section_plain) - len(runs_section_plain)
-        if spacing < 3:
-            spacing = 3
-
-        left_section_display = left_section_plain
-        return f"{left_section_display}{' ' * spacing}{runs_section_display}"
-
-    def _format_elapsed_time(self, elapsed_seconds: float) -> str:
-        """Format elapsed time as mm:ss or hh:mm:ss."""
-
-        total_seconds = int(max(elapsed_seconds, 0))
-        hours, remainder = divmod(total_seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        if hours:
-            return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-        return f"{minutes:02d}:{seconds:02d}"
+            self._header_bar.set_description_str(final_desc, refresh=True)
 
 
 @contextmanager
-def evaluation_progress(
+def evaluation_progress_context(
     total_eval_runs: int,
     total_items: int,
     dataset_count: int,
@@ -295,13 +497,14 @@ def evaluation_progress(
     Yields:
         EvaluationProgressBars: Progress bar manager instance
     """
-    progress_bars = EvaluationProgressBars(
-        total_eval_runs,
-        total_items,
-        dataset_count,
-        hyperparam_count,
-        model_display,
+    config = EvaluationConfig(
+        total_eval_runs=total_eval_runs,
+        total_items=total_items,
+        dataset_count=dataset_count,
+        hyperparam_count=hyperparam_count,
+        model_display=model_display,
     )
+    progress_bars = EvaluationProgressBars(config)
     progress_bars.start_progress_bars()
     try:
         yield progress_bars
