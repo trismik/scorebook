@@ -1,4 +1,4 @@
-"""Example 3 - Using Cloud Inference Providers."""
+"""Example 5 - Using Cloud Inference Providers."""
 
 from typing import Any, List
 
@@ -19,9 +19,8 @@ from scorebook.metrics import Accuracy
 def main(model_name: str) -> Any:
     """Run an evaluation using a model hosted in the cloud by an inference provider.
 
-    This example demonstrates how to evaluate language models using cloud-based inference
-    services with Scorebook. It showcases integration with OpenAI's API for large-scale
-    model evaluation without requiring local model hosting.
+    This example demonstrates how to evaluate cloud hosted large language models
+    It showcases integration with OpenAI's API.
 
     Prerequisites:
         - OpenAI API key set in environment variable OPENAI_API_KEY
@@ -64,7 +63,7 @@ def main(model_name: str) -> Any:
     # === Evaluation With Cloud-Based Inference ===
 
     dataset = EvalDataset.from_json(
-        file_path="examples/example_datasets/dataset.json", label="answer", metrics=Accuracy
+        file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
     results = evaluate(
@@ -88,8 +87,8 @@ def main(model_name: str) -> Any:
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="example_3")
+    log_file = setup_logging(experiment_id="example_5")
     output_dir = setup_output_directory()
     model = setup_openai_model_parser()
     results_dict = main(model)
-    save_results_to_json(results_dict, output_dir, "example_3_output.json")
+    save_results_to_json(results_dict, output_dir, "example_5_output.json")

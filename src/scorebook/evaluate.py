@@ -399,7 +399,7 @@ def _prepare_hyperparameter_configs(
     """Prepare hyperparameters for evaluation by returning a list of hyper-param configs."""
     if hyperparameters is None:
         return [{}]
-    if not isinstance(hyperparameters, list):  # TODO: THIS LOOKS BROKEN
+    if not isinstance(hyperparameters, list):
         expanded: List[Dict[str, Any]] = expand_dict(hyperparameters or {})
         return expanded
 

@@ -4,6 +4,7 @@ import asyncio
 import dataclasses
 import inspect
 import logging
+import os
 from typing import Any, Callable, Iterable, Mapping
 
 from trismik.adaptive_test import AdaptiveTest
@@ -35,11 +36,10 @@ async def run_adaptive_evaluation(
     Returns:
         Results from the adaptive evaluation
     """
+    service_url = os.environ.get("TRISMIK_SERVICE_URL", "https://api.trismik.com/adaptive-testing")
     runner = AdaptiveTest(
         make_trismik_inference(inference),
-        client=TrismikAsyncClient(
-            service_url="https://api.trismik.com/adaptive-testing", api_key=get_token()
-        ),
+        client=TrismikAsyncClient(service_url=service_url, api_key=get_token()),
     )
 
     logger.debug(

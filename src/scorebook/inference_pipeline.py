@@ -6,8 +6,9 @@ supporting preprocessing, model inference, and postprocessing steps in a
 configurable way.
 """
 
-import asyncio
 from typing import Any, Callable, Dict, List, Optional, cast
+
+from scorebook.utils import is_awaitable
 
 
 class InferencePipeline:
@@ -61,7 +62,7 @@ class InferencePipeline:
         else:
             input_items = items
 
-        if asyncio.iscoroutinefunction(self.inference_function):
+        if is_awaitable(self.inference_function):
             inference_outputs = await self.inference_function(input_items, **hyperparameters)
         else:
             inference_outputs = self.inference_function(input_items, **hyperparameters)

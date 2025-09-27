@@ -1,6 +1,7 @@
 """Upload classic evaluation run results to Trismik platform."""
 
 import logging
+import os
 from typing import Any, Dict, List, Optional
 
 from trismik.adaptive_test import AdaptiveTest
@@ -37,11 +38,10 @@ async def upload_classic_eval_run(
     Returns:
         Response from Trismik API containing the upload result
     """
+    service_url = os.environ.get("TRISMIK_SERVICE_URL", "https://api.trismik.com/adaptive-testing")
     runner = AdaptiveTest(
         lambda x: None,
-        client=TrismikAsyncClient(
-            service_url="https://api.trismik.com/adaptive-testing", api_key=get_token()
-        ),
+        client=TrismikAsyncClient(service_url=service_url, api_key=get_token()),
     )
 
     # Create eval items from run_spec items, outputs, and labels
