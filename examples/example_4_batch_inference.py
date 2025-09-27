@@ -51,7 +51,7 @@ def main() -> Any:
         "text-generation",
         model=model_name,
         model_kwargs={"torch_dtype": "auto"},
-        device="cpu",
+        device_map="auto",
     )
     pipeline.tokenizer.padding_side = "left"
 
@@ -70,7 +70,7 @@ def main() -> Any:
         results = pipeline(
             [item["messages"] for item in preprocessed_items],
             temperature=hyperparameter_config["temperature"],
-            batch_size=5,  # Set batch size
+            batch_size=hyperparameter_config["batch_size"],
             do_sample=True,
             max_new_tokens=128,
             pad_token_id=pipeline.tokenizer.eos_token_id,
@@ -114,6 +114,7 @@ def main() -> Any:
         "system_message": "Answer the question directly. Provide no additional context",
         "temperature": 0.7,
         "max_new_tokens": 128,
+        "batch_size": 2,
     }
 
     results = evaluate(
