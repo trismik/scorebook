@@ -22,9 +22,20 @@ def main() -> Any:
         3. More efficient memory usage compared to sequential processing
     """
 
+    # Initialize the pipeline with appropriate settings for batch processing
+    model_name = "google/flan-t5-small"
+
+    # Task is text2text-generation for seq2seq models
+    pipeline = transformers.pipeline(
+        "text2text-generation",
+        model=model_name,
+        torch_dtype="auto",
+        device_map="auto",  # will pick up gpu if available
+    )
+
     # === Pre-Processing ===
 
-    def preprocessor(eval_item: Dict, **hyperparameter_config: Any) -> Dict[str, Any]:
+    def preprocessor(eval_item: Dict, **hyperparameter_config: Any) -> str:
         """Convert an evaluation item to a valid model input.
 
         Args:
@@ -33,27 +44,9 @@ def main() -> Any:
         Returns:
             A structured representation of an evaluation item for model input.
         """
-        messages = [
-            {
-                "role": "system",
-                "content": hyperparameter_config["system_message"],
-            },
-            {"role": "user", "content": eval_item["question"]},
-        ]
-
-        return {"messages": messages}
+        return str(eval_item["question"])
 
     # === Batch Inference ===
-
-    # Initialize the pipeline with appropriate settings for batch processing
-    model_name = "microsoft/Phi-4-mini-instruct"
-    pipeline = transformers.pipeline(
-        "text-generation",
-        model=model_name,
-        model_kwargs={"torch_dtype": "auto"},
-        device_map="auto",
-    )
-    pipeline.tokenizer.padding_side = "left"
 
     def batch_inference(
         preprocessed_items: List[Dict[str, Any]], **hyperparameter_config: Any
@@ -68,11 +61,9 @@ def main() -> Any:
         """
 
         results = pipeline(
-            [item["messages"] for item in preprocessed_items],
-            temperature=hyperparameter_config["temperature"],
+            preprocessed_items,
             batch_size=hyperparameter_config["batch_size"],
-            do_sample=True,
-            max_new_tokens=128,
+            max_new_tokens=hyperparameter_config["max_new_tokens"],
             pad_token_id=pipeline.tokenizer.eos_token_id,
         )
 
@@ -90,7 +81,7 @@ def main() -> Any:
             Parsed answer from the model output to be used for scoring.
         """
         # Extract the assistant's response (last message in the conversation)
-        return str(model_output[0]["generated_text"][-1]["content"])
+        return str(model_output["generated_text"]).strip()
 
     # === Evaluation With Batch InferencePipeline ===
 
@@ -111,8 +102,6 @@ def main() -> Any:
 
     # Define hyperparameters
     hyperparameters = {
-        "system_message": "Answer the question directly. Provide no additional context",
-        "temperature": 0.7,
         "max_new_tokens": 128,
         "batch_size": 2,
     }
