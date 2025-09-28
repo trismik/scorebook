@@ -4,6 +4,7 @@ from pprint import pprint
 from typing import Any, Dict, List
 
 import transformers
+from dotenv import load_dotenv
 from example_helpers import (
     save_results_to_json,
     setup_logging,
@@ -107,6 +108,7 @@ def main(model_name: str) -> Any:
 
 
 if __name__ == "__main__":
+    load_dotenv()
     log_file = setup_logging(experiment_id="example_7")
     output_dir = setup_output_directory()
     model = setup_openai_model_parser()

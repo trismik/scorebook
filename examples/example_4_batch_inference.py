@@ -4,6 +4,7 @@ from pprint import pprint
 from typing import Any, Dict, List
 
 import transformers
+from dotenv import load_dotenv
 from example_helpers import save_results_to_json, setup_logging, setup_output_directory
 
 from scorebook import EvalDataset, evaluate
@@ -121,6 +122,7 @@ def main() -> Any:
 
 
 if __name__ == "__main__":
+    load_dotenv()
     log_file = setup_logging(experiment_id="example_4")
     output_dir = setup_output_directory()
     results_dict = main()
