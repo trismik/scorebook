@@ -43,11 +43,22 @@ def setup_logging(log_dir: str = "logs", experiment_id: Optional[str] = None) ->
     else:
         log_file = log_dir_path / f"evaluation_{timestamp}.log"
 
-    # Configure root logger with INFO level (affects all libraries)
+    # Create file handler for all logs (same as before)
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+    )
+
+    # Create console handler for warnings and errors only
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.WARNING)
+    console_handler.setFormatter(logging.Formatter("%(levelname)s - %(name)s - %(message)s"))
+
+    # Configure root logger with both handlers
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        handlers=[logging.FileHandler(log_file)],
+        handlers=[file_handler, console_handler],
         force=True,
     )
 
