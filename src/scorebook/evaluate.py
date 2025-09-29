@@ -539,8 +539,7 @@ async def _run_inference_callable(
     if all(prediction is None for prediction in predictions):
         raise InferenceError("Inference callable returned all None for all items")
 
-    else:
-        return predictions
+    return predictions
 
 
 def _score_metrics(
