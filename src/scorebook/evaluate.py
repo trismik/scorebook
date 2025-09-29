@@ -515,7 +515,7 @@ async def _run_inference_callable(
                 "Inference callable raised an exception: %s",
                 str(e),
             )
-            raise InferenceError(str(e))
+            raise InferenceError(f"Inference failed: {str(e)}") from e
     else:
         try:
             predictions = inference(items, **hyperparameter_config)
@@ -524,7 +524,7 @@ async def _run_inference_callable(
                 "Inference callable raised an exception: %s",
                 str(e),
             )
-            raise InferenceError(str(e))
+            raise InferenceError(f"Inference failed: {str(e)}") from e
 
     if not isinstance(predictions, list) or len(predictions) != len(items):
         raise InferenceError(
