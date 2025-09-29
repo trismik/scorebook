@@ -20,6 +20,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Union
 from scorebook.eval_dataset import EvalDataset
 from scorebook.exceptions import (
     DataMismatchError,
+    InferenceError,
     MetricComputationError,
     ParallelExecutionError,
     ParameterValidationError,
@@ -399,7 +400,7 @@ def _prepare_hyperparameter_configs(
     """Prepare hyperparameters for evaluation by returning a list of hyper-param configs."""
     if hyperparameters is None:
         return [{}]
-    if not isinstance(hyperparameters, list):  # TODO: THIS LOOKS BROKEN
+    if not isinstance(hyperparameters, list):
         expanded: List[Dict[str, Any]] = expand_dict(hyperparameters or {})
         return expanded
 
@@ -505,10 +506,40 @@ async def _run_inference_callable(
     hyperparameter_config: Dict[str, Any],
 ) -> Any:
     """Run inference on a given dataset and hyperparameter configuration."""
+
     if is_awaitable(inference):
-        return await inference(items, **hyperparameter_config)
+        try:
+            predictions = await inference(items, **hyperparameter_config)
+        except Exception as e:
+            logger.error(
+                "Inference callable raised an exception: %s",
+                str(e),
+            )
+            raise InferenceError(f"Inference failed: {str(e)}") from e
     else:
-        return inference(items, **hyperparameter_config)
+        try:
+            predictions = inference(items, **hyperparameter_config)
+        except Exception as e:
+            logger.error(
+                "Inference callable raised an exception: %s",
+                str(e),
+            )
+            raise InferenceError(f"Inference failed: {str(e)}") from e
+
+    if not isinstance(predictions, list) or len(predictions) != len(items):
+        raise InferenceError(
+            "Inference callable must return a list of predictions "
+            "of shared length as the input items. "
+            f"Items length: {len(items)}, predictions length: {len(predictions)}"
+        )
+
+    if all(prediction == "" for prediction in predictions):
+        logger.warning("Inference callable returned all empty strings for all items")
+
+    if all(prediction is None for prediction in predictions):
+        raise InferenceError("Inference callable returned all None for all items")
+
+    return predictions
 
 
 def _score_metrics(

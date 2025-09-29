@@ -1,9 +1,10 @@
-"""Example 2 - Using Inference Pipelines."""
+"""Example 3 - Using Inference Pipelines."""
 
 from pprint import pprint
 from typing import Any, Dict, List
 
 import transformers
+from dotenv import load_dotenv
 from example_helpers import save_results_to_json, setup_logging, setup_output_directory
 
 from scorebook import EvalDataset, evaluate
@@ -100,7 +101,7 @@ def main() -> Any:
 
     # Step 2: Load the evaluation dataset
     eval_dataset = EvalDataset.from_json(
-        file_path="examples/example_datasets/dataset.json", label="answer", metrics=Accuracy
+        file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
     # Step 3: Run the evaluation using the inference pipeline and dataset
@@ -121,7 +122,8 @@ def main() -> Any:
 
 
 if __name__ == "__main__":
-    log_file = setup_logging(experiment_id="example_2")
+    load_dotenv()
+    log_file = setup_logging(experiment_id="example_3")
     output_dir = setup_output_directory()
     results_dict = main()
-    save_results_to_json(results_dict, output_dir, "example_2_output.json")
+    save_results_to_json(results_dict, output_dir, "example_3_output.json")

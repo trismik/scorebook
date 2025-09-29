@@ -4,10 +4,10 @@ from pprint import pprint
 from typing import Any, Dict, List
 
 import transformers
+from dotenv import load_dotenv
 from example_helpers import save_results_to_json, setup_logging, setup_output_directory
 
 from scorebook import EvalDataset, evaluate
-from scorebook.metrics import Accuracy
 
 
 def main() -> Any:
@@ -16,16 +16,29 @@ def main() -> Any:
     This example demonstrates the fundamental workflow for evaluating a model using Scorebook.
 
     It shows how to:
-        1. Define an inference function using Hugging Face's transformers library
-        2. Load an evaluation dataset from a local JSON file
+        1. Create an evaluation dataset from a list of evaluation items
+        2. Define an inference function using Hugging Face's transformers library
         3. Run the evaluation and collect results
 
     This serves as a starting point for understanding Scorebook's core evaluation capabilities.
     """
 
-    # Step 1: Define an inference function
+    # Create a list of evaluation items
+    evaluation_items = [
+        {"question": "What is 2 + 2?", "answer": "4"},
+        {"question": "What is the capital of France?", "answer": "Paris"},
+        {"question": "Who wrote Romeo and Juliet?", "answer": "William Shakespeare"},
+    ]
 
-    # For this example, we use Hugging Face's transformer library with Microsoft's Phi-4-mini
+    # Create an evaluation dataset
+    evaluation_dataset = EvalDataset.from_list(
+        name="basic_questions",  # Dataset name
+        label="answer",  # Key for the label value in evaluation items
+        metrics="accuracy",  # Metric/Metrics used to calculate scores
+        data=evaluation_items,  # List of evaluation items
+    )
+
+    # Create a model
     pipeline = transformers.pipeline(
         "text-generation",
         model="microsoft/Phi-4-mini-instruct",
@@ -33,7 +46,7 @@ def main() -> Any:
         device_map="auto",
     )
 
-    # Inference function can be defined with the following signature:
+    # Define an inference function
     def inference(eval_items: List[Dict], **hyperparameter_config: Any) -> List[Any]:
         """Return a list of model outputs for a list of evaluation items.
 
@@ -64,16 +77,11 @@ def main() -> Any:
 
         return inference_results
 
-    # Step 2: Load an evaluation dataset, defining a label field and metric for scoring
-    eval_dataset = EvalDataset.from_json(
-        file_path="examples/example_datasets/dataset.json", label="answer", metrics=Accuracy
-    )
-
-    # Step 3: Run the evaluation using the inference function and dataset
+    # Evaluate a model against an evaluation dataset
     results = evaluate(
         inference,
-        eval_dataset,
-        hyperparameters={  # Optionally pass a hyperparameter configuration
+        evaluation_dataset,
+        hyperparameters={
             "temperature": 0.7,
             "system_message": "Answer the question directly and concisely.",
         },
@@ -85,6 +93,7 @@ def main() -> Any:
 
 
 if __name__ == "__main__":
+    load_dotenv()
     log_file = setup_logging(experiment_id="example_1")
     output_dir = setup_output_directory()
     results_dict = main()
