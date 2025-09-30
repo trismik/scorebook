@@ -46,17 +46,16 @@ def evaluate(
     inference: Callable,
     datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+    metadata: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
     project_id: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-    upload_results: Union[Literal["auto"], bool] = "auto",
-    sample_size: Optional[int] = None,
-    parallel: bool = False,
     return_dict: bool = True,
     return_aggregates: bool = True,
     return_items: bool = False,
     return_output: bool = False,
-) -> Union[Dict, List]:
+    upload_results: Union[Literal["auto"], bool] = "auto",
+    sample_size: Optional[int] = None,
+) -> Union[Dict, List, EvalResult]:
     """
     Evaluate a model and collection of hyperparameters over datasets with specified metrics.
 
@@ -69,46 +68,78 @@ def evaluate(
         metadata: Optional metadata to attach to the evaluation.
         upload_results: If True, uploads results to Trismik's dashboard.
         sample_size: Optional number of items to sample from each dataset.
-        parallel: If True, runs evaluation in parallel. Requires the inference callable to be async.
         return_dict: If True, returns eval results as a dict
         return_aggregates: If True, returns aggregate scores for each dataset
         return_items: If True, returns individual items for each dataset
-        return_output: If True, returns model outputs for each dataset item evaluated
+        return_output: If True, returns each model output for dataset items evaluated
 
     Returns:
         Union[Dict, List, EvalResult]:
         The evaluation results in the format specified by return parameters:
-            - If return_dict=False: Returns an EvalResult object containing all run results
             - If return_dict=True Returns the evaluation results as a dict
+            - If return_dict=False: Returns an EvalResult object containing all run results
     """
 
-    logger.info(
-        "Starting evaluation: experiment_id=%s, project_id=%s, parallel=%s",
-        experiment_id,
-        project_id,
-        parallel,
-    )
+    # Resolve and validate parameters
+    upload_results = _resolve_upload_results(upload_results)
+    _validate_parameters(locals(), sync=True)
 
-    return asyncio.run(
-        _evaluate_async(
-            inference=inference,
-            datasets=datasets,
-            hyperparameters=hyperparameters,
-            metadata=metadata,
-            experiment_id=experiment_id,
-            project_id=project_id,
-            parallel=parallel,
-            return_dict=return_dict,
-            return_aggregates=return_aggregates,
-            return_items=return_items,
-            return_output=return_output,
-            upload_results=upload_results,
-            sample_size=sample_size,
+    # Handle async inference functions by delegating to evaluate_async
+    if is_awaitable(inference):
+        return asyncio.run(
+            evaluate_async(
+                inference=inference,
+                datasets=datasets,
+                hyperparameters=hyperparameters,
+                metadata=metadata,
+                experiment_id=experiment_id,
+                project_id=project_id,
+                return_dict=return_dict,
+                return_aggregates=return_aggregates,
+                return_items=return_items,
+                return_output=return_output,
+                upload_results=upload_results,
+                sample_size=sample_size,
+            )
         )
+
+    # Prepare datasets, hyperparameters, and eval run specifications
+    datasets = _prepare_datasets(datasets, sample_size)
+    hyperparameter_configs = _prepare_hyperparameter_configs(hyperparameters)
+    logger.info(
+        "Prepared %d datasets and %d hyperparameter configurations",
+        len(datasets),
+        len(hyperparameter_configs),
     )
 
+    # Build evaluation run specifications
+    eval_run_specs = sorted(
+        _build_eval_run_specs(
+            datasets, hyperparameter_configs, experiment_id, project_id, metadata
+        ),
+        key=lambda run: (run.dataset_index, run.hyperparameters_index),
+    )
+    logger.info("Created %d evaluation run specs", len(eval_run_specs))
 
-async def _evaluate_async(
+    # Execute runs synchronously
+    with evaluation_progress(
+        datasets, len(hyperparameter_configs), len(eval_run_specs)
+    ) as progress_bars:
+        eval_result = _execute_runs_sync(
+            inference,
+            eval_run_specs,
+            progress_bars,
+            experiment_id,
+            project_id,
+            metadata,
+            upload_results,
+        )
+    logger.info("Evaluation completed successfully")
+
+    return _format_results(eval_result, return_dict, return_aggregates, return_items, return_output)
+
+
+async def evaluate_async(
     inference: Callable,
     datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
@@ -119,55 +150,67 @@ async def _evaluate_async(
     return_aggregates: bool = True,
     return_items: bool = False,
     return_output: bool = False,
-    parallel: bool = False,
     upload_results: Union[Literal["auto"], bool] = "auto",
     sample_size: Optional[int] = None,
-) -> Union[Dict, List]:
-    """Run evaluation asynchronously."""
+) -> Union[Dict, List, EvalResult]:
+    """
+    Asynchronously evaluate a model and collection of hyperparameters over datasets.
 
+    This function provides native async evaluation, allowing for concurrent execution
+    of inference calls when using async inference functions.
+
+    Args:
+        inference: The inference function to evaluate (should be async for best performance)
+        datasets: Dataset(s) to evaluate on
+        hyperparameters: Hyperparameter configuration(s) to test
+        metadata: Optional metadata to attach to the evaluation
+        experiment_id: Optional experiment identifier
+        project_id: Optional project identifier
+        return_dict: If True, returns eval results as a dict
+        return_aggregates: If True, returns aggregate scores for each dataset
+        return_items: If True, returns individual items for each dataset
+        return_output: If True, returns model outputs for each dataset item
+        upload_results: If True, uploads results to Trismik's dashboard
+        sample_size: Optional number of items to sample from each dataset
+
+    Returns:
+        The evaluation results in the format specified by return parameters
+    """
+    # Resolve and validate parameters
     upload_results = _resolve_upload_results(upload_results)
+    _validate_parameters(locals(), sync=False)
 
-    _validate_parameters(locals())
+    # Prepare datasets and hyperparameters
     datasets = _prepare_datasets(datasets, sample_size)
     hyperparameter_configs = _prepare_hyperparameter_configs(hyperparameters)
-
     logger.info(
         "Prepared %d datasets and %d hyperparameter configurations",
         len(datasets),
         len(hyperparameter_configs),
     )
 
-    eval_run_specs = _build_eval_run_specs(
-        datasets, hyperparameter_configs, experiment_id, project_id, metadata
+    # Build evaluation run specifications
+    eval_run_specs = sorted(
+        _build_eval_run_specs(
+            datasets, hyperparameter_configs, experiment_id, project_id, metadata
+        ),
+        key=lambda run: (run.dataset_index, run.hyperparameters_index),
     )
-    eval_run_specs.sort(key=lambda run: (run.dataset_index, run.hyperparameters_index))
-
     logger.info("Created %d evaluation run specs", len(eval_run_specs))
 
+    # Execute runs asynchronously
     with evaluation_progress(
-        datasets, len(hyperparameter_configs), parallel, len(eval_run_specs)
+        datasets, len(hyperparameter_configs), len(eval_run_specs)
     ) as progress_bars:
-        if parallel:
-            eval_result = await _run_parallel(
-                inference,
-                eval_run_specs,
-                progress_bars,
-                experiment_id,
-                project_id,
-                metadata,
-                upload_results,
-            )
-        else:
-            eval_result = await _run_sequential(
-                inference,
-                eval_run_specs,
-                progress_bars,
-                experiment_id,
-                project_id,
-                metadata,
-                upload_results,
-            )
-
+        eval_result = await _execute_runs_async(
+            inference,
+            eval_run_specs,
+            progress_bars,
+            experiment_id,
+            project_id,
+            metadata,
+            upload_results,
+        )
         logger.info("Evaluation completed successfully")
 
     return _format_results(eval_result, return_dict, return_aggregates, return_items, return_output)
@@ -176,7 +219,44 @@ async def _evaluate_async(
 # ===== ORCHESTRATION PATHS =====
 
 
-async def _run_parallel(
+def _execute_runs_sync(
+    inference: Callable,
+    runs: List[Union[EvalRunSpec, AdaptiveEvalRunSpec]],
+    progress_bars: Any,
+    experiment_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    upload_results: bool = False,
+) -> EvalResult:
+    """Run evaluation sequentially."""
+
+    logger.debug("Running inference sequentially")
+
+    run_results: List[Union[ClassicEvalRunResult, AdaptiveEvalRunResult]] = []
+    for run in runs:
+        run_result = _execute_run(inference, run, experiment_id, project_id, metadata)
+        run_results.append(run_result)
+        progress_bars.on_eval_run_completed(run_result.run_spec.dataset_index)
+
+        # TODO - UPLOAD CLASSIC RUNS SYNC - WAITING FOR TRISMIK PYTHON CHANGES
+        # # Upload a classic eval run result immediately if upload_results is enabled
+        # if (
+        #     upload_results
+        #     and isinstance(run_result, ClassicEvalRunResult)
+        #     and experiment_id
+        #     and project_id
+        # ):
+        #     # Only upload runs that completed successfully
+        #     if run_result.run_completed:
+        #         run_id = await _upload_classic_run(
+        #             run_result, experiment_id, project_id, inference, metadata
+        #         )
+        #         run_result.run_id = run_id
+
+    return EvalResult(run_results)
+
+
+async def _execute_runs_async(
     inference: Callable,
     runs: List[Union[EvalRunSpec, AdaptiveEvalRunSpec]],
     progress_bars: Any,
@@ -193,21 +273,22 @@ async def _run_parallel(
     async def worker(
         run: Union[EvalRunSpec, AdaptiveEvalRunSpec]
     ) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
-        run_result = await _execute_run(inference, run, experiment_id, project_id, metadata)
+        run_result = await _execute_run_async(inference, run, experiment_id, project_id, metadata)
         progress_bars.on_eval_run_completed(run.dataset_index)
 
-        if (
-            upload_results
-            and isinstance(run_result, ClassicEvalRunResult)
-            and experiment_id
-            and project_id
-        ):
-            # Only upload runs that completed successfully
-            if run_result.run_completed:
-                run_id = await _upload_classic_run(
-                    run_result, experiment_id, project_id, inference, metadata
-                )
-                run_result.run_id = run_id
+        # TODO - UPLOAD CLASSIC RUNS ASYNC - WAITING FOR TRISMIK PYTHON CHANGES
+        # if (
+        #     upload_results
+        #     and isinstance(run_result, ClassicEvalRunResult)
+        #     and experiment_id
+        #     and project_id
+        # ):
+        #     # Only upload runs that completed successfully
+        #     if run_result.run_completed:
+        #         run_id = await _upload_classic_run(
+        #             run_result, experiment_id, project_id, inference, metadata
+        #         )
+        #         run_result.run_id = run_id
 
         return run_result
 
@@ -220,46 +301,29 @@ async def _run_parallel(
     return EvalResult(run_results)
 
 
-async def _run_sequential(
-    inference: Callable,
-    runs: List[Union[EvalRunSpec, AdaptiveEvalRunSpec]],
-    progress_bars: Any,
-    experiment_id: Optional[str] = None,
-    project_id: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-    upload_results: bool = False,
-) -> EvalResult:
-    """Run evaluation sequentially."""
-
-    logger.debug("Running inference sequentially")
-
-    run_results: List[Union[ClassicEvalRunResult, AdaptiveEvalRunResult]] = []
-    for run in runs:
-        run_result = await _execute_run(inference, run, experiment_id, project_id, metadata)
-        run_results.append(run_result)
-        progress_bars.on_hyperparam_completed(run_result.run_spec.dataset_index)
-
-        # Upload a classic eval run result immediately if upload_results is enabled
-        if (
-            upload_results
-            and isinstance(run_result, ClassicEvalRunResult)
-            and experiment_id
-            and project_id
-        ):
-            # Only upload runs that completed successfully
-            if run_result.run_completed:
-                run_id = await _upload_classic_run(
-                    run_result, experiment_id, project_id, inference, metadata
-                )
-                run_result.run_id = run_id
-
-    return EvalResult(run_results)
-
-
 # ===== EVALUATION RUN EXECUTIONS =====
 
 
-async def _execute_run(
+def _execute_run(
+    inference: Callable,
+    run: Union[EvalRunSpec, AdaptiveEvalRunSpec],
+    experiment_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
+
+    if isinstance(run, EvalRunSpec):
+        return _execute_classic_eval_run(inference, run)
+
+    # TODO - SYNC ADAPTIVE EVALUATIONS
+    # elif isinstance(run, AdaptiveEvalRunSpec):
+    #   return await _execute_adaptive_eval_run(inference, run, experiment_id, project_id, metadata)
+
+    else:
+        raise ScoreBookError(f"An internal error occurred: {type(run)} is not a valid run type")
+
+
+async def _execute_run_async(
     inference: Callable,
     run: Union[EvalRunSpec, AdaptiveEvalRunSpec],
     experiment_id: Optional[str] = None,
@@ -269,20 +333,19 @@ async def _execute_run(
     """Execute a single evaluation run."""
 
     if isinstance(run, EvalRunSpec):
-        return await _execute_classic_eval_run(inference, run)
+        return await _execute_classic_eval_run_async(inference, run)
 
-    elif isinstance(run, AdaptiveEvalRunSpec):
-        if not experiment_id or not project_id:
-            raise ScoreBookError(
-                "experiment_id and project_id are required for adaptive evaluations"
-            )
-        return await _execute_adaptive_eval_run(inference, run, experiment_id, project_id, metadata)
+    # TODO - ASYNC ADAPTIVE EVALUATIONS
+    # elif isinstance(run, AdaptiveEvalRunSpec):
+    #     return await _execute_adaptive_eval_run_async(
+    #         inference, run, experiment_id, project_id, metadata
+    #     )
 
     else:
         raise ScoreBookError(f"An internal error occurred: {type(run)} is not a valid run type")
 
 
-async def _execute_classic_eval_run(inference: Callable, run: EvalRunSpec) -> ClassicEvalRunResult:
+def _execute_classic_eval_run(inference: Callable, run: EvalRunSpec) -> ClassicEvalRunResult:
     """Execute a classic evaluation run."""
     logger.debug("Executing classic eval run for %s", run)
 
@@ -290,7 +353,7 @@ async def _execute_classic_eval_run(inference: Callable, run: EvalRunSpec) -> Cl
     metric_scores = None
 
     try:
-        inference_outputs = await _run_inference_callable(
+        inference_outputs = _run_inference_callable(
             inference, run.dataset.items, run.hyperparameter_config
         )
         metric_scores = _score_metrics(run.dataset, inference_outputs, run.labels)
@@ -302,7 +365,48 @@ async def _execute_classic_eval_run(inference: Callable, run: EvalRunSpec) -> Cl
         return ClassicEvalRunResult(run, False, inference_outputs, metric_scores)
 
 
-async def _execute_adaptive_eval_run(
+async def _execute_classic_eval_run_async(
+    inference: Callable, run: EvalRunSpec
+) -> ClassicEvalRunResult:
+    """Execute a classic evaluation run."""
+    logger.debug("Executing classic eval run for %s", run)
+
+    inference_outputs = None
+    metric_scores = None
+
+    try:
+        inference_outputs = await _run_inference_callable_async(
+            inference, run.dataset.items, run.hyperparameter_config
+        )
+        metric_scores = _score_metrics(run.dataset, inference_outputs, run.labels)
+        logger.debug("Classic evaluation completed for run %s", run)
+        return ClassicEvalRunResult(run, True, inference_outputs, metric_scores)
+
+    except Exception as e:
+        logger.warning("Failed to complete classic eval run for %s: %s", run, str(e))
+        return ClassicEvalRunResult(run, False, inference_outputs, metric_scores)
+
+
+# TODO - SYNCHRONOUS ADAPTIVE EVALS
+# async def _execute_adaptive_eval_run(
+#     inference: Callable,
+#     run: AdaptiveEvalRunSpec,
+#     experiment_id: str,
+#     project_id: str,
+#     metadata: Optional[Dict[str, Any]] = None,
+# ) -> AdaptiveEvalRunResult:
+#     """Execute an adaptive evaluation run."""
+#     logger.debug("Executing adaptive run for %s", run)
+#
+#     adaptive_eval_run_result = run_adaptive_evaluation(
+#         inference, run, experiment_id, project_id, metadata
+#     )
+#     logger.debug("Adaptive evaluation completed for run %s", adaptive_eval_run_result)
+#
+#     return adaptive_eval_run_result
+
+
+async def _execute_adaptive_eval_run_async(
     inference: Callable,
     run: AdaptiveEvalRunSpec,
     experiment_id: str,
@@ -333,7 +437,7 @@ def _resolve_upload_results(upload_results: Union[Literal["auto"], bool]) -> boo
     return upload_results
 
 
-def _validate_parameters(params: Dict[str, Any]) -> None:
+def _validate_parameters(params: Dict[str, Any], sync: bool) -> None:
     """Validate all parameters for evaluation."""
 
     # If returning a dict, it must contain items and/or aggregates
@@ -343,7 +447,7 @@ def _validate_parameters(params: Dict[str, Any]) -> None:
         )
 
     # Parallel runs require an asynchronous inference callable
-    if params["parallel"] and not is_awaitable(params["inference"]):
+    if params.get("parallel", False) and not is_awaitable(params["inference"]):
         raise ParallelExecutionError(
             "parallel=True requires the inference_callable to be async. "
             "Please make your inference function async or set parallel=False."
@@ -500,31 +604,53 @@ def _build_adaptive_eval_run_spec(
     return adaptive_eval_run_spec
 
 
-async def _run_inference_callable(
+def _run_inference_callable(
     inference: Callable,
     items: List[Dict[str, Any]],
     hyperparameter_config: Dict[str, Any],
 ) -> Any:
     """Run inference on a given dataset and hyperparameter configuration."""
 
-    if is_awaitable(inference):
-        try:
-            predictions = await inference(items, **hyperparameter_config)
-        except Exception as e:
-            logger.error(
-                "Inference callable raised an exception: %s",
-                str(e),
-            )
-            raise InferenceError(f"Inference failed: {str(e)}") from e
-    else:
-        try:
-            predictions = inference(items, **hyperparameter_config)
-        except Exception as e:
-            logger.error(
-                "Inference callable raised an exception: %s",
-                str(e),
-            )
-            raise InferenceError(f"Inference failed: {str(e)}") from e
+    try:
+        predictions = inference(items, **hyperparameter_config)
+    except Exception as e:
+        logger.error(
+            "Inference callable raised an exception: %s",
+            str(e),
+        )
+        raise InferenceError(f"Inference failed: {str(e)}") from e
+
+    if not isinstance(predictions, list) or len(predictions) != len(items):
+        raise InferenceError(
+            "Inference callable must return a list of predictions "
+            "of shared length as the input items. "
+            f"Items length: {len(items)}, predictions length: {len(predictions)}"
+        )
+
+    if all(prediction == "" for prediction in predictions):
+        logger.warning("Inference callable returned all empty strings for all items")
+
+    if all(prediction is None for prediction in predictions):
+        raise InferenceError("Inference callable returned all None for all items")
+
+    return predictions
+
+
+async def _run_inference_callable_async(
+    inference: Callable,
+    items: List[Dict[str, Any]],
+    hyperparameter_config: Dict[str, Any],
+) -> Any:
+    """Run inference on a given dataset and hyperparameter configuration."""
+
+    try:
+        predictions = await inference(items, **hyperparameter_config)
+    except Exception as e:
+        logger.error(
+            "Inference callable raised an exception: %s",
+            str(e),
+        )
+        raise InferenceError(f"Inference failed: {str(e)}") from e
 
     if not isinstance(predictions, list) or len(predictions) != len(items):
         raise InferenceError(

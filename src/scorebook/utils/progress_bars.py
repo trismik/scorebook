@@ -9,20 +9,16 @@ from tqdm import tqdm
 class EvaluationProgressBars:
     """Manages nested progress bars for evaluation tracking."""
 
-    def __init__(
-        self, datasets: List[Any], hyperparam_count: int, parallel: bool, total_eval_runs: int
-    ) -> None:
+    def __init__(self, datasets: List[Any], hyperparam_count: int, total_eval_runs: int) -> None:
         """Initialize progress bar manager.
 
         Args:
             datasets: List of datasets being evaluated
             hyperparam_count: Number of hyperparameter configurations per dataset
-            parallel: Whether running in parallel mode
             total_eval_runs: Total number of EvalRunSpecs (dataset_count * hyperparam_count)
         """
         self.datasets = datasets
         self.hyperparam_count = hyperparam_count
-        self.parallel = parallel
         self.total_eval_runs = total_eval_runs
 
         self.dataset_pbar: Optional[tqdm] = None
@@ -46,35 +42,19 @@ class EvaluationProgressBars:
             bar_format="{desc} {percentage:3.0f}%|{bar:40}| {n_fmt}/{total_fmt}",
         )
 
-        # Bottom level: Hyperparameters/Eval runs
-        if self.parallel:
-            # In parallel mode: show eval runs completed out of total
-            self.hyperparam_pbar = tqdm(
-                total=self.total_eval_runs,
-                desc="Eval Runs  ",
-                unit="run",
-                position=1,
-                leave=False,
-                ncols=80,
-                bar_format="{desc} {percentage:3.0f}%|{bar:40}| {n_fmt}/{total_fmt}",
-            )
-        else:
-            # In sequential mode: show hyperparams per dataset
-            self.hyperparam_pbar = tqdm(
-                total=self.hyperparam_count,
-                desc="Hyperparams",
-                unit="config",
-                position=1,
-                leave=False,
-                ncols=80,
-                bar_format="{desc} {percentage:3.0f}%|{bar:40}| {n_fmt}/{total_fmt}",
-            )
+        # Bottom level: Eval runs
+        self.hyperparam_pbar = tqdm(
+            total=self.total_eval_runs,
+            desc="Eval Runs  ",
+            unit="run",
+            position=1,
+            leave=False,
+            ncols=80,
+            bar_format="{desc} {percentage:3.0f}%|{bar:40}| {n_fmt}/{total_fmt}",
+        )
 
     def on_eval_run_completed(self, dataset_idx: int) -> None:
-        """Update progress when an eval run (EvalRunSpec) completes in parallel mode."""
-        if not self.parallel:
-            return
-
+        """Update progress when an eval run (EvalRunSpec) completes."""
         self.completed_eval_runs += 1
         if self.hyperparam_pbar:
             self.hyperparam_pbar.update(1)
@@ -88,14 +68,6 @@ class EvaluationProgressBars:
         if self.completed_hyperparams_per_dataset[dataset_idx] == self.hyperparam_count:
             if self.dataset_pbar:
                 self.dataset_pbar.update(1)
-
-    def on_hyperparam_completed(self, dataset_idx: int) -> None:
-        """Update progress when a hyperparameter config completes in sequential mode."""
-        if self.parallel:
-            return
-
-        if self.hyperparam_pbar:
-            self.hyperparam_pbar.update(1)
 
         # Track completed hyperparams for this dataset
         self.completed_hyperparams_per_dataset[dataset_idx] = (
@@ -125,20 +97,19 @@ class EvaluationProgressBars:
 
 @contextmanager
 def evaluation_progress(
-    datasets: List[Any], hyperparam_count: int, parallel: bool, total_eval_runs: int
+    datasets: List[Any], hyperparam_count: int, total_eval_runs: int
 ) -> Generator[EvaluationProgressBars, None, None]:
     """Context manager for evaluation progress bars.
 
     Args:
         datasets: List of datasets being evaluated
         hyperparam_count: Number of hyperparameter configurations per dataset
-        parallel: Whether running in parallel mode
         total_eval_runs: Total number of EvalRunSpecs
 
     Yields:
         EvaluationProgressBars: Progress bar manager instance
     """
-    progress_bars = EvaluationProgressBars(datasets, hyperparam_count, parallel, total_eval_runs)
+    progress_bars = EvaluationProgressBars(datasets, hyperparam_count, total_eval_runs)
     progress_bars.start_progress_bars()
     try:
         yield progress_bars
