@@ -107,6 +107,8 @@ class EvalDataset:
             raise ValueError("Dataset is not initialized")
         return list(map(str, self._hf_dataset.column_names))
 
+    # === EvalDataset Factory Methods ===
+
     @classmethod
     def from_list(
         cls,
@@ -250,8 +252,9 @@ class EvalDataset:
         path: str,
         label: str,
         metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]],
-        split: Optional[str] = None,
         name: Optional[str] = None,
+        split: Optional[str] = None,
+        config: Optional[str] = None,
     ) -> "EvalDataset":
         """Instantiate an EvalDataset from a dataset available on Hugging Face Hub.
 
@@ -264,8 +267,9 @@ class EvalDataset:
             path: The path of the dataset on the Hugging Face Hub.
             label: The field used as the evaluation label (ground truth).
             metrics: The specified metrics associated with the dataset.
+            name: Optional name for the eval dataset, by default HF "path:split:config" is used.
             split: Optional name of the split to load.
-            name: Optional dataset configuration name.
+            config: Optional dataset configuration name.
 
         Returns:
             An EvalDataset wrapping the selected Hugging Face dataset.
@@ -277,8 +281,10 @@ class EvalDataset:
             kwargs = {}
             if split is not None:
                 kwargs["split"] = split
-            if name is not None:
-                kwargs["name"] = name
+            if config is not None:
+                kwargs["name"] = (
+                    config  # Hugging Face's load_dataset method param for config is "name"
+                )
             ds = load_dataset(path, **kwargs)
         except Exception as e:
             raise ValueError(f"Failed to load dataset '{path}' from Hugging Face: {e}") from e
@@ -295,10 +301,11 @@ class EvalDataset:
         else:
             raise ValueError(f"Unexpected dataset type for '{path}': {type(ds)}")
 
-        return cls(name=path, label=label, metrics=metrics, hf_dataset=hf_dataset)
+        dataset_name = name if name else ":".join(filter(None, [path, split, config]))
+        return cls(name=dataset_name, label=label, metrics=metrics, hf_dataset=hf_dataset)
 
     @classmethod
-    def from_yaml(cls, file_path: str) -> "EvalDataset":
+    def from_yaml(cls, path: str) -> "EvalDataset":
         """Instantiate an EvalDataset from a YAML file.
 
         The YAML file should contain configuration for loading a dataset, including:
@@ -314,13 +321,13 @@ class EvalDataset:
         Raises:
             ValueError: If the YAML file is invalid or missing required fields.
         """
-        path = validate_path(file_path, expected_suffix=".yaml")
+        validated_path = validate_path(path, expected_suffix=".yaml")
 
         try:
-            with path.open("r", encoding="utf-8") as f:
+            with validated_path.open("r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
         except yaml.YAMLError as e:
-            raise ValueError(f"Invalid YAML in {file_path}: {e}") from e
+            raise ValueError(f"Invalid YAML in {path}: {e}") from e
 
         # Validate required fields
         required_fields = ["name", "label", "metrics"]
@@ -334,7 +341,7 @@ class EvalDataset:
             label=config["label"],
             metrics=config["metrics"],
             split=config.get("split"),  # Optional field
-            name=config.get("config"),  # Optional field
+            config=config.get("config"),  # Optional field
         )
 
         # Add template if provided
