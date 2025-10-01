@@ -14,5 +14,5 @@ mapping_templates:
     {{ number_to_letter(loop.index0) }} : {{ option }}
     {% endfor %}
 
-# Optional metadata
-description: "MMLU-Pro multiple choice questions"
+metadata:
+  description: "MMLU-Pro multiple choice questions"

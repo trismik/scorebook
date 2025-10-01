@@ -88,8 +88,9 @@ def test_load_yaml_dataset():
     assert "question" in data_yaml.column_names
     assert "answer" in data_yaml.column_names
     assert "options" in data_yaml.column_names
-    assert data_yaml.prompt_template is not None
-    assert "{{ question }}" in data_yaml.prompt_template
+    assert data_yaml.mapping_templates is not None
+    assert "question_template" in data_yaml.mapping_templates
+    assert "{{ question }}" in data_yaml.mapping_templates["question_template"]
 
 
 def test_yaml_missing_required_fields(tmp_path):
