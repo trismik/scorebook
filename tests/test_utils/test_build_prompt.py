@@ -124,7 +124,7 @@ def test_with_yaml_template_loading():
     with open(yaml_path, "r") as f:
         config = yaml.safe_load(f)
 
-    template = config["template"]
+    template = config["mapping_templates"]["question_template"]
     args = {
         "question": "What is the speed of light?",
         "options": ["299,792,458 m/s", "300,000,000 m/s", "299,000,000 m/s", "301,000,000 m/s"],

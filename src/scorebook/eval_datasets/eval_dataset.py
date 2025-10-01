@@ -23,7 +23,7 @@ class EvalDataset:
         label: str,
         metrics: Union[str, Type[MetricBase], List[Union[str, Type[MetricBase]]]],
         hf_dataset: HuggingFaceDataset,
-        prompt_template: Optional[str] = None,
+        mapping_templates: Optional[Dict[str, str]] = None,
     ):
         """
         Create a new scorebook evaluation dataset instance.
@@ -32,13 +32,13 @@ class EvalDataset:
         :param label: The label field of the dataset.
         :param metrics: The specified metrics associated with the dataset.
         :param hf_dataset: The dataset as a hugging face dataset object.
-        :param prompt_template: Optional prompt template for building prompts from dataset items.
+        :param mapping_templates: Optional mapping templates.
         """
         self.name: str = name
         self.label: str = label
         self.metrics: List[MetricBase] = self._resolve_metrics(metrics)
         self._hf_dataset: Optional[HuggingFaceDataset] = hf_dataset
-        self.prompt_template: Optional[str] = prompt_template
+        self.mapping_templates: Optional[Dict[str, str]] = mapping_templates
 
     def __len__(self) -> int:
         """Return the number of items in the dataset."""
@@ -308,7 +308,7 @@ class EvalDataset:
     def from_yaml(cls, path: str) -> "EvalDataset":
         """Instantiate an EvalDataset from a YAML file.
 
-        The YAML file should contain configuration for loading a dataset, including:
+        The YAML file should contain configuration for loading a dataset, including
         - name: Name of the dataset or Hugging Face dataset path
         - label: The field used as the evaluation label
         - metrics: List of metrics to evaluate
@@ -325,28 +325,29 @@ class EvalDataset:
 
         try:
             with validated_path.open("r", encoding="utf-8") as f:
-                config = yaml.safe_load(f)
+                yaml_config = yaml.safe_load(f)
         except yaml.YAMLError as e:
             raise ValueError(f"Invalid YAML in {path}: {e}") from e
 
         # Validate required fields
-        required_fields = ["name", "label", "metrics"]
-        missing_fields = [field for field in required_fields if field not in config]
+        required_fields = ["path", "name", "label", "metrics"]
+        missing_fields = [field for field in required_fields if field not in yaml_config]
         if missing_fields:
             raise ValueError(f"Missing required fields in YAML config: {', '.join(missing_fields)}")
 
         # Load the dataset from Hugging Face
         dataset = cls.from_huggingface(
-            path=config["name"],
-            label=config["label"],
-            metrics=config["metrics"],
-            split=config.get("split"),  # Optional field
-            config=config.get("config"),  # Optional field
+            path=yaml_config["path"],
+            label=yaml_config["label"],
+            metrics=yaml_config["metrics"],
+            name=yaml_config.get("name"),
+            split=yaml_config.get("split"),  # Optional field
+            config=yaml_config.get("config"),  # Optional field
         )
 
         # Add template if provided
-        if "template" in config:
-            dataset.prompt_template = config["template"]
+        if "mapping_templates" in yaml_config:
+            dataset.mapping_templates = yaml_config["mapping_templates"]
 
         return dataset
 
@@ -404,8 +405,8 @@ class EvalDataset:
             items=sampled_items,
         )
 
-        # Preserve the prompt template if it exists
-        if self.prompt_template is not None:
-            sampled_dataset.prompt_template = self.prompt_template
+        # Preserve the mapping templates if they exist
+        if self.mapping_templates is not None:
+            sampled_dataset.mapping_templates = self.mapping_templates
 
         return sampled_dataset
