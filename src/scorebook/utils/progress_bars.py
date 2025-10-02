@@ -1,7 +1,7 @@
 """Progress bar utilities for evaluation tracking."""
 
 from contextlib import contextmanager
-from typing import Any, Generator, List, Optional
+from typing import Generator, Optional
 
 from tqdm import tqdm
 
@@ -9,15 +9,15 @@ from tqdm import tqdm
 class EvaluationProgressBars:
     """Manages nested progress bars for evaluation tracking."""
 
-    def __init__(self, datasets: List[Any], hyperparam_count: int, total_eval_runs: int) -> None:
+    def __init__(self, dataset_count: int, hyperparam_count: int, total_eval_runs: int) -> None:
         """Initialize progress bar manager.
 
         Args:
-            datasets: List of datasets being evaluated
+            dataset_count: Number of datasets being evaluated
             hyperparam_count: Number of hyperparameter configurations per dataset
             total_eval_runs: Total number of EvalRunSpecs (dataset_count * hyperparam_count)
         """
-        self.datasets = datasets
+        self.dataset_count = dataset_count
         self.hyperparam_count = hyperparam_count
         self.total_eval_runs = total_eval_runs
 
@@ -33,7 +33,7 @@ class EvaluationProgressBars:
         """Start both progress bars."""
         # Top level: Datasets
         self.dataset_pbar = tqdm(
-            total=len(self.datasets),
+            total=self.dataset_count,
             desc="Datasets   ",
             unit="dataset",
             position=0,
@@ -66,22 +66,12 @@ class EvaluationProgressBars:
 
         # Check if this dataset is complete
         if self.completed_hyperparams_per_dataset[dataset_idx] == self.hyperparam_count:
-            if self.dataset_pbar:
-                self.dataset_pbar.update(1)
-
-        # Track completed hyperparams for this dataset
-        self.completed_hyperparams_per_dataset[dataset_idx] = (
-            self.completed_hyperparams_per_dataset.get(dataset_idx, 0) + 1
-        )
-
-        # Check if this dataset is complete
-        if self.completed_hyperparams_per_dataset[dataset_idx] == self.hyperparam_count:
             # Update dataset progress
             if self.dataset_pbar:
                 self.dataset_pbar.update(1)
 
             # Reset hyperparameter progress for next dataset (if any)
-            if dataset_idx < len(self.datasets) - 1:
+            if dataset_idx < self.dataset_count - 1:
                 if self.hyperparam_pbar:
                     self.hyperparam_pbar.reset()
 
@@ -97,19 +87,19 @@ class EvaluationProgressBars:
 
 @contextmanager
 def evaluation_progress(
-    datasets: List[Any], hyperparam_count: int, total_eval_runs: int
+    dataset_count: int, hyperparameter_config_count: int, run_count: int
 ) -> Generator[EvaluationProgressBars, None, None]:
     """Context manager for evaluation progress bars.
 
     Args:
-        datasets: List of datasets being evaluated
-        hyperparam_count: Number of hyperparameter configurations per dataset
-        total_eval_runs: Total number of EvalRunSpecs
+        dataset_count: Number of datasets being evaluated
+        hyperparameter_config_count: Number of hyperparameter configurations per dataset
+        run_count: Total number of EvalRunSpecs
 
     Yields:
         EvaluationProgressBars: Progress bar manager instance
     """
-    progress_bars = EvaluationProgressBars(datasets, hyperparam_count, total_eval_runs)
+    progress_bars = EvaluationProgressBars(dataset_count, hyperparameter_config_count, run_count)
     progress_bars.start_progress_bars()
     try:
         yield progress_bars

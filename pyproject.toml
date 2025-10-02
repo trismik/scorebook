@@ -11,7 +11,7 @@ requires-python = ">=3.9"
 dependencies = [
     "datasets>=3.6.0",
     "notebook (>=7.4.5,<8.0.0)",
-    "trismik>=0.9.12",
+    "trismik @ git+https://github.com/trismik/trismik-python.git@sync-async-refactor",
 ]
 
 [project.scripts]
@@ -38,6 +38,8 @@ mypy = "^1.15.0"
 autoflake = "^2.3.1"
 toml = "^0.10.2"
 types-pyyaml = "^6.0.12.20250822"
+unasync = {version = "^0.5.0", python = ">=3.9,<4"}
+tomlkit = "^0.13.2"
 
 [project.optional-dependencies]
 openai = ["openai", "python-dotenv"]
@@ -81,3 +83,28 @@ install_types = true
 
 [tool.flake8] # note that this depends on Flake8-pyproject
 ignore = ["D202", "W503", "W504"]
+
+[tool.unasync]
+[[tool.unasync.rules]]
+fromdir = "src/scorebook/evaluate/_async/"
+todir = "src/scorebook/evaluate/_sync/"
+
+
+# Custom replacements beyond default async/await transformations
+[tool.unasync.rules.replacements]
+"evaluate_async" = "evaluate"
+"execute_runs_async" = "execute_runs"
+"execute_run_async" = "execute_run"
+"execute_classic_eval_run_async" = "execute_classic_eval_run"
+"run_inference_callable_async" = "run_inference_callable"
+"execute_adaptive_eval_run_async" = "execute_adaptive_eval_run"
+"upload_classic_run_results_async" = "upload_classic_run_results"
+"run_adaptive_evaluation_async" = "run_adaptive_evaluation"
+"TrismikAsyncClient" = "TrismikClient"
+"trismik_async_client" = "trismik_client"
+"_async" = "_sync"
+"Asynchronous evaluation complete" = "Synchronous evaluation complete"
+"evaluate_async)" = "evaluate)"
+"import asyncio" = ""
+"asyncio.gather(*[worker(run) for run in runs])" = "[worker(run) for run in runs]"
+"asyncio.run(results)" = "results"

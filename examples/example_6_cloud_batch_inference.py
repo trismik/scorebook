@@ -1,5 +1,6 @@
 """Example 6 - Using Cloud Inference Providers with a Batch API."""
 
+import asyncio
 from pprint import pprint
 from typing import Any
 
@@ -11,13 +12,13 @@ from example_helpers import (
     setup_output_directory,
 )
 
-from scorebook import EvalDataset, evaluate
+from scorebook import EvalDataset, evaluate_async
 from scorebook.inference.openai import batch
 from scorebook.inference_pipeline import InferencePipeline
 from scorebook.metrics import Accuracy
 
 
-def main(model_name: str) -> Any:
+async def main(model_name: str) -> Any:
     """Run the cloud batch inference example.
 
     This example demonstrates how to leverage OpenAI's Batch API for cost-effective,
@@ -81,14 +82,13 @@ def main(model_name: str) -> Any:
     print(f"\nRunning OpenAI Batch API evaluation with model: {model_name}")
     print("Note: Batch processing may take several minutes to complete.\n")
 
-    results = evaluate(
+    results = await evaluate_async(
         inference_pipeline,
         dataset,
         hyperparameters={
             "temperature": 0.7,
             "system_message": "Answer the question directly and concisely",
         },
-        parallel=True,
         return_aggregates=True,
         return_items=True,
         return_output=True,
@@ -105,5 +105,5 @@ if __name__ == "__main__":
     log_file = setup_logging(experiment_id="example_6")
     output_dir = setup_output_directory()
     model = setup_batch_model_parser()
-    results_dict = main(model)
+    results_dict = asyncio.run(main(model))
     save_results_to_json(results_dict, output_dir, "example_6_output.json")

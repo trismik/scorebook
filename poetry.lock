@@ -5520,6 +5520,18 @@ files = [
 ]
 
 [[package]]
+name = "tomlkit"
+version = "0.13.3"
+description = "Style preserving TOML library"
+optional = false
+python-versions = ">=3.8"
+groups = ["dev"]
+files = [
+    {file = "tomlkit-0.13.3-py3-none-any.whl", hash = "sha256:c89c649d79ee40629a9fda55f8ace8c6a1b42deb912b2a8fd8d942ddadb606b0"},
+    {file = "tomlkit-0.13.3.tar.gz", hash = "sha256:430cf247ee57df2b94ee3fbe588e71d362a941ebb545dec29b53961d61add2a1"},
+]
+
+[[package]]
 name = "torch"
 version = "2.7.1"
 description = "Tensors and Dynamic neural networks in Python with strong GPU acceleration"
@@ -5947,23 +5959,26 @@ vision = ["Pillow (>=10.0.1,<=15.0)"]
 
 [[package]]
 name = "trismik"
-version = "0.9.12"
+version = "0.0.0"
 description = ""
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-files = [
-    {file = "trismik-0.9.12-py3-none-any.whl", hash = "sha256:238147881164940fde5e81d80055c17630e5d3f0976033c0a6edd59db1798ffa"},
-    {file = "trismik-0.9.12.tar.gz", hash = "sha256:cc1983a12651e7040712b8f8122ae23e495e7a8df6bdf9a4aea86da5fe94188b"},
-]
+files = []
+develop = false
 
 [package.dependencies]
 httpx = ">=0.27.2,<1.0.0"
 nest-asyncio = ">=1.6.0,<2.0.0"
-tqdm = ">=4.67.1,<5.0.0"
 
 [package.extras]
-examples = ["accelerate (>=1.7.0,<2.0.0)", "notebook (>=7.4.4,<8.0.0)", "openai (>=1.81.0,<2.0.0)", "torch (>=2.7.0,<3.0.0)", "torchaudio (>=2.7.0,<3.0.0)", "torchvision (>=0.22.0,<1.0.0)", "transformers (>=4.51.3,<5.0.0)"]
+examples = ["accelerate (>=1.7.0,<2.0.0)", "notebook (>=7.4.4,<8.0.0)", "openai (>=1.81.0,<2.0.0)", "torch (>=2.7.0,<3.0.0)", "torchaudio (>=2.7.0,<3.0.0)", "torchvision (>=0.22.0,<1.0.0)", "tqdm (>=4.67.1,<5.0.0)", "transformers (>=4.51.3,<5.0.0)"]
+
+[package.source]
+type = "git"
+url = "https://github.com/trismik/trismik-python.git"
+reference = "sync-async-refactor"
+resolved_reference = "8659356c235e431d1ec207c5bbb03cdb11643938"
 
 [[package]]
 name = "triton"
@@ -6123,6 +6138,19 @@ groups = ["main"]
 files = [
     {file = "tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8"},
     {file = "tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9"},
+]
+
+[[package]]
+name = "unasync"
+version = "0.5.0"
+description = "The async transformation code."
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
+groups = ["dev"]
+markers = "python_version < \"4\""
+files = [
+    {file = "unasync-0.5.0-py3-none-any.whl", hash = "sha256:8d4536dae85e87b8751dfcc776f7656fd0baf54bb022a7889440dc1b9dc3becb"},
+    {file = "unasync-0.5.0.tar.gz", hash = "sha256:b675d87cf56da68bd065d3b7a67ac71df85591978d84c53083c20d79a7e5096d"},
 ]
 
 [[package]]
@@ -6615,4 +6643,4 @@ vertex = ["fsspec", "google-cloud-storage", "google-genai", "pandas", "python-do
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "9058ebcd9123fbfda1eabebdb27cc008691769670382ea55c81748ed804fe618"
+content-hash = "7912bf556489f2b53f68bafb0c597310f35cde5e7419ba3a83e6ca2c595af0f3"

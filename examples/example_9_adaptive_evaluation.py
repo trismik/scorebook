@@ -1,7 +1,9 @@
 """Example 9 - Using Trismik's Adaptive Evaluation."""
 
+import asyncio
 import os
 import string
+from pprint import pprint
 from typing import Any
 
 from dotenv import load_dotenv
@@ -12,12 +14,12 @@ from example_helpers import (
     setup_output_directory,
 )
 
-from scorebook import evaluate, login
+from scorebook import evaluate_async, login
 from scorebook.inference.openai import responses
 from scorebook.inference_pipeline import InferencePipeline
 
 
-def main(model_name: str) -> Any:
+async def main(model_name: str) -> Any:
     """Run a Trismik adaptive evaluation example.
 
     This example demonstrates how to use Trismik's adaptive evaluations.
@@ -80,7 +82,7 @@ def main(model_name: str) -> Any:
     login(api_key)
 
     # Step 2: Run evaluation with a Trismik adaptive dataset
-    results = evaluate(
+    results = await evaluate_async(
         inference_pipeline,
         datasets="MMLUPro2025:adaptive",  # Adaptive datasets have the suffix ":adaptive"
         experiment_id="Scorebook-Example-9-Adaptive-Evaluation",
@@ -91,7 +93,7 @@ def main(model_name: str) -> Any:
         return_output=True,
     )
 
-    print(results)
+    pprint(results)
     return results
 
 
@@ -100,5 +102,5 @@ if __name__ == "__main__":
     log_file = setup_logging(experiment_id="example_9")
     output_dir = setup_output_directory()
     model = setup_openai_model_parser()
-    results_dict = main(model)
+    results_dict = asyncio.run(main(model))
     save_results_to_json(results_dict, output_dir, "example_9_output.json")

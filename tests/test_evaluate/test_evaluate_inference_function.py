@@ -1,8 +1,9 @@
+import asyncio
 from pathlib import Path
 from typing import Dict, List
 
 from scorebook.eval_dataset import EvalDataset
-from scorebook.evaluate import evaluate
+from scorebook.evaluate import evaluate, evaluate_async
 from scorebook.metrics import Accuracy
 
 
@@ -37,7 +38,9 @@ def test_evaluate_with_async_inference_function():
         dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
     )
 
-    results = evaluate(async_inference_function, dataset, sample_size=5, upload_results=False)
+    results = asyncio.run(
+        evaluate_async(async_inference_function, dataset, sample_size=5, upload_results=False)
+    )
 
     assert isinstance(results, list)
     assert len(results) > 0

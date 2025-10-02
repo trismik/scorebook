@@ -93,13 +93,12 @@ def main(model_name: str) -> Any:
     }
 
     results = evaluate(
-        inference_pipeline,
-        dataset,
+        inference=inference_pipeline,
+        datasets=dataset,
         hyperparameters=hyperparameters,
         return_aggregates=True,
         return_items=True,
         return_output=True,
-        parallel=True,
         upload_results=False,
     )
 
