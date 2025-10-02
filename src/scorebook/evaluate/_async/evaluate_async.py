@@ -13,9 +13,9 @@ from trismik.types import (
 from scorebook.eval_dataset import EvalDataset
 from scorebook.evaluate.evaluate_helpers import (
     build_eval_run_specs,
+    create_trismik_async_client,
     format_results,
     get_model_name,
-    get_trismik_client,
     make_trismik_inference,
     prepare_datasets,
     prepare_hyperparameter_configs,
@@ -84,24 +84,44 @@ async def evaluate_async(
         key=lambda run: (run.dataset_index, run.hyperparameters_index),
     )
 
-    # Execute evaluation runs
-    with evaluation_progress(
-        dataset_count=len(datasets),
-        hyperparameter_config_count=len(hyperparameter_configs),
-        run_count=len(eval_run_specs),
-    ) as progress_bars:
-        eval_result = await execute_runs_async(
-            inference,
-            eval_run_specs,
-            progress_bars,
-            experiment_id,
-            project_id,
-            metadata,
-            upload_results,
-        )
-        logger.info("Asynchronous evaluation complete")
+    # Create Trismik client if needed (for adaptive evals or uploads)
+    trismik_client = None
+    needs_client = upload_results or any(
+        isinstance(run, AdaptiveEvalRunSpec) for run in eval_run_specs
+    )
 
-    return format_results(eval_result, return_dict, return_aggregates, return_items, return_output)
+    if needs_client:
+        trismik_client = create_trismik_async_client()
+
+    try:
+        # Execute evaluation runs
+        with evaluation_progress(
+            dataset_count=len(datasets),
+            hyperparameter_config_count=len(hyperparameter_configs),
+            run_count=len(eval_run_specs),
+        ) as progress_bars:
+            eval_result = await execute_runs_async(
+                inference,
+                eval_run_specs,
+                progress_bars,
+                experiment_id,
+                project_id,
+                metadata,
+                upload_results,
+                trismik_client,
+            )
+            logger.info("Asynchronous evaluation complete")
+
+        return format_results(
+            eval_result, return_dict, return_aggregates, return_items, return_output
+        )
+    finally:
+        # Clean up client
+        if trismik_client and hasattr(trismik_client, "aclose"):
+            try:
+                await trismik_client.aclose()
+            except Exception as e:
+                logger.debug(f"Error closing Trismik client: {e}")
 
 
 async def execute_runs_async(
@@ -112,6 +132,7 @@ async def execute_runs_async(
     project_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
     upload_results: bool = False,
+    trismik_client: Any = None,
 ) -> EvalResult:
     """Run evaluation in parallel."""
 
@@ -119,7 +140,9 @@ async def execute_runs_async(
     async def worker(
         run: Union[EvalRunSpec, AdaptiveEvalRunSpec]
     ) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
-        run_result = await execute_run_async(inference, run, experiment_id, project_id, metadata)
+        run_result = await execute_run_async(
+            inference, run, experiment_id, project_id, metadata, trismik_client
+        )
         progress_bars.on_eval_run_completed(run.dataset_index)
 
         if (
@@ -130,7 +153,7 @@ async def execute_runs_async(
             and run_result.run_completed
         ):
             run_id = await upload_classic_run_results_async(
-                run_result, experiment_id, project_id, inference, metadata
+                run_result, experiment_id, project_id, inference, metadata, trismik_client
             )
             run_result.run_id = run_id
 
@@ -154,6 +177,7 @@ async def execute_run_async(
     experiment_id: Optional[str] = None,
     project_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
+    trismik_client: Any = None,
 ) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
     """Execute a single evaluation run."""
 
@@ -169,6 +193,7 @@ async def execute_run_async(
             resolved_experiment_id,
             resolved_project_id,
             metadata,
+            trismik_client,
         )
 
     else:
@@ -235,12 +260,13 @@ async def execute_adaptive_eval_run_async(
     experiment_id: str,
     project_id: str,
     metadata: Optional[Dict[str, Any]] = None,
+    trismik_client: Any = None,
 ) -> AdaptiveEvalRunResult:
     """Execute an adaptive evaluation run."""
     logger.debug("Executing adaptive run for %s", run)
 
     adaptive_eval_run_result = await run_adaptive_evaluation_async(
-        inference, run, experiment_id, project_id, metadata
+        inference, run, experiment_id, project_id, metadata, trismik_client
     )
     logger.debug("Adaptive evaluation completed for run %s", adaptive_eval_run_result)
 
@@ -253,6 +279,7 @@ async def upload_classic_run_results_async(
     project_id: str,
     inference_callable: Optional[Callable] = None,
     metadata: Optional[Dict[str, Any]] = None,
+    trismik_client: Any = None,
 ) -> str:
     """Upload a classic evaluation run result to Trismik platform.
 
@@ -262,12 +289,12 @@ async def upload_classic_run_results_async(
         project_id: Trismik project identifier
         model: Model name used for evaluation
         metadata: Optional metadata dictionary
+        trismik_client: Trismik client instance
 
     Returns:
         Run id
     """
     model = get_model_name(inference_callable)
-    trismik_client = get_trismik_client(upload_classic_run_results_async)
 
     # Create eval items from run_spec items, outputs, and labels
     items: List[TrismikClassicEvalItem] = []
@@ -335,6 +362,7 @@ async def run_adaptive_evaluation_async(
     experiment_id: str,
     project_id: str,
     metadata: Any,
+    trismik_client: Any = None,
 ) -> AdaptiveEvalRunResult:
     """Run an adaptive evaluation using the Trismik API.
 
@@ -344,11 +372,10 @@ async def run_adaptive_evaluation_async(
         experiment_id: Experiment identifier
         project_id: Trismik project ID
         metadata: Additional metadata
+        trismik_client: Trismik client instance
     Returns:
         Results from the adaptive evaluation
     """
-    trismik_client = get_trismik_client(run_adaptive_evaluation_async)
-
     trismik_results = await trismik_client.run(
         test_id=adaptive_run_spec.dataset,
         project_id=project_id,

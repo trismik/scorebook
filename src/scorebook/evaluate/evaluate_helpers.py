@@ -1,7 +1,6 @@
 """Helper utilities shared by synchronous and asynchronous evaluation flows."""
 
 import asyncio
-import atexit
 import dataclasses
 import inspect
 import logging
@@ -23,63 +22,6 @@ from scorebook.types import AdaptiveEvalDataset, AdaptiveEvalRunSpec, EvalResult
 from scorebook.utils import expand_dict, is_awaitable
 
 logger = logging.getLogger(__name__)
-
-# Global singleton client instances with state tracking
-_sync_client: Optional[TrismikClient] = None
-_async_client: Optional[TrismikAsyncClient] = None
-_current_api_key: Optional[str] = None
-_current_service_url: Optional[str] = None
-_cleanup_registered: bool = False
-
-
-def _register_cleanup() -> None:
-    """Register cleanup handlers for proper client shutdown."""
-    global _cleanup_registered
-    if not _cleanup_registered:
-        atexit.register(_cleanup_clients)
-        _cleanup_registered = True
-
-
-def _cleanup_clients() -> None:
-    """Clean up all client instances."""
-    global _sync_client, _async_client
-
-    # Clean up sync client
-    if _sync_client and hasattr(_sync_client, "close"):
-        try:
-            _sync_client.close()
-        except Exception as e:
-            logger.debug(f"Error closing sync client: {e}")
-
-    # Clean up async client (requires event loop)
-    if _async_client and hasattr(_async_client, "aclose"):
-        try:
-            # Try to close async client if event loop is still running
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Create a task to close the client
-                asyncio.create_task(_async_client.aclose())
-            else:
-                # If no loop is running, create one temporarily
-                asyncio.run(_async_client.aclose())
-        except Exception as e:
-            logger.debug(f"Error closing async client: {e}")
-
-    _sync_client = None
-    _async_client = None
-
-
-async def cleanup_clients_async() -> None:
-    """Perform async cleanup for proper client closure."""
-    global _async_client
-    if _async_client and hasattr(_async_client, "aclose"):
-        try:
-            await _async_client.aclose()
-            logger.debug("Successfully closed async Trismik client")
-        except Exception as e:
-            logger.debug(f"Error closing async client: {e}")
-        finally:
-            _async_client = None
 
 
 def resolve_upload_results(upload_results: Union[Literal["auto"], bool]) -> bool:
@@ -296,40 +238,20 @@ def score_metrics(
     return metric_scores
 
 
-def get_trismik_client(caller: Callable[..., Any]) -> Union[TrismikClient, TrismikAsyncClient]:
-    """Return a singleton Trismik client with proper resource management."""
-    global _sync_client, _async_client, _current_api_key, _current_service_url
-
-    # Register cleanup handlers on first use
-    _register_cleanup()
-
-    # Get current environment values
-    caller_is_async = is_awaitable(caller)
+def create_trismik_client() -> TrismikClient:
+    """Create a new sync Trismik client instance."""
     service_url = os.environ.get("TRISMIK_SERVICE_URL", "https://api.trismik.com/adaptive-testing")
     api_key = get_token()
+    logger.debug("Creating new sync Trismik client")
+    return TrismikClient(service_url=service_url, api_key=api_key)
 
-    # Check if we need to recreate clients due to config changes
-    config_changed = api_key != _current_api_key or service_url != _current_service_url
 
-    if config_changed:
-        logger.debug("Trismik client config changed, recreating clients")
-        # Clean up existing clients
-        _cleanup_clients()
-        # Update tracking variables
-        _current_api_key = api_key
-        _current_service_url = service_url
-
-    # Return appropriate client type
-    if caller_is_async:
-        if _async_client is None:
-            logger.debug("Creating new async Trismik client")
-            _async_client = TrismikAsyncClient(service_url=service_url, api_key=api_key)
-        return _async_client
-    else:
-        if _sync_client is None:
-            logger.debug("Creating new sync Trismik client")
-            _sync_client = TrismikClient(service_url=service_url, api_key=api_key)
-        return _sync_client
+def create_trismik_async_client() -> TrismikAsyncClient:
+    """Create a new async Trismik client instance."""
+    service_url = os.environ.get("TRISMIK_SERVICE_URL", "https://api.trismik.com/adaptive-testing")
+    api_key = get_token()
+    logger.debug("Creating new async Trismik client")
+    return TrismikAsyncClient(service_url=service_url, api_key=api_key)
 
 
 def get_model_name(

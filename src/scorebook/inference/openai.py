@@ -7,71 +7,14 @@ API communication, request formatting, and response processing.
 """
 
 import asyncio
-import atexit
 import json
 import logging
 import tempfile
-from typing import Any, List, Optional
+from typing import Any, List
 
 from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
-
-# Global singleton OpenAI client for resource management
-_openai_client: Optional[AsyncOpenAI] = None
-_cleanup_registered: bool = False
-
-
-def _register_openai_cleanup() -> None:
-    """Register cleanup handlers for proper OpenAI client shutdown."""
-    global _cleanup_registered
-    if not _cleanup_registered:
-        atexit.register(_cleanup_openai_client)
-        _cleanup_registered = True
-
-
-def _cleanup_openai_client() -> None:
-    """Clean up OpenAI client instance."""
-    global _openai_client
-    if _openai_client and hasattr(_openai_client, "close"):
-        try:
-            # Try to close if event loop is still running
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(_openai_client.close())
-            else:
-                asyncio.run(_openai_client.close())
-        except Exception as e:
-            logger.debug(f"Error closing OpenAI client: {e}")
-        finally:
-            _openai_client = None
-
-
-async def cleanup_openai_client() -> None:
-    """Perform async cleanup for proper OpenAI client closure."""
-    global _openai_client
-    if _openai_client and hasattr(_openai_client, "close"):
-        try:
-            await _openai_client.close()
-            logger.debug("Successfully closed OpenAI client")
-        except Exception as e:
-            logger.debug(f"Error closing OpenAI client: {e}")
-        finally:
-            _openai_client = None
-
-
-def get_openai_client() -> AsyncOpenAI:
-    """Get singleton OpenAI client with proper resource management."""
-    global _openai_client
-
-    # Register cleanup handlers on first use
-    _register_openai_cleanup()
-
-    if _openai_client is None:
-        logger.debug("Creating new singleton AsyncOpenAI client")
-        _openai_client = AsyncOpenAI()
-
-    return _openai_client
 
 
 async def responses(
@@ -85,22 +28,27 @@ async def responses(
     Args:
         items: List of preprocessed items to process.
         model: OpenAI model to use.
-        client: Optional OpenAI client instance.
+        client: Optional OpenAI client instance. If not provided, creates a new client
+            with automatic cleanup using a context manager.
         hyperparameters: Dictionary of hyperparameters for inference.
 
     Returns:
         List of raw model responses.
-
-    Raises:
-        NotImplementedError: Currently not implemented.
     """
+    if client is None:
+        async with AsyncOpenAI() as client:
+            return await _do_responses(items, model, client, **hyperparameters)
+    else:
+        return await _do_responses(items, model, client, **hyperparameters)
+
+
+async def _do_responses(
+    items: List[Any], model: str, client: AsyncOpenAI, **hyperparameters: Any
+) -> List[Any]:
+    """Process responses internally with provided client."""
     logger.debug("OpenAI responses function called with %d items", len(items))
     logger.debug("Using model: %s", model)
     logger.debug("Hyperparameters: %s", hyperparameters)
-
-    if client is None:
-        logger.debug("Using singleton AsyncOpenAI client")
-        client = get_openai_client()
 
     # Create all tasks concurrently for true parallelism
     tasks = []
@@ -195,18 +143,24 @@ async def batch(
     Args:
         items: List of preprocessed items to process.
         model: OpenAI model to use.
-        client: Optional OpenAI client instance.
+        client: Optional OpenAI client instance. If not provided, creates a new client
+            with automatic cleanup using a context manager.
         hyperparameters: Dictionary of hyperparameters for inference.
 
     Returns:
         A list of raw model responses.
-
-    Raises:
-        NotImplementedError: Currently not implemented.
     """
     if client is None:
-        client = get_openai_client()
+        async with AsyncOpenAI() as client:
+            return await _do_batch(items, model, client, **hyperparameters)
+    else:
+        return await _do_batch(items, model, client, **hyperparameters)
 
+
+async def _do_batch(
+    items: List[Any], model: str, client: AsyncOpenAI, **hyperparameters: Any
+) -> List[Any]:
+    """Process batch internally with provided client."""
     file_id = await _upload_batch(items, client)
     batch_id = await _start_batch(file_id, client)
 
@@ -230,18 +184,16 @@ async def batch(
     return batch_result
 
 
-async def _upload_batch(items: List[Any], client: Any) -> str:
+async def _upload_batch(items: List[Any], client: AsyncOpenAI) -> str:
     """Create a .jsonl file from preprocessed items and upload to OpenAI for batch processing.
 
     Args:
         items: A list of preprocessed items, each representing a single dataset eval item.
+        client: OpenAI client instance.
 
     Returns:
         The file ID returned by OpenAI after uploading.
     """
-    # Instantiate OpenAI client
-    if client is None:
-        client = get_openai_client()
 
     # Create temp .jsonl file
     with tempfile.NamedTemporaryFile(mode="w+", suffix=".jsonl", delete=False) as f:
