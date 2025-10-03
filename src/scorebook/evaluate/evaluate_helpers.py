@@ -17,7 +17,7 @@ from scorebook.exceptions import (
     ParameterValidationError,
     ScoreBookError,
 )
-from scorebook.trismik_services.login import get_token
+from scorebook.trismik.credentials import get_token
 from scorebook.types import AdaptiveEvalDataset, AdaptiveEvalRunSpec, EvalResult, EvalRunSpec
 from scorebook.utils import expand_dict, is_awaitable
 

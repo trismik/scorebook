@@ -12,9 +12,8 @@ from example_helpers import (
     setup_output_directory,
 )
 
-from scorebook import EvalDataset, evaluate_async
-from scorebook.inference.openai import batch
-from scorebook.inference_pipeline import InferencePipeline
+from scorebook import EvalDataset, InferencePipeline, evaluate_async
+from scorebook.inference.clients.openai import batch
 from scorebook.metrics import Accuracy
 
 

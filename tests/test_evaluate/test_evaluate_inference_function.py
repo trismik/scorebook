@@ -74,7 +74,7 @@ def test_evaluate_with_parametric_inference_function():
 
 def test_evaluate_with_minimal_inference_pipeline():
     """Test evaluation with an InferencePipeline that only has inference function."""
-    from scorebook.inference_pipeline import InferencePipeline
+    from scorebook.inference.inference_pipeline import InferencePipeline
 
     def simple_inference(items: List[Dict], **hyperparameters) -> List[str]:
         return ["1" for _ in items]

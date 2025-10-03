@@ -7,7 +7,7 @@ import pytest
 
 from scorebook.eval_dataset import EvalDataset
 from scorebook.evaluate import evaluate, evaluate_async
-from scorebook.inference_pipeline import InferencePipeline
+from scorebook.inference.inference_pipeline import InferencePipeline
 from scorebook.metrics import Accuracy
 from scorebook.types import ClassicEvalRunResult, EvalResult
 

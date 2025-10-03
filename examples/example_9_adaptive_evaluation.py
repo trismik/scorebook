@@ -14,9 +14,8 @@ from example_helpers import (
     setup_output_directory,
 )
 
-from scorebook import evaluate_async, login
-from scorebook.inference.openai import responses
-from scorebook.inference_pipeline import InferencePipeline
+from scorebook import InferencePipeline, evaluate_async, login
+from scorebook.inference.clients.openai import responses
 
 
 async def main(model_name: str) -> Any:
