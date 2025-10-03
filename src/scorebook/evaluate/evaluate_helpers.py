@@ -4,7 +4,6 @@ import asyncio
 import dataclasses
 import inspect
 import logging
-import os
 from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Optional, Union
 
 from trismik import TrismikAsyncClient, TrismikClient
@@ -17,6 +16,7 @@ from scorebook.exceptions import (
     ParameterValidationError,
     ScoreBookError,
 )
+from scorebook.settings import TRISMIK_SERVICE_URL
 from scorebook.trismik.credentials import get_token
 from scorebook.types import AdaptiveEvalDataset, AdaptiveEvalRunSpec, EvalResult, EvalRunSpec
 from scorebook.utils import expand_dict, is_awaitable
@@ -240,18 +240,16 @@ def score_metrics(
 
 def create_trismik_client() -> TrismikClient:
     """Create a new sync Trismik client instance."""
-    service_url = os.environ.get("TRISMIK_SERVICE_URL", "https://api.trismik.com/adaptive-testing")
     api_key = get_token()
     logger.debug("Creating new sync Trismik client")
-    return TrismikClient(service_url=service_url, api_key=api_key)
+    return TrismikClient(service_url=TRISMIK_SERVICE_URL, api_key=api_key)
 
 
 def create_trismik_async_client() -> TrismikAsyncClient:
     """Create a new async Trismik client instance."""
-    service_url = os.environ.get("TRISMIK_SERVICE_URL", "https://api.trismik.com/adaptive-testing")
     api_key = get_token()
     logger.debug("Creating new async Trismik client")
-    return TrismikAsyncClient(service_url=service_url, api_key=api_key)
+    return TrismikAsyncClient(service_url=TRISMIK_SERVICE_URL, api_key=api_key)
 
 
 def get_model_name(
