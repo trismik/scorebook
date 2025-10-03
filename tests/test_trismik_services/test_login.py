@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 
 # Import functions from the module
-from scorebook.trismik_services.login import (
+from scorebook.trismik.credentials import (
     get_scorebook_config_dir,
     get_stored_token,
     get_token,
@@ -22,7 +22,7 @@ from scorebook.trismik_services.login import (
     whoami,
 )
 
-login_module = importlib.import_module("scorebook.trismik_services.login")
+login_module = importlib.import_module("scorebook.trismik.credentials")
 
 
 @pytest.fixture

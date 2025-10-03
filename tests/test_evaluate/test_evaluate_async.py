@@ -6,8 +6,8 @@ from typing import Dict, List
 import pytest
 
 from scorebook.eval_dataset import EvalDataset
-from scorebook.evaluate import evaluate
-from scorebook.inference_pipeline import InferencePipeline
+from scorebook.evaluate import evaluate, evaluate_async
+from scorebook.inference.inference_pipeline import InferencePipeline
 from scorebook.metrics import Accuracy
 from scorebook.types import ClassicEvalRunResult, EvalResult
 
@@ -66,7 +66,9 @@ def test_evaluate_with_async_inference_function(sample_dataset):
     """Test evaluation with an async inference function."""
     async_inference_fn = create_async_inference_pipeline("1")
 
-    results = evaluate(async_inference_fn, sample_dataset, return_dict=False, upload_results=False)
+    results = asyncio.run(
+        evaluate_async(async_inference_fn, sample_dataset, return_dict=False, upload_results=False)
+    )
 
     # With return_dict=False, we get an EvalResult object directly
     assert isinstance(results, EvalResult)
@@ -85,8 +87,8 @@ def test_evaluate_async_vs_sync_same_results(sample_dataset):
     sync_results = evaluate(
         sync_inference_fn, sample_dataset, return_dict=False, upload_results=False
     )
-    async_results = evaluate(
-        async_inference_fn, sample_dataset, return_dict=False, upload_results=False
+    async_results = asyncio.run(
+        evaluate_async(async_inference_fn, sample_dataset, return_dict=False, upload_results=False)
     )
 
     # Results should be identical
@@ -110,8 +112,10 @@ def test_evaluate_async_with_multiple_datasets():
     )
 
     async_inference_fn = create_async_inference_pipeline("1")
-    results = evaluate(
-        async_inference_fn, [dataset1, dataset2], return_dict=False, upload_results=False
+    results = asyncio.run(
+        evaluate_async(
+            async_inference_fn, [dataset1, dataset2], return_dict=False, upload_results=False
+        )
     )
 
     # With return_dict=False, we get an EvalResult object directly
@@ -130,12 +134,14 @@ def test_evaluate_async_with_item_limit(sample_dataset):
     async_inference_fn = create_async_inference_pipeline("1")
     item_limit = 3
 
-    results = evaluate(
-        async_inference_fn,
-        sample_dataset,
-        sample_size=item_limit,
-        return_dict=False,
-        upload_results=False,
+    results = asyncio.run(
+        evaluate_async(
+            async_inference_fn,
+            sample_dataset,
+            sample_size=item_limit,
+            return_dict=False,
+            upload_results=False,
+        )
     )
 
     # Check the number of item scores matches the limit
@@ -165,7 +171,9 @@ def test_evaluate_async_different_outputs(sample_dataset):
         postprocessor=lambda x, h=None: x,
     )
 
-    results = evaluate(variable_pipeline, sample_dataset, return_dict=False, upload_results=False)
+    results = asyncio.run(
+        evaluate_async(variable_pipeline, sample_dataset, return_dict=False, upload_results=False)
+    )
 
     # Get the run result
     eval_run_result = results.run_results[0]
@@ -179,13 +187,15 @@ def test_evaluate_async_with_dict_return_type(sample_dataset):
     """Test async inference function with dict return type."""
     async_inference_fn = create_async_inference_pipeline("1")
 
-    results = evaluate(
-        async_inference_fn,
-        sample_dataset,
-        return_dict=True,
-        return_aggregates=True,
-        return_items=False,
-        upload_results=False,
+    results = asyncio.run(
+        evaluate_async(
+            async_inference_fn,
+            sample_dataset,
+            return_dict=True,
+            return_aggregates=True,
+            return_items=False,
+            upload_results=False,
+        )
     )
 
     assert isinstance(results, list)
@@ -206,7 +216,9 @@ def test_evaluate_async_performance():
     async_inference_fn = create_async_inference_pipeline("1", delay=0.001)  # 1ms delay
 
     start_time = time.time()
-    results = evaluate(async_inference_fn, dataset, return_dict=False, upload_results=False)
+    results = asyncio.run(
+        evaluate_async(async_inference_fn, dataset, return_dict=False, upload_results=False)
+    )
     end_time = time.time()
 
     # Should complete reasonably quickly (not more than 10 seconds for 50 items)
@@ -241,7 +253,9 @@ def test_evaluate_with_failing_async_function(sample_dataset):
         postprocessor=lambda x, h=None: x,
     )
 
-    result = evaluate(failing_pipeline, sample_dataset, return_dict=False, upload_results=False)
+    result = asyncio.run(
+        evaluate_async(failing_pipeline, sample_dataset, return_dict=False, upload_results=False)
+    )
 
     # Should return a failed run result instead of raising exception
     assert len(result.run_results) == 1

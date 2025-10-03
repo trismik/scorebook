@@ -22,9 +22,8 @@ from typing import Any, List, Optional
 
 from dotenv import load_dotenv
 
-from scorebook import EvalDataset, evaluate
-from scorebook.inference.bedrock import batch
-from scorebook.inference_pipeline import InferencePipeline
+from scorebook import EvalDataset, InferencePipeline, evaluate
+from scorebook.inference.clients.bedrock import batch
 from scorebook.metrics import Accuracy
 
 

@@ -1,5 +1,7 @@
 """Example 5 - Using Cloud Inference Providers."""
 
+import asyncio
+from pprint import pprint
 from typing import Any, List
 
 from dotenv import load_dotenv
@@ -10,13 +12,12 @@ from example_helpers import (
     setup_output_directory,
 )
 
-from scorebook import EvalDataset, evaluate
-from scorebook.inference.openai import responses
-from scorebook.inference_pipeline import InferencePipeline
+from scorebook import EvalDataset, InferencePipeline, evaluate_async
+from scorebook.inference.clients.openai import responses
 from scorebook.metrics import Accuracy
 
 
-def main(model_name: str) -> Any:
+async def main(model_name: str) -> Any:
     """Run an evaluation using a model hosted in the cloud by an inference provider.
 
     This example demonstrates how to evaluate cloud hosted large language models
@@ -66,7 +67,7 @@ def main(model_name: str) -> Any:
         file_path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
     )
 
-    results = evaluate(
+    results = await evaluate_async(
         inference_pipeline,
         dataset,
         hyperparameters={
@@ -77,11 +78,10 @@ def main(model_name: str) -> Any:
         },
         return_items=True,
         return_output=True,
-        parallel=True,  # Enable to run inference and evaluations simultaneously
         upload_results=False,
     )
 
-    print(results)
+    pprint(results)
     return results
 
 
@@ -90,5 +90,5 @@ if __name__ == "__main__":
     log_file = setup_logging(experiment_id="example_5")
     output_dir = setup_output_directory()
     model = setup_openai_model_parser()
-    results_dict = main(model)
+    results_dict = asyncio.run(main(model))
     save_results_to_json(results_dict, output_dir, "example_5_output.json")

@@ -18,9 +18,8 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from scorebook import EvalDataset, evaluate
-from scorebook.inference.portkey import batch
-from scorebook.inference_pipeline import InferencePipeline
+from scorebook import EvalDataset, InferencePipeline, evaluate
+from scorebook.inference.clients.portkey import batch
 from scorebook.metrics import Accuracy
 
 

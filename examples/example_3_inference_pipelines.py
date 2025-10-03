@@ -7,8 +7,7 @@ import transformers
 from dotenv import load_dotenv
 from example_helpers import save_results_to_json, setup_logging, setup_output_directory
 
-from scorebook import EvalDataset, evaluate
-from scorebook.inference_pipeline import InferencePipeline
+from scorebook import EvalDataset, InferencePipeline, evaluate
 from scorebook.metrics import Accuracy
 
 

@@ -126,7 +126,6 @@ def main() -> Any:
         sample_size=3,  # Sample size can be used for quick testing on large datasets
         return_items=True,  # Include the scores for individual items evaluated in results
         return_output=True,  # Include the model responses for each evaluated item in item results
-        parallel=False,  #
         upload_results=False,  # Disable uploading for this example
     )
 
