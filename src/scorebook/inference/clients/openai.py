@@ -10,7 +10,7 @@ import asyncio
 import json
 import logging
 import tempfile
-from typing import Any, List
+from typing import Any, List, Optional
 
 from openai import AsyncOpenAI
 
@@ -18,7 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 async def responses(
-    items: List[Any], model: str = "gpt-4.1-nano", client: Any = None, **hyperparameters: Any
+    items: List[Any],
+    model: str = "gpt-4.1-nano",
+    client: Optional[AsyncOpenAI] = None,
+    **hyperparameters: Any,
 ) -> List[Any]:
     """Process multiple inference requests using OpenAI's Async API.
 
@@ -132,7 +135,7 @@ async def _do_responses(
 async def batch(
     items: List[Any],
     model: str = "gpt-4.1-nano",
-    client: Any = None,
+    client: Optional[AsyncOpenAI] = None,
     **hyperparameters: Any,
 ) -> List[Any]:
     """Process multiple inference requests in batch using OpenAI's API.
@@ -215,7 +218,7 @@ async def _upload_batch(items: List[Any], client: AsyncOpenAI) -> str:
     return str(response.id)
 
 
-async def _start_batch(file_id: str, client: Any) -> str:
+async def _start_batch(file_id: str, client: AsyncOpenAI) -> str:
     batch_response = await client.batches.create(
         input_file_id=file_id,
         endpoint="/v1/chat/completions",
@@ -224,12 +227,12 @@ async def _start_batch(file_id: str, client: Any) -> str:
     return str(batch_response.id)
 
 
-async def _get_batch(batch_id: str, client: Any) -> Any:
+async def _get_batch(batch_id: str, client: AsyncOpenAI) -> Any:
     batch_object = await client.batches.retrieve(batch_id)
     return batch_object
 
 
-async def _get_results_file(output_file_id: str, client: Any) -> List[str]:
+async def _get_results_file(output_file_id: str, client: AsyncOpenAI) -> List[str]:
     """Download and parse the batch results file from OpenAI."""
     response = await client.files.content(output_file_id)
 
