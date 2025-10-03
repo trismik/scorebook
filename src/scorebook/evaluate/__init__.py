@@ -10,6 +10,6 @@ automatically generated using unasync.
 from ._async.evaluate_async import evaluate_async
 
 # Import from generated sync module
-from ._sync.evaluate_sync import evaluate
+from ._sync.evaluate import evaluate
 
 __all__ = ["evaluate", "evaluate_async"]

@@ -10,7 +10,7 @@ from unasync import Rule, unasync_files
 def main() -> None:
     """Run unasync transformation."""
     # Load configuration from pyproject.toml
-    pyproject_path = Path(__file__).parent / "pyproject.toml"
+    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
     with open(pyproject_path, "r") as f:
         config = tomlkit.load(f)
 
@@ -77,8 +77,8 @@ def main() -> None:
 
         for gen_file in generated_files:
             if "_async" in gen_file.name:
-                # Rename file to remove _async suffix
-                new_name = gen_file.name.replace("_async", "_sync")
+                # Rename file to remove _async suffix (just remove it, don't replace with _sync)
+                new_name = gen_file.name.replace("_async", "")
                 new_path = gen_file.parent / new_name
                 gen_file.rename(new_path)
 

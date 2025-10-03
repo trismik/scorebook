@@ -100,7 +100,7 @@ async def evaluate_async(
             hyperparameter_config_count=len(hyperparameter_configs),
             run_count=len(eval_run_specs),
         ) as progress_bars:
-            eval_result = await execute_runs_async(
+            eval_result = await execute_runs(
                 inference,
                 eval_run_specs,
                 progress_bars,
@@ -117,7 +117,7 @@ async def evaluate_async(
         )
 
 
-async def execute_runs_async(
+async def execute_runs(
     inference: Callable,
     runs: List[Union[EvalRunSpec, AdaptiveEvalRunSpec]],
     progress_bars: Any,
@@ -133,7 +133,7 @@ async def execute_runs_async(
     async def worker(
         run: Union[EvalRunSpec, AdaptiveEvalRunSpec]
     ) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
-        run_result = await execute_run_async(
+        run_result = await execute_run(
             inference, run, experiment_id, project_id, metadata, trismik_client
         )
         progress_bars.on_eval_run_completed(run.dataset_index)
@@ -145,7 +145,7 @@ async def execute_runs_async(
             and project_id
             and run_result.run_completed
         ):
-            run_id = await upload_classic_run_results_async(
+            run_id = await upload_classic_run_results(
                 run_result, experiment_id, project_id, inference, metadata, trismik_client
             )
             run_result.run_id = run_id
@@ -164,7 +164,7 @@ async def execute_runs_async(
     return EvalResult(run_results)
 
 
-async def execute_run_async(
+async def execute_run(
     inference: Callable,
     run: Union[EvalRunSpec, AdaptiveEvalRunSpec],
     experiment_id: Optional[str] = None,
@@ -175,12 +175,12 @@ async def execute_run_async(
     """Execute a single evaluation run."""
 
     if isinstance(run, EvalRunSpec):
-        return await execute_classic_eval_run_async(inference, run)
+        return await execute_classic_eval_run(inference, run)
 
     elif isinstance(run, AdaptiveEvalRunSpec):
         resolved_experiment_id = experiment_id if experiment_id is not None else run.experiment_id
         resolved_project_id = project_id if project_id is not None else run.project_id
-        return await execute_adaptive_eval_run_async(
+        return await execute_adaptive_eval_run(
             inference,
             run,
             resolved_experiment_id,
@@ -193,9 +193,7 @@ async def execute_run_async(
         raise ScoreBookError(f"An internal error occurred: {type(run)} is not a valid run type")
 
 
-async def execute_classic_eval_run_async(
-    inference: Callable, run: EvalRunSpec
-) -> ClassicEvalRunResult:
+async def execute_classic_eval_run(inference: Callable, run: EvalRunSpec) -> ClassicEvalRunResult:
     """Execute a classic evaluation run."""
     logger.debug("Executing classic eval run for %s", run)
 
@@ -203,7 +201,7 @@ async def execute_classic_eval_run_async(
     metric_scores = None
 
     try:
-        inference_outputs = await run_inference_callable_async(
+        inference_outputs = await run_inference_callable(
             inference, run.dataset.items, run.hyperparameter_config
         )
         metric_scores = score_metrics(run.dataset, inference_outputs, run.labels)
@@ -215,7 +213,7 @@ async def execute_classic_eval_run_async(
         return ClassicEvalRunResult(run, False, inference_outputs, metric_scores)
 
 
-async def run_inference_callable_async(
+async def run_inference_callable(
     inference: Callable,
     items: List[Dict[str, Any]],
     hyperparameter_config: Dict[str, Any],
@@ -247,7 +245,7 @@ async def run_inference_callable_async(
     return predictions
 
 
-async def execute_adaptive_eval_run_async(
+async def execute_adaptive_eval_run(
     inference: Callable,
     run: AdaptiveEvalRunSpec,
     experiment_id: str,
@@ -258,7 +256,7 @@ async def execute_adaptive_eval_run_async(
     """Execute an adaptive evaluation run."""
     logger.debug("Executing adaptive run for %s", run)
 
-    adaptive_eval_run_result = await run_adaptive_evaluation_async(
+    adaptive_eval_run_result = await run_adaptive_evaluation(
         inference, run, experiment_id, project_id, metadata, trismik_client
     )
     logger.debug("Adaptive evaluation completed for run %s", adaptive_eval_run_result)
@@ -266,7 +264,7 @@ async def execute_adaptive_eval_run_async(
     return adaptive_eval_run_result
 
 
-async def upload_classic_run_results_async(
+async def upload_classic_run_results(
     run_result: ClassicEvalRunResult,
     experiment_id: str,
     project_id: str,
@@ -349,7 +347,7 @@ async def upload_classic_run_results_async(
     return run_id
 
 
-async def run_adaptive_evaluation_async(
+async def run_adaptive_evaluation(
     inference: Callable,
     adaptive_run_spec: AdaptiveEvalRunSpec,
     experiment_id: str,
