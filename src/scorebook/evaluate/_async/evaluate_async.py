@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from contextlib import nullcontext
 from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
 
 from trismik.types import (
@@ -85,15 +86,14 @@ async def evaluate_async(
     )
 
     # Create Trismik client if needed (for adaptive evals or uploads)
-    trismik_client = None
     needs_client = upload_results or any(
         isinstance(run, AdaptiveEvalRunSpec) for run in eval_run_specs
     )
 
-    if needs_client:
-        trismik_client = create_trismik_async_client()
+    # Use context manager for automatic cleanup, or None if not needed
+    trismik_client = create_trismik_async_client() if needs_client else None
 
-    try:
+    async with trismik_client if needs_client else nullcontext():  # type: ignore[union-attr]
         # Execute evaluation runs
         with evaluation_progress(
             dataset_count=len(datasets),
@@ -115,13 +115,6 @@ async def evaluate_async(
         return format_results(
             eval_result, return_dict, return_aggregates, return_items, return_output
         )
-    finally:
-        # Clean up client
-        if trismik_client and hasattr(trismik_client, "aclose"):
-            try:
-                await trismik_client.aclose()
-            except Exception as e:
-                logger.debug(f"Error closing Trismik client: {e}")
 
 
 async def execute_runs_async(
