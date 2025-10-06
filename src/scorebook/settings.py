@@ -2,10 +2,13 @@
 
 import os
 
-from dotenv import load_dotenv
+# Optional: Load environment variables from .env file if python-dotenv is available
+try:
+    from dotenv import load_dotenv
 
-# Load environment variables from .env file if it exists
-load_dotenv(verbose=False)
+    load_dotenv(verbose=False)
+except ImportError:  # pragma: no cover
+    pass  # python-dotenv not installed, skip .env file loading
 
 # Trismik API settings
 TRISMIK_API_BASE_URL = "https://api.trismik.com"
