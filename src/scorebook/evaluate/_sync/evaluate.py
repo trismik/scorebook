@@ -1,6 +1,4 @@
-
 import logging
-from contextlib import nullcontext
 from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
 
 from trismik.types import (
@@ -14,7 +12,7 @@ from trismik.types import (
 from scorebook.eval_dataset import EvalDataset
 from scorebook.evaluate.evaluate_helpers import (
     build_eval_run_specs,
-    create_trismik_client,
+    create_trismik_sync_client,
     format_results,
     get_model_name,
     make_trismik_inference,
@@ -32,6 +30,7 @@ from scorebook.types import (
     EvalResult,
     EvalRunSpec,
 )
+from contextlib import nullcontext
 from scorebook.utils import evaluation_progress
 
 logger = logging.getLogger(__name__)
@@ -91,9 +90,9 @@ def evaluate(
     )
 
     # Use context manager for automatic cleanup, or None if not needed
-    trismik_client = create_trismik_client() if needs_client else None
+    trismik_client = create_trismik_sync_client() if needs_client else None
 
-    with trismik_client if needs_client else nullcontext():  # type: ignore[union-attr]
+    with trismik_client or nullcontext():
         # Execute evaluation runs
         with evaluation_progress(
             dataset_count=len(datasets),
@@ -127,7 +126,7 @@ def execute_runs(
     upload_results: bool = False,
     trismik_client: Any = None,
 ) -> EvalResult:
-    """Run evaluation in parallel."""
+    """Run evaluation sequentially."""
 
     # Worker function to execute individual runs and handle uploads
     def worker(
@@ -152,7 +151,7 @@ def execute_runs(
 
         return run_result
 
-    # Execute all runs concurrently
+    # Execute all runs sequentially
     run_results = [worker(run) for run in runs]
 
     # Return in canonical (dataset_idx, hp_idx) order for stability
@@ -339,7 +338,9 @@ def upload_classic_run_results(
         metrics,
     )
 
-    response: TrismikClassicEvalResponse = trismik_client.submit_classic_eval(classic_eval_request)
+    response: TrismikClassicEvalResponse = trismik_client.submit_classic_eval(
+        classic_eval_request
+    )
 
     run_id: str = response.id
     logger.info(f"Classic eval run uploaded successfully with run_id: {run_id}")

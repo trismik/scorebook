@@ -82,18 +82,43 @@ def main() -> None:
                 new_path = gen_file.parent / new_name
                 gen_file.rename(new_path)
 
-                # Post-process the renamed file to fix remaining async patterns
+                # Post-process: fix imports that need contextlib.nullcontext
                 content = new_path.read_text()
+
+                # Fix nullcontext import
                 content = content.replace(
-                    "asyncio.gather(*[worker(run) for run in runs])",
-                    "[worker(run) for run in runs]",
+                    "from scorebook.utils import nullcontext, evaluation_progress",
+                    "from contextlib import nullcontext\n"
+                    "from scorebook.utils import evaluation_progress",
                 )
-                content = content.replace("import asyncio", "")
-                # Fix duplicate TrismikClient imports
                 content = content.replace(
-                    "from trismik import TrismikClient, TrismikClient",
-                    "from trismik import TrismikClient",
+                    "from scorebook.utils import evaluation_progress, nullcontext",
+                    "from contextlib import nullcontext\n"
+                    "from scorebook.utils import evaluation_progress",
                 )
+
+                # Fix asyncio.gather to sequential execution
+                content = content.replace(
+                    "    run_results = asyncio.gather(*[worker(run) for run in runs])",
+                    "    run_results = [worker(run) for run in runs]",
+                )
+
+                # Fix docstring
+                content = content.replace(
+                    '    """Run evaluation in parallel."""',
+                    '    """Run evaluation sequentially."""',
+                )
+
+                # Fix comment
+                content = content.replace(
+                    "    # Execute all runs concurrently",
+                    "    # Execute all runs sequentially",
+                )
+
+                # Remove unused asyncio import
+                lines = content.split("\n")
+                filtered_lines = [line for line in lines if line.strip() != "import asyncio"]
+                content = "\n".join(filtered_lines)
                 new_path.write_text(content)
 
                 print(f"   Generated: {new_path} (renamed from {gen_file.name})")

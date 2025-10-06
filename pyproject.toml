@@ -21,6 +21,34 @@ scorebook = "scorebook.cli.main:main"
 version = "0.0.9"  # base version
 packages = [{ include = "scorebook", from = "src" }]
 
+[tool.poetry.dependencies]
+python = ">=3.9,<3.14"
+datasets = ">=3.6.0"
+notebook = ">=7.4.5,<8.0.0"
+trismik = ">=1.0.0,<2.0.0"
+
+# Optional dependencies
+openai = {version = "*", optional = true}
+python-dotenv = {version = "*", optional = true}
+portkey-ai = {version = "*", optional = true}
+boto3 = {version = "1.40.0", optional = true}
+google-genai = {version = "*", optional = true}
+pandas = {version = "*", optional = true}
+google-cloud-storage = {version = "*", optional = true}
+fsspec = {version = "*", extras = ["gcs"], optional = true}
+transformers = {version = "*", optional = true}
+torch = {version = "*", optional = true}
+torchvision = {version = "*", optional = true}
+torchaudio = {version = "*", optional = true}
+accelerate = {version = "*", optional = true}
+
+[tool.poetry.extras]
+openai = ["openai", "python-dotenv"]
+portkey = ["portkey-ai", "python-dotenv"]
+bedrock = ["boto3", "python-dotenv"]
+vertex = ["google-genai", "pandas", "google-cloud-storage", "fsspec", "python-dotenv"]
+examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook"]
+
 [[tool.poetry.source]]
 name = "testpypi"
 url = "https://test.pypi.org/simple/"
@@ -93,7 +121,7 @@ todir = "src/scorebook/evaluate/_sync/"
 # Custom replacements beyond default async/await transformations
 [tool.unasync.rules.replacements]
 "evaluate_async" = "evaluate"
-"create_trismik_async_client" = "create_trismik_client"
 "Asynchronous evaluation complete" = "Synchronous evaluation complete"
-"import asyncio" = ""
-"asyncio.gather(*[worker(run) for run in runs])" = "[worker(run) for run in runs]"
+"    run_results = asyncio.gather(*[worker(run) for run in runs])" = "    run_results = [worker(run) for run in runs]"
+"async_nullcontext" = "nullcontext"
+"create_trismik_async_client" = "create_trismik_sync_client"

@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from contextlib import nullcontext
 from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
 
 from trismik.types import (
@@ -32,7 +31,7 @@ from scorebook.types import (
     EvalResult,
     EvalRunSpec,
 )
-from scorebook.utils import evaluation_progress
+from scorebook.utils import async_nullcontext, evaluation_progress
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +92,7 @@ async def evaluate_async(
     # Use context manager for automatic cleanup, or None if not needed
     trismik_client = create_trismik_async_client() if needs_client else None
 
-    async with trismik_client if needs_client else nullcontext():  # type: ignore[union-attr]
+    async with trismik_client or async_nullcontext():
         # Execute evaluation runs
         with evaluation_progress(
             dataset_count=len(datasets),
@@ -339,7 +338,9 @@ async def upload_classic_run_results(
         metrics,
     )
 
-    response: TrismikClassicEvalResponse = trismik_client.submit_classic_eval(classic_eval_request)
+    response: TrismikClassicEvalResponse = await trismik_client.submit_classic_eval(
+        classic_eval_request
+    )
 
     run_id: str = response.id
     logger.info(f"Classic eval run uploaded successfully with run_id: {run_id}")

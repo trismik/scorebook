@@ -6,7 +6,8 @@ import inspect
 import logging
 from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Optional, Union
 
-from trismik import TrismikAsyncClient, TrismikClient
+from trismik._async.client import TrismikAsyncClient
+from trismik._sync.client import TrismikClient
 from trismik.types import TrismikMultipleChoiceTextItem
 
 from scorebook import EvalDataset
@@ -238,18 +239,18 @@ def score_metrics(
     return metric_scores
 
 
-def create_trismik_client() -> TrismikClient:
-    """Create a new sync Trismik client instance."""
-    api_key = get_token()
-    logger.debug("Creating new sync Trismik client")
-    return TrismikClient(service_url=TRISMIK_SERVICE_URL, api_key=api_key)
-
-
 def create_trismik_async_client() -> TrismikAsyncClient:
     """Create a new async Trismik client instance."""
     api_key = get_token()
     logger.debug("Creating new async Trismik client")
     return TrismikAsyncClient(service_url=TRISMIK_SERVICE_URL, api_key=api_key)
+
+
+def create_trismik_sync_client() -> TrismikClient:
+    """Create a new sync Trismik client instance."""
+    api_key = get_token()
+    logger.debug("Creating new sync Trismik client")
+    return TrismikClient(service_url=TRISMIK_SERVICE_URL, api_key=api_key)
 
 
 def get_model_name(
