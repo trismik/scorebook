@@ -1,0 +1,21 @@
+# Gitleaks configuration
+# https://github.com/gitleaks/gitleaks
+
+title = "Gitleaks config for Scorebook"
+
+[extend]
+# Use default gitleaks rules as base
+useDefault = true
+
+[allowlist]
+description = "Allowlist for known false positives"
+
+# Ignore the detect-secrets baseline file (contains hashed secrets, not real secrets)
+paths = [
+    '''^\.secrets\.baseline$''',
+]
+
+# Ignore test fixtures and example data
+regexes = [
+    '''(?i)(test|mock|fixture|example|dummy)''',
+]
