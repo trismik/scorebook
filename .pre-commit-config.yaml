@@ -50,6 +50,20 @@ repos:
         additional_dependencies: [types-python-dateutil, types-PyYAML]
         exclude: "(tests/.*\\.py|src/scorebook/evaluate/_sync/.*\\.py)"
 
+-   repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+    -   id: detect-secrets
+        args:
+          - --baseline
+          - .secrets.baseline
+          # Skip noisy binary/media files but KEEP scanning .ipynb
+          - --exclude-files
+          - '(\.(png|jpg|jpeg|gif|svg|pdf|csv|parquet|gz|zip)$|^docs/|^tests/fixtures/)'
+          # Ignore Jupyter auto-generated cell ids like: "id": "69bfc081dd8d2983"
+          - --exclude-lines
+          - '"id":\s*"[0-9a-f]{16,}"'
+
 -   repo: local
     hooks:
     -   id: generate-sync

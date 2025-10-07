@@ -220,3 +220,4 @@ logs/
 
 # Temporary directories
 .tmp/
+/tmp/
