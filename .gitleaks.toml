@@ -1,5 +1,11 @@
-# Gitleaks configuration
+# Gitleaks configuration for Scorebook
 # https://github.com/gitleaks/gitleaks
+#
+# This configuration provides comprehensive secret detection including:
+# - Secrets in code (assignments, function calls, etc.)
+# - Secrets in comments (single-line and multi-line)
+# - Secrets in docstrings (Python, JavaScript, etc.)
+# - Common API keys (Trismik, OpenAI, AWS, GitHub, etc.)
 
 title = "Gitleaks config for Scorebook"
 
@@ -10,12 +16,154 @@ useDefault = true
 [allowlist]
 description = "Allowlist for known false positives"
 
-# Ignore the detect-secrets baseline file (contains hashed secrets, not real secrets)
+# Ignore files that should not be scanned for secrets
 paths = [
-    '''^\.secrets\.baseline$''',
+    '''^\.secrets\.baseline$''',           # detect-secrets baseline
+    '''^\.gitleaks\.toml$''',              # This config file (contains example patterns)
+    '''tests/.*\.py$''',                   # Test files in tests/ directory
+    '''^docs/.*''',                        # Documentation
+    '''^README\.md$''',                    # README
 ]
 
-# Ignore test fixtures and example data
+# Patterns to ignore (common false positives in content)
 regexes = [
-    '''(?i)(test|mock|fixture|example|dummy)''',
+    '''(?i)your.{0,3}(key|token|secret|password)''',  # Placeholder text like "YOUR_API_KEY"
+    '''(?i)insert.{0,3}(key|token|secret|password)''',
+    '''(?i)enter.{0,3}(key|token|secret|password)''',
 ]
+
+# =============================================================================
+# CUSTOM RULES - Specifically designed to catch secrets in comments/docstrings
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Trismik API Keys
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "trismik-api-key"
+description = "Trismik API Key"
+regex = '''trismik_[A-Za-z0-9_]{20,}'''
+tags = ["api-key", "trismik"]
+
+[[rules]]
+id = "trismik-in-comments"
+description = "Trismik API Key in comments or docstrings"
+regex = '''(?m)(?:(?:#|//|/\*|\*|<!--)\s*.*?)(trismik_[A-Za-z0-9_]{20,})'''
+tags = ["api-key", "trismik", "comment"]
+
+# -----------------------------------------------------------------------------
+# OpenAI API Keys
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key (project-scoped)"
+regex = '''sk-proj-[A-Za-z0-9]{48,}'''
+tags = ["api-key", "openai"]
+
+[[rules]]
+id = "openai-legacy-key"
+description = "OpenAI API Key (legacy format)"
+regex = '''sk-[A-Za-z0-9]{48}'''
+tags = ["api-key", "openai"]
+
+[[rules]]
+id = "openai-in-comments"
+description = "OpenAI API Key in comments or docstrings"
+regex = '''(?m)(?:(?:#|//|/\*|\*|<!--)\s*.*?)(sk-(?:proj-)?[A-Za-z0-9]{48,})'''
+tags = ["api-key", "openai", "comment"]
+
+# -----------------------------------------------------------------------------
+# Generic API Keys (broader patterns for unknown API key formats)
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "generic-api-key-assignment"
+description = "Generic API Key in assignment"
+regex = '''(?i)(?:api[_-]?key|apikey|api[_-]?secret)\s*[=:]\s*["\']([A-Za-z0-9_\-]{20,})["\']'''
+tags = ["api-key", "generic"]
+
+[[rules]]
+id = "generic-api-key-comment"
+description = "Generic API Key in comments"
+regex = '''(?m)(?:#|//|/\*|\*|<!--)\s*.*?(?:api[_-]?key|apikey|api[_-]?secret)\s*[=:]\s*["\']?([A-Za-z0-9_\-]{20,})["\']?'''
+tags = ["api-key", "generic", "comment"]
+
+# -----------------------------------------------------------------------------
+# AWS Credentials
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key ID"
+regex = '''AKIA[0-9A-Z]{16}'''
+tags = ["aws", "access-key"]
+
+[[rules]]
+id = "aws-secret-key"
+description = "AWS Secret Access Key"
+regex = '''(?i)aws[_-]?secret[_-]?access[_-]?key\s*[=:]\s*["\']([A-Za-z0-9/+=]{40})["\']'''
+tags = ["aws", "secret-key"]
+
+# -----------------------------------------------------------------------------
+# GitHub Tokens
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "github-token"
+description = "GitHub Personal Access Token"
+regex = '''ghp_[A-Za-z0-9]{36,}'''
+tags = ["github", "token"]
+
+[[rules]]
+id = "github-oauth-token"
+description = "GitHub OAuth Token"
+regex = '''gho_[A-Za-z0-9]{36,}'''
+tags = ["github", "oauth"]
+
+# -----------------------------------------------------------------------------
+# Private Keys
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "private-key"
+description = "Private Key (PEM format)"
+regex = '''-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'''
+tags = ["private-key", "pem"]
+
+# -----------------------------------------------------------------------------
+# JWT Tokens
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "jwt-token"
+description = "JSON Web Token (JWT)"
+regex = '''eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'''
+tags = ["jwt", "token"]
+
+# -----------------------------------------------------------------------------
+# Database Connection Strings
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "password-in-url"
+description = "Password in connection string or URL"
+regex = '''(?i)(?:mysql|postgres|mongodb|redis|http)://[^:]+:([^@\s]{8,})@'''
+tags = ["password", "connection-string"]
+
+# -----------------------------------------------------------------------------
+# Authorization Headers
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "basic-auth-header"
+description = "Basic Auth Header"
+regex = '''(?i)authorization\s*:\s*basic\s+([A-Za-z0-9+/=]{20,})'''
+tags = ["authorization", "basic-auth"]
+
+[[rules]]
+id = "bearer-token"
+description = "Bearer Token"
+regex = '''(?i)authorization\s*:\s*bearer\s+([A-Za-z0-9_\-\.=]{20,})'''
+tags = ["authorization", "bearer"]
