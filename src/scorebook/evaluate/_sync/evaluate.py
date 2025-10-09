@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
 
+from trismik import TrismikAsyncClient, TrismikClient
 from trismik.types import (
     TrismikClassicEvalItem,
     TrismikClassicEvalMetric,
@@ -124,7 +125,7 @@ def execute_runs(
     project_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
     upload_results: bool = False,
-    trismik_client: Any = None,
+    trismik_client: Optional[Union[TrismikClient, TrismikAsyncClient]] = None,
 ) -> EvalResult:
     """Run evaluation sequentially."""
 
@@ -143,6 +144,7 @@ def execute_runs(
             and experiment_id
             and project_id
             and run_result.run_completed
+            and trismik_client is not None
         ):
             run_id = upload_classic_run_results(
                 run_result, experiment_id, project_id, inference, metadata, trismik_client
@@ -169,7 +171,7 @@ def execute_run(
     experiment_id: Optional[str] = None,
     project_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
-    trismik_client: Any = None,
+    trismik_client: Optional[Union[TrismikClient, TrismikAsyncClient]] = None,
 ) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
     """Execute a single evaluation run."""
 
@@ -250,10 +252,13 @@ def execute_adaptive_eval_run(
     experiment_id: str,
     project_id: str,
     metadata: Optional[Dict[str, Any]] = None,
-    trismik_client: Any = None,
+    trismik_client: Optional[Union[TrismikClient, TrismikAsyncClient]] = None,
 ) -> AdaptiveEvalRunResult:
     """Execute an adaptive evaluation run."""
     logger.debug("Executing adaptive run for %s", run)
+
+    if trismik_client is None:
+        raise ScoreBookError("Trismik client is required for adaptive evaluation")
 
     adaptive_eval_run_result = run_adaptive_evaluation(
         inference, run, experiment_id, project_id, metadata, trismik_client
@@ -267,9 +272,9 @@ def upload_classic_run_results(
     run_result: ClassicEvalRunResult,
     experiment_id: str,
     project_id: str,
-    inference_callable: Optional[Callable] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-    trismik_client: Any = None,
+    inference_callable: Optional[Callable],
+    metadata: Optional[Dict[str, Any]],
+    trismik_client: Union[TrismikClient, TrismikAsyncClient],
 ) -> str:
     """Upload a classic evaluation run result to Trismik platform.
 
@@ -354,7 +359,7 @@ def run_adaptive_evaluation(
     experiment_id: str,
     project_id: str,
     metadata: Any,
-    trismik_client: Any = None,
+    trismik_client: Union[TrismikClient, TrismikAsyncClient],
 ) -> AdaptiveEvalRunResult:
     """Run an adaptive evaluation using the Trismik API.
 
