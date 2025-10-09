@@ -45,7 +45,7 @@ def setup_logging(log_dir: str = "logs", experiment_id: Optional[str] = None) ->
 
     # Create file handler for all logs (same as before)
     file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(
         logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
     )
@@ -69,6 +69,12 @@ def setup_logging(log_dir: str = "logs", experiment_id: Optional[str] = None) ->
     # Ensure trismik_services logs are captured at DEBUG level
     trismik_services_logger = logging.getLogger("scorebook.trismik_services")
     trismik_services_logger.setLevel(logging.DEBUG)
+
+    # Ensure evaluate logs are captured at DEBUG level
+    evaluate_logger = logging.getLogger("scorebook.evaluate._sync.evaluate")
+    evaluate_logger.setLevel(logging.DEBUG)
+    evaluate_logger = logging.getLogger("scorebook.evaluate._async.evaluate_async")
+    evaluate_logger.setLevel(logging.DEBUG)
 
     # Exclude OpenAI inference logs to reduce noise
     openai_logger = logging.getLogger("scorebook.inference.openai")

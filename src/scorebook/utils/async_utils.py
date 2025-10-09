@@ -1,7 +1,10 @@
 """Async utilities for handling callable objects and coroutines."""
 
 import asyncio
-from typing import Callable
+from contextlib import asynccontextmanager
+from typing import AsyncIterator, Callable, Optional, TypeVar
+
+T = TypeVar("T")
 
 
 def is_awaitable(obj: Callable) -> bool:
@@ -25,3 +28,19 @@ def is_awaitable(obj: Callable) -> bool:
         return True
 
     return False
+
+
+@asynccontextmanager
+async def async_nullcontext(value: Optional[T] = None) -> AsyncIterator[Optional[T]]:
+    """Async version of contextlib.nullcontext for Python 3.9 compatibility.
+
+    contextlib.nullcontext() is sync-only and cannot be used with async with on Python 3.9.
+    This provides an async equivalent that can be used with async context managers.
+
+    Args:
+        value: Optional value to yield from the context manager
+
+    Yields:
+        The provided value
+    """
+    yield value
