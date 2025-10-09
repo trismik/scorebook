@@ -11,7 +11,7 @@ requires-python = ">=3.9, <3.14"
 dependencies = [
     "datasets>=3.6.0",
     "notebook (>=7.4.5,<8.0.0)",
-    "trismik (>=1.0.0, <2.0.0)",
+    "trismik (>=1.0.1, <2.0.0)",
 ]
 
 [project.scripts]
@@ -25,7 +25,7 @@ packages = [{ include = "scorebook", from = "src" }]
 python = ">=3.9,<3.14"
 datasets = ">=3.6.0"
 notebook = ">=7.4.5,<8.0.0"
-trismik = ">=1.0.0,<2.0.0"
+trismik = ">=1.0.1,<2.0.0"
 
 # Optional dependencies
 openai = {version = "*", optional = true}
