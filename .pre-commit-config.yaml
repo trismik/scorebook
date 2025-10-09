@@ -64,6 +64,11 @@ repos:
         - --exclude-lines
         - '(?i)"id"\s*:\s*"[0-9a-f-]{8,}"'
 
+- repo: https://github.com/gitleaks/gitleaks
+  rev: v8.28.0
+  hooks:
+    - id: gitleaks
+
 -   repo: local
     hooks:
     -   id: generate-sync
