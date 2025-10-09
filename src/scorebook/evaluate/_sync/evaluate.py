@@ -10,7 +10,7 @@ from trismik.types import (
     TrismikRunMetadata,
 )
 
-from scorebook.eval_dataset import EvalDataset
+from scorebook.eval_datasets import EvalDataset
 from scorebook.evaluate.evaluate_helpers import (
     build_eval_run_specs,
     create_trismik_sync_client,

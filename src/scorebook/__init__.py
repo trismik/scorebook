@@ -9,7 +9,7 @@ import importlib.metadata
 # get version from pyproject.toml
 __version__ = importlib.metadata.version(__package__ or __name__)
 
-from scorebook.eval_dataset import EvalDataset
+from scorebook.eval_datasets import EvalDataset
 from scorebook.evaluate import evaluate, evaluate_async
 from scorebook.inference.inference_pipeline import InferencePipeline
 from scorebook.trismik.credentials import login, whoami

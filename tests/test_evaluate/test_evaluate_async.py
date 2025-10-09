@@ -5,7 +5,7 @@ from typing import Dict, List
 
 import pytest
 
-from scorebook.eval_dataset import EvalDataset
+from scorebook.eval_datasets import EvalDataset
 from scorebook.evaluate import evaluate, evaluate_async
 from scorebook.inference.inference_pipeline import InferencePipeline
 from scorebook.metrics import Accuracy

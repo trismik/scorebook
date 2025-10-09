@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
-from scorebook.eval_dataset import EvalDataset
+from scorebook.eval_datasets import EvalDataset
 
 
 @dataclass

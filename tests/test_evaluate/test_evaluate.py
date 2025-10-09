@@ -6,7 +6,7 @@ from typing import Dict, List
 import pandas as pd
 import pytest
 
-from scorebook.eval_dataset import EvalDataset
+from scorebook.eval_datasets import EvalDataset
 from scorebook.evaluate import evaluate
 from scorebook.exceptions import ParameterValidationError
 from scorebook.inference.inference_pipeline import InferencePipeline
