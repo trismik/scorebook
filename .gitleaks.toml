@@ -43,13 +43,13 @@ regexes = [
 [[rules]]
 id = "trismik-api-key"
 description = "Trismik API Key"
-regex = '''trismik_[A-Za-z0-9_]{20,}'''
+regex = '''trismik_[A-Za-z0-9_\-!@#$%^&*()+={}[\]:;"'<>,.?/\\|`~]{20,}'''
 tags = ["api-key", "trismik"]
 
 [[rules]]
 id = "trismik-in-comments"
 description = "Trismik API Key in comments or docstrings"
-regex = '''(?m)(?:(?:#|//|/\*|\*|<!--)\s*.*?)(trismik_[A-Za-z0-9_]{20,})'''
+regex = '''(?m)(?:(?:#|//|/\*|\*|<!--)\s*.*?)(trismik_[A-Za-z0-9_\-!@#$%^&*()+={}[\]:;"'<>,.?/\\|`~]{20,})'''
 tags = ["api-key", "trismik", "comment"]
 
 # -----------------------------------------------------------------------------
@@ -81,13 +81,13 @@ tags = ["api-key", "openai", "comment"]
 [[rules]]
 id = "generic-api-key-assignment"
 description = "Generic API Key in assignment"
-regex = '''(?i)(?:api[_-]?key|apikey|api[_-]?secret)\s*[=:]\s*["\']([A-Za-z0-9_\-]{20,})["\']'''
+regex = '''(?i)(?:api[_-]?key|apikey|api[_-]?secret)\s*[=:]\s*["\']([A-Za-z0-9_\-!@#$%^&*()+={}[\]:;"'<>,.?/\\|`~]{20,})["\']'''
 tags = ["api-key", "generic"]
 
 [[rules]]
 id = "generic-api-key-comment"
 description = "Generic API Key in comments"
-regex = '''(?m)(?:#|//|/\*|\*|<!--)\s*.*?(?:api[_-]?key|apikey|api[_-]?secret)\s*[=:]\s*["\']?([A-Za-z0-9_\-]{20,})["\']?'''
+regex = '''(?m)(?:#|//|/\*|\*|<!--)\s*.*?(?:api[_-]?key|apikey|api[_-]?secret)\s*[=:]\s*["\']?([A-Za-z0-9_\-!@#$%^&*()+={}[\]:;"'<>,.?/\\|`~]{20,})["\']?'''
 tags = ["api-key", "generic", "comment"]
 
 # -----------------------------------------------------------------------------
