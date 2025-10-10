@@ -20,7 +20,6 @@ description = "Allowlist for known false positives"
 paths = [
     '''^\.secrets\.baseline$''',           # detect-secrets baseline
     '''^\.gitleaks\.toml$''',              # This config file (contains example patterns)
-    '''tests/.*\.py$''',                   # Test files in tests/ directory
     '''^docs/.*''',                        # Documentation
     '''^README\.md$''',                    # README
 ]
