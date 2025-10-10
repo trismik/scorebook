@@ -50,6 +50,26 @@ repos:
         additional_dependencies: [types-python-dateutil, types-PyYAML]
         exclude: "(tests/.*\\.py|src/scorebook/evaluate/_sync/.*\\.py)"
 
+- repo: https://github.com/Yelp/detect-secrets
+  rev: v1.5.0
+  hooks:
+    - id: detect-secrets
+      args:
+        - --baseline
+        - .secrets.baseline
+        # Skip noisy/binary stuff; keep text files scanable
+        - --exclude-files
+        - '(\.(png|jpg|jpeg|gif|svg|pdf|gz|zip|parquet)$|^docs/assets/|^tests/fixtures/)'
+        # Ignore Jupyter auto-generated cell IDs (hex or UUID-ish)
+        - --exclude-lines
+        - '(?i)"id"\s*:\s*"[0-9a-f-]{8,}"'
+
+- repo: https://github.com/gitleaks/gitleaks
+  rev: v8.28.0
+  hooks:
+    - id: gitleaks
+      args: ['--config=.gitleaks.toml']
+
 -   repo: local
     hooks:
     -   id: generate-sync

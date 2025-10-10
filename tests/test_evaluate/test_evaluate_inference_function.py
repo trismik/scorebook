@@ -2,7 +2,7 @@ import asyncio
 from pathlib import Path
 from typing import Dict, List
 
-from scorebook.eval_dataset import EvalDataset
+from scorebook.eval_datasets import EvalDataset
 from scorebook.evaluate import evaluate, evaluate_async
 from scorebook.metrics import Accuracy
 
