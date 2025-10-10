@@ -5,7 +5,7 @@
 # - Secrets in code (assignments, function calls, etc.)
 # - Secrets in comments (single-line and multi-line)
 # - Secrets in docstrings (Python, JavaScript, etc.)
-# - Common API keys (Trismik, OpenAI, AWS, GitHub, etc.)
+# - Common API keys (Trismik, OpenAI, Portkey, AWS, GitHub, etc.)
 
 title = "Gitleaks config for Scorebook"
 
@@ -72,6 +72,30 @@ id = "openai-in-comments"
 description = "OpenAI API Key in comments or docstrings"
 regex = '''(?m)(?:(?:#|//|/\*|\*|<!--)\s*.*?)(sk-(?:proj-)?[A-Za-z0-9]{40,})'''
 tags = ["api-key", "openai", "comment"]
+
+# -----------------------------------------------------------------------------
+# Portkey API Keys
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "portkey-api-key"
+description = "Portkey API Key"
+regex = '''[A-Za-z0-9+/]{20,}'''
+secretGroup = 1
+entropy = 4.0
+tags = ["api-key", "portkey"]
+
+[[rules]]
+id = "portkey-api-key-assignment"
+description = "Portkey API Key in assignment"
+regex = '''(?i)(?:portkey[_-]?api[_-]?key|PORTKEY_API_KEY)\s*[=:]\s*["\']?([A-Za-z0-9_\-!@#$%^&*()+={}[\]:;"'<>,.?/\\|`~]{20,})["\']?'''
+tags = ["api-key", "portkey"]
+
+[[rules]]
+id = "portkey-in-comments"
+description = "Portkey API Key in comments or docstrings"
+regex = '''(?m)(?:(?:#|//|/\*|\*|<!--)\s*.*?)(?:portkey[_-]?api[_-]?key|PORTKEY_API_KEY)\s*[=:]\s*["\']?([A-Za-z0-9_\-!@#$%^&*()+={}[\]:;"'<>,.?/\\|`~]{20,})["\']?'''
+tags = ["api-key", "portkey", "comment"]
 
 # -----------------------------------------------------------------------------
 # Generic API Keys (broader patterns for unknown API key formats)
