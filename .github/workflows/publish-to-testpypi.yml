@@ -1,59 +1,88 @@
+# Publishes to **TestPyPI** on pre-release tags only (PEP 440): v0.0.11rc1 / a1 / b1 / dev1.
+# Uses the same OIDC flow. Same guard: tag must equal pyproject version.
+
 name: Publish to TestPyPI
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*'                     # Trigger on tag pushes
 
 jobs:
   build:
     name: Build distribution
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-      with:
-        persist-credentials: false
-        fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.x"
-    - name: Install pypa/build
-      run: >-
-        python3 -m
-        pip install
-        build
-        --user
-    - name: Build a binary wheel and a source tarball
-      run: python3 -m build
-    - name: Store the distribution packages
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-package-distributions
-        path: dist/
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
 
   publish-to-testpypi:
     name: Publish Python distribution to TestPyPI
-    if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
-    needs:
-    - build
+    needs: build
     runs-on: ubuntu-latest
+    # Only **pre-release** tags: allow PEP 440 markers
+    if: |
+      startsWith(github.ref, 'refs/tags/') &&
+      (contains(github.ref, 'a') ||
+       contains(github.ref, 'b') ||
+       contains(github.ref, 'rc') ||
+       contains(github.ref, 'dev'))
+    permissions:
+      id-token: write             # OIDC to TestPyPI
 
     environment:
-      name: testpypi
+      name: testpypi              # Optional reviewers for TestPyPI if you want
       url: https://test.pypi.org/p/scorebook
 
-    permissions:
-      id-token: write  # IMPORTANT: mandatory for trusted publishing
-
     steps:
-    - name: Download all the dists
-      uses: actions/download-artifact@v4
-      with:
-        name: python-package-distributions
-        path: dist/
-    - name: Publish distribution to TestPyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        repository-url: https://test.pypi.org/legacy/
+      - uses: actions/checkout@v4 # Needed to read pyproject in this job
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Read version from pyproject.toml and expose it as step output "version"
+      - id: get_ver
+        run: |
+          python - <<'PY' > version.txt
+          import tomllib, pathlib
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          ver = (data.get("tool", {}).get("poetry", {}) or data.get("project", {})).get("version")
+          if not ver:
+              raise SystemExit("No version found in pyproject.toml")
+          print(ver)
+          PY
+          echo "version=$(cat version.txt)" >> "$GITHUB_OUTPUT"
+
+      # Fail fast if the tag (without the leading 'v') does not match the package version
+      - name: Fail if tag (sans v) != version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG_VERSION="${{ steps.get_ver.outputs.version }}"
+          echo "tag=$TAG  pkg=$PKG_VERSION"
+          if [ "$TAG" != "$PKG_VERSION" ]; then
+            echo "::error::Git tag (v$TAG) does not match pyproject version ($PKG_VERSION)"
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v4  # Retrieve built dists from build job
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish distribution to TestPyPI  # Upload to TestPyPI endpoint
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true                  # Re-runs/no-op if version already exists

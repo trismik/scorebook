@@ -1,57 +1,89 @@
-name: Publish to PyPi
+# Publishes to **real PyPI** on stable tags (e.g. v0.0.11).
+# Uses OIDC (Trusted Publishing) — no token needed.
+# Hard gate ensures the git tag == version in pyproject.toml.
+
+name: Publish to PyPI
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*'                     # Trigger only on tag pushes (anything starting with v)
 
 jobs:
   build:
     name: Build distribution
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-      with:
-        persist-credentials: false
-        fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.x"
-    - name: Install pypa/build
-      run: >-
-        python3 -m
-        pip install
-        build
-        --user
-    - name: Build a binary wheel and a source tarball
-      run: python3 -m build
-    - name: Store the distribution packages
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-package-distributions
-        path: dist/
+      - uses: actions/checkout@v4 # Get repo contents so we can build
+        with:
+          fetch-depth: 0          # Full history (not strictly required here)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"  # tomllib in stdlib (used below to read pyproject)
+      - run: python -m pip install --upgrade build  # Install PEP 517 build tool
+      - run: python -m build                        # Build sdist + wheel into dist/
+      - uses: actions/upload-artifact@v4            # Pass built files to publish job
+        with:
+          name: python-package-distributions
+          path: dist/
 
   publish-to-pypi:
     name: Publish Python distribution to PyPI
-    if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-')  # only publish stable prod releases
-    needs:
-    - build
+    needs: build
     runs-on: ubuntu-latest
+    # Only **stable** tags: exclude common PEP 440 pre-release markers and hyphens
+    if: |
+      startsWith(github.ref, 'refs/tags/') &&
+      !contains(github.ref, 'a') &&
+      !contains(github.ref, 'b') &&
+      !contains(github.ref, 'rc') &&
+      !contains(github.ref, 'dev') &&
+      !contains(github.ref, '-')
+    permissions:
+      id-token: write             # Required for OIDC to PyPI
 
     environment:
-      name: pypi
+      name: pypi                  # Environment with required reviewers (if you set them)
       url: https://pypi.org/p/scorebook
 
-    permissions:
-      id-token: write  # IMPORTANT: mandatory for trusted publishing
-
     steps:
-    - name: Download all the dists
-      uses: actions/download-artifact@v4
-      with:
-        name: python-package-distributions
-        path: dist/
-    - name: Publish distribution to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: actions/checkout@v4 # Check out again to read pyproject in this job
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Read version from pyproject.toml and expose it as step output "version"
+      - id: get_ver
+        run: |
+          python - <<'PY' > version.txt
+          import tomllib, pathlib
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          ver = (data.get("tool", {}).get("poetry", {}) or data.get("project", {})).get("version")
+          if not ver:
+              raise SystemExit("No version found in pyproject.toml")
+          print(ver)
+          PY
+          echo "version=$(cat version.txt)" >> "$GITHUB_OUTPUT"
+
+      # Fail fast if the tag (without the leading 'v') does not match the package version
+      - name: Fail if tag != package version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG_VERSION="${{ steps.get_ver.outputs.version }}"
+          echo "tag=$TAG  pkg=$PKG_VERSION"
+          if [ "$TAG" != "$PKG_VERSION" ]; then
+            echo "::error::Git tag (v$TAG) does not match pyproject version ($PKG_VERSION)"
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v4  # Retrieve built dists from build job
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish distribution to PyPI      # Upload using OIDC
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true                  # Re-runs don’t fail if version already exists
