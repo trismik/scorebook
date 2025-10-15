@@ -44,7 +44,7 @@ def main() -> Any:
                     "role": "system",
                     "content": """
                         Answer the question directly and concisely.
-                        Provide only the answer no additional context ot text.
+                        Provide only the answer no additional context or text.
                     """,
                 },
                 {
