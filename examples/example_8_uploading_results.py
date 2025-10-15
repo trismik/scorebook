@@ -2,7 +2,7 @@
 
 import os
 from pprint import pprint
-from typing import Any, Dict, List
+from typing import Any, List
 
 import transformers
 from dotenv import load_dotenv
@@ -31,13 +31,13 @@ def main() -> Any:
         device_map="auto",
     )
 
-    def inference(eval_items: List[Dict], **hyperparameter_config: Any) -> List[Any]:
-        """Pre-processes dataset items, runs inference and post-processes results."""
+    def inference(inputs: List[Any], **hyperparameter_config: Any) -> List[Any]:
+        """Pre-processes inputs, runs inference and post-processes results."""
         results = []
-        for eval_item in eval_items:
+        for input_value in inputs:
             messages = [
                 {"role": "system", "content": hyperparameter_config["system_message"]},
-                {"role": "user", "content": eval_item["question"]},
+                {"role": "user", "content": input_value},
             ]
             results.append(pipeline(messages)[0]["generated_text"][-1]["content"])
         return results
@@ -45,7 +45,10 @@ def main() -> Any:
     # === Evaluation With Result Uploading ===
 
     dataset = EvalDataset.from_json(
-        path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
+        path="examples/example_datasets/basic_questions.json",
+        metrics=Accuracy,
+        input="question",
+        label="answer",
     )
 
     # Login to Trismik with a valid API key

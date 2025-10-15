@@ -1,7 +1,7 @@
 """Example 1 - A Simple Scorebook Evaluation."""
 
 from pprint import pprint
-from typing import Any, Dict, List
+from typing import Any, List
 
 import transformers
 from dotenv import load_dotenv
@@ -33,9 +33,10 @@ def main() -> Any:
     # Create an evaluation dataset
     evaluation_dataset = EvalDataset.from_list(
         name="basic_questions",  # Dataset name
-        label="answer",  # Key for the label value in evaluation items
         metrics="accuracy",  # Metric/Metrics used to calculate scores
         items=evaluation_items,  # List of evaluation items
+        input="question",  # Key for the input field in evaluation items
+        label="answer",  # Key for the label field in evaluation items
     )
 
     # Create a model
@@ -47,26 +48,26 @@ def main() -> Any:
     )
 
     # Define an inference function
-    def inference(eval_items: List[Dict], **hyperparameter_config: Any) -> List[Any]:
-        """Return a list of model outputs for a list of evaluation items.
+    def inference(inputs: List[Any], **hyperparameter_config: Any) -> List[Any]:
+        """Return a list of model outputs for a list of inputs.
 
         Args:
-            eval_items: Evaluation items from an EvalDataset.
+            inputs: Input values from an EvalDataset.
             hyperparameter_config: Model hyperparameters.
 
         Returns:
-            The model outputs for a list of evaluation items.
+            The model outputs for a list of inputs.
         """
         inference_results = []
-        for eval_item in eval_items:
+        for input_text in inputs:
 
-            # Prepare eval items into valid model input
+            # Prepare inputs into valid model input
             messages = [
                 {
                     "role": "system",
                     "content": hyperparameter_config["system_message"],
                 },
-                {"role": "user", "content": eval_item["question"]},
+                {"role": "user", "content": input_text},
             ]
 
             # Run inference on the item

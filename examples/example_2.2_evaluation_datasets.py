@@ -1,7 +1,7 @@
 """Example 2.2 - Evaluation Datasets from YAML Configuration."""
 
 from pprint import pprint
-from typing import Any, Dict, List
+from typing import Any, List
 
 import transformers
 from dotenv import load_dotenv
@@ -35,14 +35,11 @@ def main() -> Any:
         device_map="auto",
     )
 
-    def inference(eval_items: List[Dict], **hyperparameter_config: Any) -> list[Any]:
-        """Return a list of model outputs for a list of evaluation items."""
+    def inference(inputs: List[Any], **hyperparameter_config: Any) -> list[Any]:
+        """Return a list of model outputs for a list of inputs."""
 
         inference_results = []
-        for eval_item in eval_items:
-            # Use the question template from the dataset if available
-            question_content = eval_item.get("question", eval_item.get("problem", ""))
-
+        for input_text in inputs:
             messages = [
                 {
                     "role": "system",
@@ -52,9 +49,9 @@ def main() -> Any:
                         no additional text or explanation.
                     """,
                 },
-                {"role": "user", "content": question_content},
+                {"role": "user", "content": input_text},
             ]
-            print(f"Question: {question_content}")
+            print(f"Question: {input_text}")
             output = pipeline(messages)
             inference_results.append(output[0]["generated_text"][-1]["content"])
 

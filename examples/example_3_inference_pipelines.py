@@ -1,7 +1,7 @@
 """Example 3 - Using Inference Pipelines."""
 
 from pprint import pprint
-from typing import Any, Dict, List
+from typing import Any, List
 
 import transformers
 from dotenv import load_dotenv
@@ -28,11 +28,11 @@ def main() -> Any:
     # === Pre-Processing ===
 
     # The preprocessor function is responsible for mapping items in an Eval Dataset to model inputs
-    def preprocessor(eval_item: Dict, **hyperparameter_config: Any) -> List[Any]:
-        """Convert an evaluation item to a valid model input.
+    def preprocessor(input_value: str, **hyperparameter_config: Any) -> List[Any]:
+        """Convert an evaluation input to a valid model input.
 
         Args:
-            eval_item: An evaluation item from an EvalDataset.
+            input_value: The input value from the dataset.
             hyperparameter_config: Model hyperparameters.
 
         Returns:
@@ -43,7 +43,7 @@ def main() -> Any:
                 "role": "system",
                 "content": hyperparameter_config["system_message"],
             },
-            {"role": "user", "content": eval_item["question"]},
+            {"role": "user", "content": input_value},
         ]
 
         return messages
@@ -100,7 +100,10 @@ def main() -> Any:
 
     # Step 2: Load the evaluation dataset
     eval_dataset = EvalDataset.from_json(
-        path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
+        path="examples/example_datasets/basic_questions.json",
+        metrics=Accuracy,
+        input="question",
+        label="answer",
     )
 
     # Step 3: Run the evaluation using the inference pipeline and dataset

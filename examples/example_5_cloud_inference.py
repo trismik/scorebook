@@ -30,8 +30,8 @@ async def main(model_name: str) -> Any:
     # === Cloud-Based Inference Pipeline Creation ===
 
     # Define a preprocessor mapping to openAI's message format
-    def openai_preprocessor(eval_item: dict, **hyperparameter_config: Any) -> List[dict]:
-        """Pre-process dataset items into OpenAI's message format."""
+    def openai_preprocessor(input_value: str, **hyperparameter_config: Any) -> List[dict]:
+        """Pre-process dataset inputs into OpenAI's message format."""
         messages = [
             {
                 "role": "system",
@@ -39,7 +39,7 @@ async def main(model_name: str) -> Any:
                     "system_message", "You are a helpful assistant."
                 ),
             },
-            {"role": "user", "content": eval_item["question"]},
+            {"role": "user", "content": input_value},
         ]
         return messages
 
@@ -64,7 +64,10 @@ async def main(model_name: str) -> Any:
     # === Evaluation With Cloud-Based Inference ===
 
     dataset = EvalDataset.from_json(
-        path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
+        path="examples/example_datasets/basic_questions.json",
+        metrics=Accuracy,
+        input="question",
+        label="answer",
     )
 
     results = await evaluate_async(

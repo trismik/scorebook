@@ -1,18 +1,18 @@
 path: "TIGER-Lab/MMLU-Pro"
 name: "TIGER-Lab/MMLU-Pro"
-label: "answer"
 split: "validation"
 config: "default"
 metrics:
   - "accuracy"
 
-mapping_templates:
-  question_template: |
+templates:
+  input: |
     {{ question }}
     Options:
     {% for option in options %}
     {{ number_to_letter(loop.index0) }} : {{ option }}
     {% endfor %}
+  label: "{{ answer }}"
 
 metadata:
   description: "MMLU-Pro multiple choice questions"

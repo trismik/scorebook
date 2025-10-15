@@ -173,14 +173,15 @@ def build_classic_eval_run_spec(
     hyperparameters_index: int,
 ) -> EvalRunSpec:
     """Build EvalRunSpec objects for a classic dataset and hyperparameter combination."""
-    items = dataset.items
-    labels = [item.get(dataset.label) for item in items]
+    # Extract inputs and labels from the standardized 2-column dataset
+    inputs = dataset["input"]  # Returns List[Any]
+    labels = dataset["label"]  # Returns List[Any]
     eval_run_spec = EvalRunSpec(
         dataset,
         dataset_index,
         hyperparameters,
         hyperparameters_index,
-        items,
+        inputs,
         labels,
     )
     logger.debug("Built EvalRunSpec: %s", eval_run_spec)

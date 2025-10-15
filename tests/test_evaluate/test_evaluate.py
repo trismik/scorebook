@@ -20,8 +20,8 @@ def create_simple_inference_pipeline(expected_output: str = "1"):
     def preprocessor(item: Dict, **hyperparameters) -> Dict:
         return item
 
-    def inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
-        return [expected_output for _ in processed_items]
+    def inference_function(inputs: List, **hyperparameters) -> List[str]:
+        return [expected_output for _ in inputs]
 
     def postprocessor(output: str, **hyperparameters) -> str:
         return output
@@ -38,7 +38,7 @@ def test_evaluate_single_dataset():
     """Test evaluation with a single CSV dataset."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
     results = evaluate(
@@ -70,10 +70,10 @@ def test_evaluate_multiple_datasets():
     json_path = str(Path(__file__).parent.parent / "data" / "Dataset.json")
 
     csv_dataset = EvalDataset.from_csv(
-        csv_path, label="label", metrics=[Accuracy], name="csv_dataset"
+        csv_path, metrics=[Accuracy], input="input", label="label", name="csv_dataset"
     )
     json_dataset = EvalDataset.from_json(
-        json_path, label="label", metrics=[Accuracy], name="json_dataset"
+        json_path, metrics=[Accuracy], input="input", label="label", name="json_dataset"
     )
 
     results = evaluate(
@@ -97,7 +97,7 @@ def test_evaluate_with_item_limit():
     """Test evaluation with item limit."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
     results = evaluate(
@@ -116,7 +116,7 @@ def test_evaluate_with_multiple_metrics():
     """Test evaluation with multiple metrics (Accuracy used twice for now)."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
     results = evaluate(
@@ -132,7 +132,7 @@ def test_evaluate_with_none_predictions():
     """Test evaluation handling of None predictions."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
     results = evaluate(
@@ -148,10 +148,10 @@ def test_evaluate_invalid_inference_fn():
     """Test evaluation with an invalid inference pipeline."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
-    def bad_inference_function(processed_items: List[Dict], **hyperparameters):
+    def bad_inference_function(inputs: List, **hyperparameters):
         raise ValueError("Inference error")
 
     bad_pipeline = InferencePipeline(
@@ -172,7 +172,7 @@ def test_evaluate_return_type():
     """Test different return types."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
     # Test object return type (EvalResult)
@@ -228,7 +228,7 @@ def test_evaluate_with_csv_export(tmp_path):
     """Test evaluation with results export to CSV."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
     results = evaluate(
@@ -254,7 +254,7 @@ def test_evaluate_with_json_export(tmp_path):
     """Test evaluation with results export to JSON."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
     results = evaluate(
@@ -281,7 +281,7 @@ def test_evaluate_invalid_param_config():
     """Test evaluation with invalid parameter combination."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
     with pytest.raises(ParameterValidationError):
@@ -299,7 +299,7 @@ def test_evaluate_duplicate_datasets():
     """Test that passing the same dataset multiple times preserves all results."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
     # Pass the same dataset twice
@@ -325,7 +325,7 @@ def test_evaluate_with_precomputed_hyperparams():
     """Test evaluation with pre-computed hyperparameter grids."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
     # Create a list of pre-built hyperparameter configs
@@ -361,17 +361,15 @@ def test_evaluate_mixed_success_failure_runs():
     """Test that when some runs fail, others still complete successfully."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
-    def conditional_failing_inference_function(
-        processed_items: List[Dict], **hyperparameters
-    ) -> List[str]:
+    def conditional_failing_inference_function(inputs: List, **hyperparameters) -> List[str]:
         """Inference function that fails only for specific hyperparameter values."""
         fail_on_param = hyperparameters.get("fail_on_param", False)
         if fail_on_param:
             raise ValueError("Intentional failure for testing")
-        return ["1" for _ in processed_items]
+        return ["1" for _ in inputs]
 
     def preprocessor(item: Dict, **hyperparameters) -> Dict:
         return item
@@ -441,20 +439,18 @@ def test_evaluate_mixed_success_failure_multiple_datasets():
     json_path = str(Path(__file__).parent.parent / "data" / "Dataset.json")
 
     csv_dataset = EvalDataset.from_csv(
-        csv_path, label="label", metrics=[Accuracy], name="csv_dataset"
+        csv_path, metrics=[Accuracy], input="input", label="label", name="csv_dataset"
     )
     json_dataset = EvalDataset.from_json(
-        json_path, label="label", metrics=[Accuracy], name="json_dataset"
+        json_path, metrics=[Accuracy], input="input", label="label", name="json_dataset"
     )
 
-    def dataset_selective_failing_inference(
-        processed_items: List[Dict], **hyperparameters
-    ) -> List[str]:
+    def dataset_selective_failing_inference(inputs: List, **hyperparameters) -> List[str]:
         """Inference function that fails only when fail_this_run is True."""
         fail_this_run = hyperparameters.get("fail_this_run", False)
         if fail_this_run:
             raise ValueError("Intentional failure for testing")
-        return ["1" for _ in processed_items]
+        return ["1" for _ in inputs]
 
     failing_pipeline = InferencePipeline(
         model="test_model",

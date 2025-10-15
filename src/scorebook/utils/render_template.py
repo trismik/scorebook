@@ -12,23 +12,23 @@ from jinja2 import BaseLoader, Environment, StrictUndefined
 from scorebook.utils.jinja_helpers import default_jinja_filters, default_jinja_globals
 
 
-def build_prompt(
-    prompt_template: str,
-    prompt_args: Dict[str, Any],
+def render_template(
+    template: str,
+    args: Dict[str, Any],
     filters: Optional[Dict[str, Any]] = None,
     globals_dict: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
-    Build a prompt string from a template and arguments.
+    Render a Jinja2 template string with the provided arguments.
 
     Args:
-        prompt_template: Jinja2 template string
-        prompt_args: Dictionary of arguments to pass to the template
+        template: Jinja2 template string
+        args: Dictionary of arguments to pass to the template
         filters: Dictionary of Jinja2 filters. Defaults to default_jinja_filters().
         globals_dict: Dictionary of global functions/variables. Defaults to default_jinja_globals().
 
     Returns:
-        str: Rendered prompt string
+        str: Rendered template string
     """
 
     # Use defaults if not provided
@@ -48,5 +48,5 @@ def build_prompt(
     env.globals.update(globals_dict)
 
     # Render the template
-    template = env.from_string(prompt_template)
-    return str(template.render(**prompt_args))
+    jinja_template = env.from_string(template)
+    return str(jinja_template.render(**args))

@@ -1,7 +1,7 @@
 """Example 7 - Using Hyperparameter Sweeps."""
 
 from pprint import pprint
-from typing import Any, Dict, List
+from typing import Any, List
 
 import transformers
 from dotenv import load_dotenv
@@ -39,11 +39,11 @@ def main(model_name: str) -> Any:
 
     # === Inference Pipeline Setup ===
 
-    def preprocessor(eval_item: Dict, **hyperparameter_config: Any) -> List[Any]:
-        """Convert an evaluation item to a valid model input."""
+    def preprocessor(input_value: str, **hyperparameter_config: Any) -> List[Any]:
+        """Convert an evaluation input to a valid model input."""
         messages = [
             {"role": "system", "content": hyperparameter_config["system_message"]},
-            {"role": "user", "content": eval_item["question"]},
+            {"role": "user", "content": input_value},
         ]
         return messages
 
@@ -80,7 +80,10 @@ def main(model_name: str) -> Any:
     # === Evaluation Across Hyperparameters ===
 
     dataset = EvalDataset.from_json(
-        path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
+        path="examples/example_datasets/basic_questions.json",
+        metrics=Accuracy,
+        input="question",
+        label="answer",
     )
 
     # Define hyperparameters, using lists of values to generate configurations

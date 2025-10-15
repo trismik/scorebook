@@ -1,7 +1,7 @@
 """Example 2.1 - Evaluation Datasets."""
 
 from pprint import pprint
-from typing import Any, Dict, List
+from typing import Any, List
 
 import transformers
 from dotenv import load_dotenv
@@ -34,11 +34,11 @@ def main() -> Any:
         device_map="auto",
     )
 
-    def inference(eval_items: List[Dict], **hyperparameter_config: Any) -> list[Any]:
-        """Return a list of model outputs for a list of evaluation items."""
+    def inference(inputs: List[Any], **hyperparameter_config: Any) -> list[Any]:
+        """Return a list of model outputs for a list of inputs."""
 
         inference_results = []
-        for eval_item in eval_items:
+        for input_text in inputs:
             messages = [
                 {
                     "role": "system",
@@ -49,7 +49,7 @@ def main() -> Any:
                 },
                 {
                     "role": "user",
-                    "content": eval_item.get("question", eval_item.get("problem", "")),
+                    "content": input_text,
                 },
             ]
 
@@ -69,9 +69,10 @@ def main() -> Any:
     # Create an EvalDataset from a list
     dataset_1 = EvalDataset.from_list(
         name="basic_questions",  # Dataset name
-        label="answer",  # Key for the label value in evaluation items
         metrics=Accuracy,  # Metric/Metrics used to calculate scores
         items=evaluation_items,  # List of evaluation items
+        input="question",  # Key for the input field in evaluation items
+        label="answer",  # Key for the label field in evaluation items
     )
     print(f"Loaded {dataset_1.name} from a list.")
 
@@ -79,8 +80,9 @@ def main() -> Any:
     dataset_2 = EvalDataset.from_json(
         name="basic_questions_2",
         path="examples/example_datasets/basic_questions.json",
-        label="answer",
         metrics=Accuracy,
+        input="question",
+        label="answer",
     )
     print(f"Loaded {dataset_2.name} from a JSON file.")
 
@@ -88,16 +90,18 @@ def main() -> Any:
     dataset_3 = EvalDataset.from_csv(
         name="basic_questions_3",
         path="examples/example_datasets/basic_questions.csv",
-        label="answer",
         metrics=Accuracy,
+        input="question",
+        label="answer",
     )
     print(f"Loaded {dataset_3.name} from a CSV file.")
 
     # Load an EvalDatasets from a HF Dataset
     simple_qa = EvalDataset.from_huggingface(
         path="basicv8vc/SimpleQA",
-        label="answer",
         metrics=Accuracy,
+        input="problem",
+        label="answer",
         split="test",
     )
     print(f"Loaded {simple_qa.name} from Hugging Face.")

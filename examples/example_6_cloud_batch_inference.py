@@ -30,17 +30,15 @@ async def main(model_name: str) -> Any:
     # === Create Batch Inference Pipeline ===
 
     # Define a preprocessor function
-    def preprocessor(eval_item: dict, **hyperparameters: Any) -> dict:
-        """Pre-process dataset items into OpenAI's Batch API format."""
-        prompt = eval_item["question"]
-
+    def preprocessor(input_value: str, **hyperparameters: Any) -> dict:
+        """Pre-process dataset inputs into OpenAI's Batch API format."""
         # Create the batch API request body format
         # This matches the structure expected by OpenAI's /v1/chat/completions endpoint
         batch_request = {
             "model": "gpt-4o-mini",  # Batch API compatible model
             "messages": [
                 {"role": "system", "content": hyperparameters.get("system_message")},
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": input_value},
             ],
             "temperature": hyperparameters.get("temperature", 0.7),
         }
@@ -75,7 +73,10 @@ async def main(model_name: str) -> Any:
     # === Evaluate With Batched Inference ===
 
     dataset = EvalDataset.from_json(
-        path="examples/example_datasets/basic_questions.json", label="answer", metrics=Accuracy
+        path="examples/example_datasets/basic_questions.json",
+        metrics=Accuracy,
+        input="question",
+        label="answer",
     )
 
     print(f"\nRunning OpenAI Batch API evaluation with model: {model_name}")
