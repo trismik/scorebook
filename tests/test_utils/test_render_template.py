@@ -2,7 +2,9 @@
 
 from pathlib import Path
 
+import pytest
 import yaml
+from jinja2.exceptions import UndefinedError
 
 from scorebook.utils.render_template import render_template
 
@@ -108,9 +110,6 @@ Options:
 
 def test_missing_variable_raises_error():
     """Test that missing variables raise an error in strict mode."""
-    import pytest
-    from jinja2.exceptions import UndefinedError
-
     template = "Hello {{ missing_var }}!"
     args = {}
     with pytest.raises(UndefinedError):
