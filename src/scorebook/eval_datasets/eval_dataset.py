@@ -387,23 +387,34 @@ class EvalDataset:
         else:
             raise ValueError(f"Unexpected dataset type for '{path}': {type(ds)}")
 
-        # Convert HF dataset to list for transformation
-        raw_data = list(hf_dataset)
+        # Transform data to standardized 2-column format using Dataset.map for memory efficiency
+        def transform_row(row: Dict[str, Any]) -> Dict[str, Any]:
+            """Transform a single row to have only 'input' and 'label' columns."""
+            # Determine input value
+            if input_template is not None:
+                input_value = render_template(input_template, row)
+            else:
+                input_value = row[input] if input is not None else ""
 
-        # Transform data to standardized 2-column format
-        transformed_data = cls._apply_templates(
-            data=raw_data,
-            input_field=input if input is not None else "",
-            label_field=label if label is not None else "",
-            input_template=input_template,
-            label_template=label_template,
+            # Determine label value
+            if label_template is not None:
+                label_value = render_template(label_template, row)
+            else:
+                label_value = row[label] if label is not None else ""
+
+            return {"input": input_value, "label": label_value}
+
+        # Apply transformation using map for memory efficiency
+        transformed_dataset = hf_dataset.map(
+            transform_row,
+            remove_columns=hf_dataset.column_names,
         )
 
         dataset_name = name if name else ":".join(filter(None, [path, split, config]))
         return cls(
             name=dataset_name,
             metrics=metrics,
-            hf_dataset=HuggingFaceDataset.from_list(transformed_data),
+            hf_dataset=transformed_dataset,
         )
 
     @classmethod
