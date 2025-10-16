@@ -244,7 +244,7 @@ def test_evaluate_with_csv_export(tmp_path):
     with open(output_path, "r") as f:
         reader = csv.reader(f)
         headers = next(reader)
-        assert "inference_output" in headers
+        assert "output" in headers
         assert "accuracy" in headers
         data_rows = list(reader)
         assert len(data_rows) > 0

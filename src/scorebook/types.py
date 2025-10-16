@@ -68,9 +68,11 @@ class ClassicEvalRunResult:
                     break
 
                 result = {
-                    "item_id": idx,
+                    "id": idx,
                     "dataset_name": self.run_spec.dataset.name,
-                    "inference_output": output,
+                    "input": self.run_spec.inputs[idx],
+                    "label": self.run_spec.labels[idx] if idx < len(self.run_spec.labels) else None,
+                    "output": output,
                     **self.run_spec.hyperparameter_config,
                 }
 

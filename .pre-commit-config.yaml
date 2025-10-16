@@ -3,11 +3,16 @@ repos:
     rev: v4.5.0
     hooks:
     -   id: trailing-whitespace
+        exclude: ^examples/
     -   id: end-of-file-fixer
+        exclude: ^examples/
     -   id: check-yaml
+        exclude: ^examples/
     -   id: check-added-large-files
     -   id: check-ast
+        exclude: ^examples/
     -   id: check-json
+        exclude: ^examples/
     -   id: check-merge-conflict
     -   id: detect-private-key
 
@@ -15,21 +20,21 @@ repos:
     rev: 24.3.0
     hooks:
     -   id: black
-        exclude: ^src/scorebook/evaluate/_sync/
+        exclude: ^(src/scorebook/evaluate/_sync/|examples/)
 
 -   repo: https://github.com/PyCQA/autoflake
     rev: v2.3.1
     hooks:
     -   id: autoflake
         args: [--remove-all-unused-imports, --in-place, --recursive, .]
-        exclude: ^src/scorebook/evaluate/_sync/
+        exclude: ^(src/scorebook/evaluate/_sync/|examples/)
 
 -   repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
     -   id: isort
         args: ["--profile", "black"]
-        exclude: ^src/scorebook/evaluate/_sync/
+        exclude: ^(src/scorebook/evaluate/_sync/|examples/)
 
 -   repo: https://github.com/pycqa/flake8
     rev: 7.0.0
@@ -39,7 +44,7 @@ repos:
         args: [
             "--max-line-length=100",
             "--extend-ignore=E203",
-            "--exclude=.git,__pycache__,build,dist,src/scorebook/evaluate/_sync",
+            "--exclude=.git,__pycache__,build,dist,src/scorebook/evaluate/_sync,examples",
             "--per-file-ignores=__init__.py:F401,tests/*.py:D100,D101,D102,D103,D104"
         ]
 
@@ -48,7 +53,7 @@ repos:
     hooks:
     -   id: mypy
         additional_dependencies: [types-python-dateutil, types-PyYAML]
-        exclude: "(tests/.*\\.py|src/scorebook/evaluate/_sync/.*\\.py)"
+        exclude: "(tests/.*\\.py|src/scorebook/evaluate/_sync/.*\\.py|examples/.*\\.py)"
 
 - repo: https://github.com/Yelp/detect-secrets
   rev: v1.5.0
@@ -59,7 +64,7 @@ repos:
         - .secrets.baseline
         # Skip noisy/binary stuff; keep text files scanable
         - --exclude-files
-        - '(\.(png|jpg|jpeg|gif|svg|pdf|gz|zip|parquet)$|^docs/assets/|^tests/fixtures/)'
+        - '(\.(png|jpg|jpeg|gif|svg|pdf|gz|zip|parquet)$|^docs/assets/|^tests/fixtures/|^examples/)'
         # Ignore Jupyter auto-generated cell IDs (hex or UUID-ish)
         - --exclude-lines
         - '(?i)"id"\s*:\s*"[0-9a-f-]{8,}"'

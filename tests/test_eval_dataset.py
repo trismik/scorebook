@@ -45,8 +45,12 @@ def test_load_huggingface_dataset():
     )
     assert isinstance(data_hf, EvalDataset)
     assert len(data_hf) > 0
-    assert "input" in data_hf.column_names
+    # Original columns are preserved when no templates are used
+    assert "text" in data_hf.column_names
     assert "label" in data_hf.column_names
+    # Verify the dataset tracks which columns to use
+    assert data_hf.input == "text"
+    assert data_hf.label == "label"
 
 
 def test_nonexistent_files():
@@ -91,11 +95,16 @@ def test_load_yaml_dataset():
     # Verify the dataset was loaded correctly
     assert isinstance(data_yaml, EvalDataset)
     assert len(data_yaml) > 0
-    # After transformation, dataset has only "input" and "label" columns
-    assert "input" in data_yaml.column_names
-    assert "label" in data_yaml.column_names
-    # Verify it has exactly 2 columns
-    assert len(data_yaml.column_names) == 2
+    # When templates are used, computed columns are added with "*" prefix
+    assert "*input" in data_yaml.column_names
+    assert "*label" in data_yaml.column_names
+    # Verify the dataset tracks which columns to use
+    assert data_yaml.input == "*input"
+    assert data_yaml.label == "*label"
+    # Original columns are preserved (question, options, answer, etc.)
+    assert "question" in data_yaml.column_names
+    assert "options" in data_yaml.column_names
+    assert "answer" in data_yaml.column_names
 
 
 def test_yaml_missing_required_fields(tmp_path):

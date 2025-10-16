@@ -32,11 +32,11 @@ def main() -> Any:
 
     # Create an evaluation dataset
     evaluation_dataset = EvalDataset.from_list(
-        name="basic_questions",  # Dataset name
-        metrics="accuracy",  # Metric/Metrics used to calculate scores
-        items=evaluation_items,  # List of evaluation items
-        input="question",  # Key for the input field in evaluation items
-        label="answer",  # Key for the label field in evaluation items
+        name="basic_questions",    # Dataset name
+        metrics="accuracy",        # Metric/Metrics used to calculate scores
+        items=evaluation_items,    # List of evaluation items
+        input="question",          # Key for the input field in evaluation items
+        label="answer",            # Key for the label field in evaluation items
     )
 
     # Create a model
@@ -48,35 +48,35 @@ def main() -> Any:
     )
 
     # Define an inference function
-    def inference(inputs: List[Any], **hyperparameter_config: Any) -> List[Any]:
+    def inference(inputs: List[Any], **hyperparameters: Any) -> List[Any]:
         """Return a list of model outputs for a list of inputs.
 
         Args:
             inputs: Input values from an EvalDataset.
-            hyperparameter_config: Model hyperparameters.
+            hyperparameters: Model hyperparameters.
 
         Returns:
             The model outputs for a list of inputs.
         """
-        inference_results = []
-        for input_text in inputs:
+        inference_outputs = []
+        for model_input in inputs:
 
-            # Prepare inputs into valid model input
+            # Wrap inputs in the model's message format
             messages = [
                 {
                     "role": "system",
-                    "content": hyperparameter_config["system_message"],
+                    "content": hyperparameters.get("system_message"),
                 },
-                {"role": "user", "content": input_text},
+                {"role": "user", "content": model_input},
             ]
 
             # Run inference on the item
-            output = pipeline(messages, temperature=hyperparameter_config["temperature"])
+            output = pipeline(messages, temperature=hyperparameters.get("temperature"))
 
             # Extract and collect the output generated from the model's response
-            inference_results.append(output[0]["generated_text"][-1]["content"])
+            inference_outputs.append(output[0]["generated_text"][-1]["content"])
 
-        return inference_results
+        return inference_outputs
 
     # Evaluate a model against an evaluation dataset
     results = evaluate(
@@ -89,6 +89,7 @@ def main() -> Any:
         upload_results=False,  # Disable uploading for this example
     )
 
+    print("\nEvaluation Results:")
     pprint(results)
     return results
 

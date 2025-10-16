@@ -69,10 +69,10 @@ def main() -> Any:
     # Create an EvalDataset from a list
     dataset_1 = EvalDataset.from_list(
         name="basic_questions",  # Dataset name
-        metrics=Accuracy,  # Metric/Metrics used to calculate scores
+        metrics=Accuracy,        # Metric/Metrics used to calculate scores
         items=evaluation_items,  # List of evaluation items
-        input="question",  # Key for the input field in evaluation items
-        label="answer",  # Key for the label field in evaluation items
+        input="question",        # Key for the input field in evaluation items
+        label="answer",          # Key for the label field in evaluation items
     )
     print(f"Loaded {dataset_1.name} from a list.")
 
@@ -116,9 +116,9 @@ def main() -> Any:
             dataset_3,
             simple_qa,
         ],
-        sample_size=3,  # Sample size can be used for quick testing on large datasets
-        return_items=True,  # Include the scores for individual items evaluated in results
-        return_output=True,  # Include the model responses for each evaluated item in item results
+        sample_size=3,         # Sample size can be used for quick testing on large datasets
+        return_items=True,     # Include the scores for individual items evaluated in results
+        return_output=True,    # Include the model responses for each evaluated item in item results
         upload_results=False,  # Disable uploading for this example
     )
 
