@@ -33,7 +33,9 @@ def validate_path(
         allowed_suffixes_lower = tuple(s.lower() for s in allowed_suffixes)
 
         if path.suffix.lower() not in allowed_suffixes_lower:
-            suffix_list = ", ".join(allowed_suffixes)
-            raise ValueError(f"File must have one of {suffix_list} extension, got: {path.suffix}")
+            suffix_list = ", ".join(f"'{s}'" for s in allowed_suffixes)
+            raise ValueError(
+                f"File must have one of ({suffix_list}) extensions, got: '{path.suffix}'"
+            )
 
     return path
