@@ -210,8 +210,6 @@ class EvalDataset:
                 raise KeyError(f"Label field '{label}' not found in data")
 
         # No transformation - use data as-is!
-        # Don't call _apply_templates since from_list doesn't support templates
-
         return cls(
             name=name,
             metrics=metrics,
@@ -575,52 +573,6 @@ class EvalDataset:
             split=yaml_config.get("split"),
             config=yaml_config.get("config"),
         )
-
-    @staticmethod
-    def _apply_templates(
-        data: List[Dict[str, Any]],
-        input_template: Optional[str] = None,
-        label_template: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
-        """
-        Add computed columns (*input, *label) to data when templates are provided.
-
-        This method preserves ALL original columns and only adds NEW columns when
-        templates are used. If no templates are provided, returns data unchanged.
-
-        Args:
-            data: List of dictionaries containing raw data
-            input_template: Optional Jinja2 template string for input
-            label_template: Optional Jinja2 template string for label
-
-        Returns:
-            List of dictionaries with ALL original keys PLUS computed columns (if templates used)
-
-        Raises:
-            jinja2.exceptions.UndefinedError: If template references undefined variable
-        """
-        # Early return if no templates - data unchanged (optimization!)
-        if input_template is None and label_template is None:
-            return data
-
-        result = []
-        for item in data:
-            # Start with all original data
-            new_item = dict(item)
-
-            # Add *input column if template is used
-            if input_template is not None:
-                input_value = render_template(input_template, item)
-                new_item["*input"] = input_value
-
-            # Add *label column if template is used
-            if label_template is not None:
-                label_value = render_template(label_template, item)
-                new_item["*label"] = label_value
-
-            result.append(new_item)
-
-        return result
 
     @staticmethod
     def _resolve_metrics(
