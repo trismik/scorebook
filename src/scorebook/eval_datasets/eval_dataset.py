@@ -236,8 +236,8 @@ class EvalDataset:
     ) -> "EvalDataset":
         """Instantiate a scorebook dataset from a CSV file.
 
-        Extracts the specified input and label fields from each row to create
-        a standardized 2-column dataset (input, label).
+        All original columns are preserved. Since from_csv only supports direct
+        field extraction (no templates), the specified fields must exist in the data.
 
         Args:
             path: Path to the CSV file.
@@ -250,7 +250,7 @@ class EvalDataset:
             reader_kwargs: Dict of kwargs passed to `csv.DictReader`.
 
         Returns:
-            A scorebook EvalDataset with 'input' and 'label' columns.
+            A scorebook EvalDataset with all original columns preserved.
 
         Raises:
             FileNotFoundError: If the file does not exist at the given path.
@@ -315,8 +315,8 @@ class EvalDataset:
                 "test": [{"question": ..., "answer": ...}]
             }
 
-        Extracts the specified input and label fields from each item to create
-        a standardized 2-column dataset (input, label).
+        All original columns are preserved. Since from_json only supports direct
+        field extraction (no templates), the specified fields must exist in the data.
 
         Args:
             path: Path to the JSON file on disk.
@@ -327,7 +327,7 @@ class EvalDataset:
             split: If the JSON uses a split structure, this is the split name to load.
 
         Returns:
-            A scorebook EvalDataset with 'input' and 'label' columns.
+            A scorebook EvalDataset with all original columns preserved.
 
         Raises:
             FileNotFoundError: If the file does not exist.
