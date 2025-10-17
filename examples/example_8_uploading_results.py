@@ -65,7 +65,7 @@ def main() -> Any:
         # New experiments can be created at runtime
         experiment_id="Scorebook-Example-8-Uploading-Results",
         # You must create a project on dashboard
-        project_id="fd04cebc430ddad6425dabda18e6885df7889e5b",
+        project_id="YOUR_PROJECT_ID",
         return_items=True,
         metadata={
             "model": "microsoft/Phi-4-mini-instruct",
