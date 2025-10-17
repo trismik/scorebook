@@ -5,7 +5,7 @@ from typing import Optional, Tuple, Union
 
 
 def validate_path(
-    file_path: str, expected_suffix: Optional[Union[str, Tuple[str, ...]]] = None
+    file_path: Union[str, Path], expected_suffix: Optional[Union[str, Tuple[str, ...]]] = None
 ) -> Path:
     """Validate that a file path exists and optionally check its suffix.
 
