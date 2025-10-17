@@ -200,7 +200,7 @@ class EvalDataset:
             A scorebook EvalDataset with all original columns preserved.
 
         Raises:
-            KeyError: If input or label field is missing from any item.
+            KeyError: If input or label field is missing from the first item.
         """
         # Validate that fields exist in the data
         if items and items[0]:
@@ -255,7 +255,7 @@ class EvalDataset:
         Raises:
             FileNotFoundError: If the file does not exist at the given path.
             ValueError: If the CSV file cannot be parsed or is empty.
-            KeyError: If input or label field is missing from any row.
+            KeyError: If input or label field is missing from the first row.
         """
         reader_kwargs = reader_kwargs or {}
         validated_path = validate_path(path, expected_suffix=".csv")
@@ -332,7 +332,7 @@ class EvalDataset:
         Raises:
             FileNotFoundError: If the file does not exist.
             ValueError: If the JSON is invalid or the structure is unsupported.
-            KeyError: If input or label field is missing from any item.
+            KeyError: If input or label field is missing from the first item.
         """
         validated_path = validate_path(path, expected_suffix=".json")
 
