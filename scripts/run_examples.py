@@ -2,7 +2,7 @@
 """Script to run all examples with toggleable execution.
 
 Toggle the boolean flags below to enable/disable specific examples.
-By default, examples 8 and 9 are disabled.
+By default, examples 6, 8, and 9 are disabled.
 
 Usage:
     python scripts/run_examples.py           # Run all enabled examples
