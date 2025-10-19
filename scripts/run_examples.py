@@ -26,7 +26,7 @@ EXAMPLE_FLAGS = {
     "example_3_inference_pipelines.py": True,
     "example_4_batch_inference.py": True,
     "example_5_cloud_inference.py": True,
-    "example_6_cloud_batch_inference.py": False,
+    "example_6_cloud_batch_inference.py": False,  # Disabled by default
     "example_7_hyperparameters.py": True,
     "example_8_uploading_results.py": False,  # Disabled by default
     "example_9_adaptive_evaluation.py": False,  # Disabled by default
