@@ -3,16 +3,11 @@ repos:
     rev: v4.5.0
     hooks:
     -   id: trailing-whitespace
-        exclude: ^examples/
     -   id: end-of-file-fixer
-        exclude: ^examples/
     -   id: check-yaml
-        exclude: ^examples/
     -   id: check-added-large-files
     -   id: check-ast
-        exclude: ^examples/
     -   id: check-json
-        exclude: ^examples/
     -   id: check-merge-conflict
     -   id: detect-private-key
 
@@ -62,9 +57,6 @@ repos:
       args:
         - --baseline
         - .secrets.baseline
-        # Skip noisy/binary stuff; keep text files scanable
-        - --exclude-files
-        - '(\.(png|jpg|jpeg|gif|svg|pdf|gz|zip|parquet)$|^docs/assets/|^tests/fixtures/|^examples/)'
         # Ignore Jupyter auto-generated cell IDs (hex or UUID-ish)
         - --exclude-lines
         - '(?i)"id"\s*:\s*"[0-9a-f-]{8,}"'

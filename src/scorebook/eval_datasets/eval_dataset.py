@@ -15,7 +15,34 @@ from scorebook.utils import render_template, validate_path
 
 
 class EvalDataset:
-    """Eval Dataset implementation for scorebook."""
+    """Eval Dataset implementation for scorebook.
+
+    EvalDatasets wrap HuggingFace datasets and provide a consistent interface for
+    evaluation tasks. Each dataset must specify input and label columns, either
+    directly or via Jinja2 templates.
+
+    Important: Column Naming Convention
+    ------------------------------------
+    When using templates (input_template/label_template), the computed columns are
+    named with a special prefix:
+    - input_template → creates column "*input"
+    - label_template → creates column "*label"
+
+    Original columns are preserved alongside the computed columns. When debugging,
+    you may see these "*input" and "*label" column names in error messages or when
+    inspecting dataset.column_names or dataset.input/dataset.label attributes.
+
+    Example:
+        # Using templates
+        dataset = EvalDataset.from_huggingface(
+            path="squad",
+            input_template="{{ question }} Context: {{ context }}",
+            label="answers"
+        )
+        # dataset.input will be "*input" (computed column)
+        # dataset.label will be "answers" (direct field)
+        # Both "*input" and original "question", "context" columns exist
+    """
 
     def __init__(
         self,
@@ -530,6 +557,17 @@ class EvalDataset:
         missing_fields = [field for field in required_fields if field not in yaml_config]
         if missing_fields:
             raise ValueError(f"Missing required fields in YAML config: {', '.join(missing_fields)}")
+
+        # Validate metrics exist before calling from_huggingface (fail fast)
+        metrics_to_validate = yaml_config["metrics"]
+        if not isinstance(metrics_to_validate, list):
+            metrics_to_validate = [metrics_to_validate]
+
+        for metric in metrics_to_validate:
+            try:
+                MetricRegistry.get(metric)
+            except Exception as e:
+                raise ValueError(f"Invalid metric '{metric}' in YAML config: {e}")
 
         # Determine input/label specification
         has_templates = "templates" in yaml_config

@@ -7,7 +7,8 @@ and global variables, using strict undefined handling for better error detection
 
 from typing import Any, Dict, Optional
 
-from jinja2 import BaseLoader, Environment, StrictUndefined
+from jinja2 import BaseLoader, StrictUndefined
+from jinja2.sandbox import SandboxedEnvironment
 
 from scorebook.utils.jinja_helpers import default_jinja_filters, default_jinja_globals
 
@@ -35,8 +36,8 @@ def render_template(
     filters = filters or default_jinja_filters()
     globals_dict = globals_dict or default_jinja_globals()
 
-    # Create a Jinja2 environment with strict undefined handling
-    env = Environment(
+    # Create a sandboxed Jinja2 environment with strict undefined handling
+    env = SandboxedEnvironment(
         loader=BaseLoader(),
         undefined=StrictUndefined,
         trim_blocks=True,
