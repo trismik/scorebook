@@ -218,6 +218,6 @@ examples/demo_results/
 logs/
 /logs/
 
-# Temporary directories
+# Temporary files
 .tmp/
 /tmp/

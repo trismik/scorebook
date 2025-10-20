@@ -21,4 +21,3 @@ def save_results_to_json(results: Any, output_dir: Path, filename: str) -> None:
     output_path = output_dir / filename
     with open(output_path, "w") as output_file:
         json.dump(results, output_file, indent=4)
-    print(f"Results saved in {output_path}")

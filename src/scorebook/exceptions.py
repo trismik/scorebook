@@ -10,6 +10,54 @@ class ScoreBookError(Exception):
     """Base exception class for all Scorebook-related errors."""
 
 
+class EvalDatasetError(ScoreBookError):
+    """Base exception class for all EvalDataset errors."""
+
+
+class DatasetConfigurationError(EvalDatasetError):
+    """Raised when dataset configuration is invalid (e.g., mutually exclusive parameters)."""
+
+
+class MissingFieldError(EvalDatasetError):
+    """Raised when required field is missing from dataset."""
+
+    def __init__(self, field_name: str, field_type: str, available_fields: list[str]):
+        """Initialize missing field error with structured context."""
+        self.field_name = field_name
+        self.field_type = field_type  # "input" or "label"
+        self.available_fields = available_fields
+        super().__init__(
+            f"{field_type.capitalize()} field '{field_name}' not found. "
+            f"Available fields: {', '.join(available_fields)}"
+        )
+
+
+class DatasetLoadError(EvalDatasetError):
+    """Raised when dataset fails to load from source (file or remote)."""
+
+
+class DatasetParseError(EvalDatasetError):
+    """Raised when dataset file cannot be parsed (CSV, JSON, YAML)."""
+
+
+class DatasetNotInitializedError(EvalDatasetError):
+    """Raised when operations are attempted on uninitialized dataset."""
+
+
+class DatasetSampleError(EvalDatasetError):
+    """Raised when sampling parameters are invalid."""
+
+    def __init__(self, sample_size: int, dataset_size: int, dataset_name: str):
+        """Initialize dataset sample error with structured context."""
+        self.sample_size = sample_size
+        self.dataset_size = dataset_size
+        self.dataset_name = dataset_name
+        super().__init__(
+            f"Sample size {sample_size} exceeds dataset size {dataset_size} "
+            f"for dataset '{dataset_name}'"
+        )
+
+
 class EvaluationError(ScoreBookError):
     """Raised when there are errors during model evaluation."""
 

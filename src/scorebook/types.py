@@ -21,7 +21,7 @@ class EvalRunSpec:
     dataset_index: int
     hyperparameter_config: Dict[str, Any]
     hyperparameters_index: int
-    items: List[Dict[str, Any]]
+    inputs: List[Any]
     labels: List[Any]
 
     def __str__(self) -> str:
@@ -64,13 +64,15 @@ class ClassicEvalRunResult:
 
         if self.outputs:
             for idx, output in enumerate(self.outputs):
-                if idx >= len(self.run_spec.items):
+                if idx >= len(self.run_spec.inputs):
                     break
 
                 result = {
-                    "item_id": idx,
+                    "id": idx,
                     "dataset_name": self.run_spec.dataset.name,
-                    "inference_output": output,
+                    "input": self.run_spec.inputs[idx],
+                    "label": self.run_spec.labels[idx] if idx < len(self.run_spec.labels) else None,
+                    "output": output,
                     **self.run_spec.hyperparameter_config,
                 }
 

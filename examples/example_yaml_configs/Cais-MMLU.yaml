@@ -1,0 +1,19 @@
+path: "cais/mmlu"
+name: "Cais-MMLU"
+split: "test"
+config: "all"
+metrics:
+  - "accuracy"
+
+templates:
+  input: |
+    {{ question }}
+
+    A. {{ choices[0] }}
+    B. {{ choices[1] }}
+    C. {{ choices[2] }}
+    D. {{ choices[3] }}
+  label: "{{ answer }}"
+
+metadata:
+  description: "MMLU multiple choice questions from Cais"

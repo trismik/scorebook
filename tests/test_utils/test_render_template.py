@@ -1,17 +1,19 @@
-"""Tests for build_prompt function."""
+"""Tests for render_template function."""
 
 from pathlib import Path
 
+import pytest
 import yaml
+from jinja2.exceptions import UndefinedError
 
-from scorebook.utils.build_prompt import build_prompt
+from scorebook.utils.render_template import render_template
 
 
 def test_simple_template():
     """Test basic variable substitution."""
     template = "Hello {{ name }}!"
     args = {"name": "World"}
-    result = build_prompt(template, args)
+    result = render_template(template, args)
     print(f"Simple template result:\n{result}")
     assert result == "Hello World!"
 
@@ -20,7 +22,7 @@ def test_multiple_variables():
     """Test template with multiple variables."""
     template = "{{ greeting }} {{ name }}, you are {{ age }} years old."
     args = {"greeting": "Hi", "name": "Alice", "age": 25}
-    result = build_prompt(template, args)
+    result = render_template(template, args)
     print(f"Multiple variables result:\n{result}")
     assert result == "Hi Alice, you are 25 years old."
 
@@ -36,7 +38,7 @@ Options:
         "question": "What is the capital of France?",
         "options": ["London", "Paris", "Berlin", "Madrid"],
     }
-    result = build_prompt(template, args)
+    result = render_template(template, args)
     print(f"For loop with options result:\n{result}")
     expected = """Question: What is the capital of France?
 Options:
@@ -56,7 +58,7 @@ Options:
 {{ number_to_letter(loop.index0) }}: {{ option }}
 {% endfor %}"""
     args = {"question": "What is 2+2?", "options": ["3", "4", "5", "6"]}
-    result = build_prompt(template, args)
+    result = render_template(template, args)
     print(f"Number to letter function result:\n{result}")
     expected = """What is 2+2?
 Options:
@@ -79,7 +81,7 @@ Options:
         "question": "Which of the following is a programming language?",
         "options": ["HTML", "Python", "CSS", "JSON"],
     }
-    result = build_prompt(template, args)
+    result = render_template(template, args)
     print(f"MMLU template format result:\n{result}")
     expected = """Which of the following is a programming language?
 Options:
@@ -99,7 +101,7 @@ Options:
 {{ number_to_letter(loop.index0) }}: {{ option }}
 {% endfor %}"""
     args = {"question": "Test question", "options": []}
-    result = build_prompt(template, args)
+    result = render_template(template, args)
     expected = """Test question
 Options:
 """
@@ -108,13 +110,10 @@ Options:
 
 def test_missing_variable_raises_error():
     """Test that missing variables raise an error in strict mode."""
-    import pytest
-    from jinja2.exceptions import UndefinedError
-
     template = "Hello {{ missing_var }}!"
     args = {}
     with pytest.raises(UndefinedError):
-        build_prompt(template, args)
+        render_template(template, args)
 
 
 def test_with_yaml_template_loading():
@@ -124,13 +123,13 @@ def test_with_yaml_template_loading():
     with open(yaml_path, "r") as f:
         config = yaml.safe_load(f)
 
-    template = config["template"]
+    template = config["templates"]["input"]
     args = {
         "question": "What is the speed of light?",
         "options": ["299,792,458 m/s", "300,000,000 m/s", "299,000,000 m/s", "301,000,000 m/s"],
     }
 
-    result = build_prompt(template, args)
+    result = render_template(template, args)
     print(f"YAML template loading result:\n{result}")
     expected = """What is the speed of light?
 Options:
@@ -147,7 +146,7 @@ def test_custom_filters():
     template = "{{ name | upper }}"
     args = {"name": "hello"}
     filters = {"upper": str.upper}
-    result = build_prompt(template, args, filters=filters)
+    result = render_template(template, args, filters=filters)
     assert result == "HELLO"
 
 
@@ -156,7 +155,7 @@ def test_custom_globals():
     template = "Result: {{ custom_func(5) }}"
     args = {}
     globals_dict = {"custom_func": lambda x: x * 2}
-    result = build_prompt(template, args, globals_dict=globals_dict)
+    result = render_template(template, args, globals_dict=globals_dict)
     assert result == "Result: 10"
 
 
@@ -164,7 +163,7 @@ def test_chr_filter():
     """Test built-in chr filter."""
     template = "{{ 65 | chr }}"
     args = {}
-    result = build_prompt(template, args)
+    result = render_template(template, args)
     assert result == "A"
 
 
@@ -175,7 +174,7 @@ def test_helper_functions():
 {{ ordinal(3) }}
 {{ percentage(25, 100) }}"""
     args = {}
-    result = build_prompt(template, args)
+    result = render_template(template, args)
     expected = """1
 apple, banana and cherry
 3rd
@@ -189,15 +188,15 @@ def test_format_list_helper():
     template = "{{ format_list(items) }}"
 
     # Test single item
-    result = build_prompt(template, {"items": ["apple"]})
+    result = render_template(template, {"items": ["apple"]})
     assert result == "apple"
 
     # Test two items
-    result = build_prompt(template, {"items": ["apple", "banana"]})
+    result = render_template(template, {"items": ["apple", "banana"]})
     assert result == "apple and banana"
 
     # Test three items
-    result = build_prompt(template, {"items": ["apple", "banana", "cherry"]})
+    result = render_template(template, {"items": ["apple", "banana", "cherry"]})
     assert result == "apple, banana and cherry"
 
 
@@ -205,5 +204,5 @@ def test_truncate_helper():
     """Test truncate_text helper."""
     template = "{{ truncate_text(text, 10) }}"
     args = {"text": "This is a very long text that needs truncation"}
-    result = build_prompt(template, args)
+    result = render_template(template, args)
     assert result == "This is..."

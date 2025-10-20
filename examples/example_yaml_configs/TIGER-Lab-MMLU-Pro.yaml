@@ -14,5 +14,5 @@ templates:
     {% endfor %}
   label: "{{ answer }}"
 
-# Optional metadata
-description: "MMLU-Pro multiple choice questions"
+metadata:
+  description: "MMLU-Pro multiple choice questions"

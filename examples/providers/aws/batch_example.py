@@ -36,7 +36,10 @@ def main() -> None:
 
     # Step 1: Load the evaluation dataset
     dataset = EvalDataset.from_json(
-        "examples/example_datasets/dataset.json", label="answer", metrics=[Accuracy]
+        "examples/example_datasets/dataset.json",
+        metrics=[Accuracy],
+        input="question",
+        label="answer",
     )
 
     # Ensure minimum batch size requirement (AWS Bedrock requires 100+ items)
@@ -49,22 +52,25 @@ def main() -> None:
             expanded_items.extend(original_items[: min(len(original_items), items_needed)])
 
         # Create new dataset with expanded items
+        # Items already have "input" and "label" columns from the original dataset
         dataset = EvalDataset.from_list(
-            name=dataset.name, label=dataset.label, metrics=[Accuracy], data=expanded_items
+            name=dataset.name,
+            metrics=[Accuracy],
+            items=expanded_items,
+            input="input",
+            label="label",
         )
 
     # Step 2: Define the preprocessing function for AWS Bedrock Batch API
-    def preprocessor(eval_item: dict) -> list:
-        """Pre-process dataset items into AWS Bedrock Batch API format."""
-        prompt = eval_item["question"]
-
+    def preprocessor(input_value: str) -> list:
+        """Pre-process dataset inputs into AWS Bedrock Batch API format."""
         # Create the batch API request messages format for Bedrock
         messages = [
             {
                 "role": "system",
                 "content": "Answer the question directly and concisely as a single word",
             },
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": input_value},
         ]
 
         return messages
@@ -106,7 +112,7 @@ def main() -> None:
     print(f"Processing {len(dataset)} items using batch inference...")
     print("Note: Batch processing may take several minutes to complete.")
 
-    results = evaluate(inference_pipeline, dataset, score_type="all")
+    results = evaluate(inference_pipeline, dataset, return_items=True, return_output=True)
     print("\nBatch evaluation completed!")
     print(results)
 

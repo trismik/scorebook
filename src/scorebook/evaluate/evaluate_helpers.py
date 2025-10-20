@@ -172,15 +172,22 @@ def build_classic_eval_run_spec(
     hyperparameters: Dict[str, Any],
     hyperparameters_index: int,
 ) -> EvalRunSpec:
-    """Build EvalRunSpec objects for a classic dataset and hyperparameter combination."""
-    items = dataset.items
-    labels = [item.get(dataset.label) for item in items]
+    """Build EvalRunSpec objects for a classic dataset and hyperparameter combination.
+
+    Extracts input and label values from the appropriate columns in the dataset.
+    The column names are determined by dataset.input and dataset.label,
+    which may be original field names (e.g., "question", "answer") or computed
+    column names (e.g., "*input", "*label") if templates were used.
+    """
+    # Extract inputs and labels using the dataset's column specifications
+    inputs = dataset[dataset.input]  # Returns List[Any]
+    labels = dataset[dataset.label]  # Returns List[Any]
     eval_run_spec = EvalRunSpec(
         dataset,
         dataset_index,
         hyperparameters,
         hyperparameters_index,
-        items,
+        inputs,
         labels,
     )
     logger.debug("Built EvalRunSpec: %s", eval_run_spec)
@@ -292,7 +299,7 @@ def format_results(
             # Remove inference output if not requested
             if not return_output:
                 for item in item_scores:
-                    item.pop("inference_output", None)
+                    item.pop("output", None)
 
             results["item_results"] = item_scores
 

@@ -18,9 +18,9 @@ def create_async_inference_pipeline(expected_output: str = "1", delay: float = 0
     def preprocessor(item: Dict, hyperparameters: Dict = None) -> Dict:
         return item
 
-    async def async_inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
+    async def async_inference_function(inputs: List, **hyperparameters) -> List[str]:
         await asyncio.sleep(delay)  # Simulate async work
-        return [expected_output for _ in processed_items]
+        return [expected_output for _ in inputs]
 
     def postprocessor(output: str, hyperparameters: Dict = None) -> str:
         return output
@@ -39,8 +39,8 @@ def create_sync_inference_pipeline(expected_output: str = "1"):
     def preprocessor(item: Dict, hyperparameters: Dict = None) -> Dict:
         return item
 
-    def sync_inference_function(processed_items: List[Dict], **hyperparameters) -> List[str]:
-        return [expected_output for _ in processed_items]
+    def sync_inference_function(inputs: List, **hyperparameters) -> List[str]:
+        return [expected_output for _ in inputs]
 
     def postprocessor(output: str, hyperparameters: Dict = None) -> str:
         return output
@@ -58,7 +58,7 @@ def sample_dataset():
     """Create a sample dataset for testing."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     return EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="test_dataset"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
 
@@ -105,10 +105,10 @@ def test_evaluate_async_with_multiple_datasets():
     """Test evaluation with async inference function on multiple datasets."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset1 = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="dataset1"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="dataset1"
     )
     dataset2 = EvalDataset.from_csv(
-        dataset_path, label="label", metrics=[Accuracy], name="dataset2"
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="dataset2"
     )
 
     async_inference_fn = create_async_inference_pipeline("1")
@@ -151,14 +151,12 @@ def test_evaluate_async_with_item_limit(sample_dataset):
 def test_evaluate_async_different_outputs(sample_dataset):
     """Test async inference pipeline that returns different outputs."""
 
-    async def variable_async_inference_function(
-        processed_items: List[Dict], **hyperparameters
-    ) -> List[str]:
+    async def variable_async_inference_function(inputs: List, **hyperparameters) -> List[str]:
         await asyncio.sleep(0.001)
         # Return different outputs based on input text content
         results = []
-        for processed_item in processed_items:
-            if "input" in processed_item and "favorite" in str(processed_item["input"]).lower():
+        for input_val in inputs:
+            if "favorite" in str(input_val).lower():
                 results.append("1")
             else:
                 results.append("0")
@@ -211,7 +209,9 @@ def test_evaluate_async_performance():
     """Test that async inference functions can handle reasonable load."""
     # Create a larger dataset for performance testing
     data = [{"input": f"test_{i}", "label": str(i % 2)} for i in range(50)]
-    dataset = EvalDataset.from_list(name="perf_test", label="label", metrics=[Accuracy], data=data)
+    dataset = EvalDataset.from_list(
+        name="perf_test", metrics=[Accuracy], input="input", label="label", items=data
+    )
 
     async_inference_fn = create_async_inference_pipeline("1", delay=0.001)  # 1ms delay
 
@@ -240,9 +240,7 @@ async def test_async_inference_function_directly():
 def test_evaluate_with_failing_async_function(sample_dataset):
     """Test evaluation handles async pipelines that raise exceptions."""
 
-    async def failing_async_inference_function(
-        processed_items: List[Dict], **hyperparameters
-    ) -> List[str]:
+    async def failing_async_inference_function(inputs: List, **hyperparameters) -> List[str]:
         await asyncio.sleep(0.001)
         raise ValueError("Simulated async function failure")
 

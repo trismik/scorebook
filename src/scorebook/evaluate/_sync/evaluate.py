@@ -203,7 +203,7 @@ def execute_classic_eval_run(inference: Callable, run: EvalRunSpec) -> ClassicEv
 
     try:
         inference_outputs = run_inference_callable(
-            inference, run.dataset.items, run.hyperparameter_config
+            inference, run.inputs, run.hyperparameter_config
         )
         metric_scores = score_metrics(run.dataset, inference_outputs, run.labels)
         logger.debug("Classic evaluation completed for run %s", run)
@@ -216,13 +216,13 @@ def execute_classic_eval_run(inference: Callable, run: EvalRunSpec) -> ClassicEv
 
 def run_inference_callable(
     inference: Callable,
-    items: List[Dict[str, Any]],
+    inputs: List[Any],
     hyperparameter_config: Dict[str, Any],
 ) -> Any:
     """Run inference on a given dataset and hyperparameter configuration."""
 
     try:
-        predictions = inference(items, **hyperparameter_config)
+        predictions = inference(inputs, **hyperparameter_config)
     except Exception as e:
         logger.error(
             "Inference callable raised an exception: %s",
@@ -230,11 +230,11 @@ def run_inference_callable(
         )
         raise InferenceError(f"Inference failed: {str(e)}") from e
 
-    if not isinstance(predictions, list) or len(predictions) != len(items):
+    if not isinstance(predictions, list) or len(predictions) != len(inputs):
         raise InferenceError(
             "Inference callable must return a list of predictions "
-            "of shared length as the input items. "
-            f"Items length: {len(items)}, predictions length: {len(predictions)}"
+            "of shared length as the inputs. "
+            f"Inputs length: {len(inputs)}, predictions length: {len(predictions)}"
         )
 
     if all(prediction == "" for prediction in predictions):
@@ -291,10 +291,12 @@ def upload_classic_run_results(
     """
     model = get_model_name(inference_callable)
 
-    # Create eval items from run_spec items, outputs, and labels
+    # Create eval items from run_spec inputs, outputs, and labels
     items: List[TrismikClassicEvalItem] = []
-    for idx, (item, output) in enumerate(zip(run_result.run_spec.items, run_result.outputs)):
-        label = run_result.run_spec.labels[idx] if idx < len(run_result.run_spec.labels) else ""
+    inputs_outputs = zip(run_result.run_spec.inputs, run_result.outputs)
+    for idx, (input_value, output) in enumerate(inputs_outputs):
+        labels = run_result.run_spec.labels
+        label = labels[idx] if idx < len(labels) else ""
 
         # Calculate item-level metrics for this item
         item_metrics: Dict[str, Any] = {}
@@ -309,7 +311,7 @@ def upload_classic_run_results(
 
         eval_item = TrismikClassicEvalItem(
             datasetItemId=str(idx),
-            modelInput=str(item),
+            modelInput=str(input_value),
             modelOutput=str(output),
             goldOutput=str(label),
             metrics=item_metrics,

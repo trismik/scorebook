@@ -13,13 +13,13 @@ from scorebook.eval_datasets import EvalDataset
 from scorebook.evaluate import evaluate, evaluate_async
 from scorebook.inference.inference_pipeline import InferencePipeline
 from scorebook.trismik.credentials import login, whoami
-from scorebook.utils.build_prompt import build_prompt
+from scorebook.utils.render_template import render_template
 
 __all__ = [
     "EvalDataset",
     "evaluate",
     "evaluate_async",
-    "build_prompt",
+    "render_template",
     "login",
     "whoami",
     "InferencePipeline",
