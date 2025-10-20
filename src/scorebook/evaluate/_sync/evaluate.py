@@ -19,6 +19,7 @@ from scorebook.evaluate.evaluate_helpers import (
     make_trismik_inference,
     prepare_datasets,
     prepare_hyperparameter_configs,
+    resolve_show_progress,
     resolve_upload_results,
     score_metrics,
     validate_parameters,
@@ -50,6 +51,7 @@ def evaluate(
     return_output: bool = False,
     upload_results: Union[Literal["auto"], bool] = "auto",
     sample_size: Optional[int] = None,
+    show_progress: Optional[bool] = None,
 ) -> Union[Dict, List, EvalResult]:
     """
     Evaluate a model across a collection of hyperparameters and datasets.
@@ -67,6 +69,8 @@ def evaluate(
         return_output: If True, returns model outputs for each dataset item
         upload_results: If True, uploads results to Trismik's dashboard
         sample_size: Optional number of items to sample from each dataset
+        show_progress: If None, uses SHOW_PROGRESS_BARS from settings.
+            If True/False, explicitly enables/disables progress bars for this evaluation.
 
     Returns:
         The evaluation results in the format specified by return parameters:
@@ -75,6 +79,7 @@ def evaluate(
     """
     # Resolve and validate parameters
     upload_results = cast(bool, resolve_upload_results(upload_results))
+    show_progress_bars = resolve_show_progress(show_progress)
     validate_parameters(locals(), evaluate)
 
     # Prepare datasets, hyperparameters, and eval run specs
@@ -105,6 +110,7 @@ def evaluate(
             dataset_count=len(datasets),
             hyperparam_count=len(hyperparameter_configs),
             model_display=model_display,
+            enabled=show_progress_bars,
         ) as progress_bars:
             eval_result = execute_runs(
                 inference,
@@ -143,9 +149,10 @@ def execute_runs(
             inference, run, experiment_id, project_id, metadata, trismik_client
         )
         # Update progress bars with items processed and success status
-        items_processed = len(run.dataset.items)
-        succeeded = run_result.run_completed if hasattr(run_result, "run_completed") else True
-        progress_bars.on_run_completed(items_processed, succeeded)
+        if progress_bars is not None:
+            items_processed = len(run.dataset.items)
+            succeeded = run_result.run_completed if hasattr(run_result, "run_completed") else True
+            progress_bars.on_run_completed(items_processed, succeeded)
 
         if (
             upload_results

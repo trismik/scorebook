@@ -35,6 +35,22 @@ def resolve_upload_results(upload_results: Union[Literal["auto"], bool]) -> bool
     return upload_results
 
 
+def resolve_show_progress(show_progress: Optional[bool]) -> bool:
+    """Resolve whether to show progress bars.
+
+    Args:
+        show_progress: Explicit setting (None uses default from settings)
+
+    Returns:
+        bool: Whether to show progress bars
+    """
+    if show_progress is None:
+        from scorebook.settings import SHOW_PROGRESS_BARS
+
+        return bool(SHOW_PROGRESS_BARS)
+    return show_progress
+
+
 def validate_parameters(params: Dict[str, Any], caller: Callable[..., Any]) -> None:
     """Validate all parameters for evaluation."""
 

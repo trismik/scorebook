@@ -16,3 +16,6 @@ TRISMIK_ADAPTIVE_TESTING_URL = f"{TRISMIK_API_BASE_URL}/adaptive-testing"
 
 # Allow override via environment variable
 TRISMIK_SERVICE_URL = os.environ.get("TRISMIK_SERVICE_URL", TRISMIK_ADAPTIVE_TESTING_URL)
+
+# Progress bar configuration
+SHOW_PROGRESS_BARS = os.environ.get("SCOREBOOK_SHOW_PROGRESS_BARS", "true").lower() == "true"

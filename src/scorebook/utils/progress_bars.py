@@ -484,7 +484,8 @@ def evaluation_progress_context(
     dataset_count: int,
     hyperparam_count: int,
     model_display: str,
-) -> Generator[EvaluationProgressBars, None, None]:
+    enabled: bool = True,
+) -> Generator[Optional[EvaluationProgressBars], None, None]:
     """Context manager for evaluation progress bars.
 
     Args:
@@ -493,10 +494,15 @@ def evaluation_progress_context(
         dataset_count: Number of datasets included in the evaluation
         hyperparam_count: Number of hyperparameter configurations evaluated
         model_display: Human readable model/inference name for the header
+        enabled: Whether to show progress bars (default: True)
 
     Yields:
-        EvaluationProgressBars: Progress bar manager instance
+        Optional[EvaluationProgressBars]: Progress bar manager instance (None if disabled)
     """
+    if not enabled:
+        yield None
+        return
+
     config = EvaluationConfig(
         total_eval_runs=total_eval_runs,
         total_items=total_items,
