@@ -392,14 +392,6 @@ class EvaluationProgressBars:
         else:
             self.upload_failed_runs += 1
 
-    def on_upload_success(self) -> None:
-        """Update progress when an upload succeeds."""
-        self.uploaded_runs += 1
-
-    def on_upload_failed(self) -> None:
-        """Update progress when an upload fails."""
-        self.upload_failed_runs += 1
-
     def close_progress_bars(self) -> None:
         """Close all progress bars and cleanup resources."""
         self.spinner.stop()

@@ -151,7 +151,9 @@ async def execute_runs(
         # Update progress bars with items processed and success status
         if progress_bars is not None:
             items_processed = len(run.dataset.items)
-            succeeded = run_result.run_completed if hasattr(run_result, "run_completed") else True
+            succeeded = (
+                run_result.run_completed if isinstance(run_result, ClassicEvalRunResult) else True
+            )
             progress_bars.on_run_completed(items_processed, succeeded)
 
         if (
@@ -162,10 +164,18 @@ async def execute_runs(
             and run_result.run_completed
             and trismik_client is not None
         ):
-            run_id = await upload_classic_run_results(
-                run_result, experiment_id, project_id, inference, metadata, trismik_client
-            )
-            run_result.run_id = run_id
+            try:
+                run_id = await upload_classic_run_results(
+                    run_result, experiment_id, project_id, inference, metadata, trismik_client
+                )
+                run_result.run_id = run_id
+                if progress_bars is not None:
+                    progress_bars.on_upload_completed(succeeded=True)
+            except Exception as e:
+                logger.warning(f"Failed to upload run results: {e}")
+                if progress_bars is not None:
+                    progress_bars.on_upload_completed(succeeded=False)
+                # Continue evaluation even if upload fails
 
         return run_result
 
