@@ -1,4 +1,4 @@
-"""Eval Dataset implementation for scorebook."""
+"""Evaluation Dataset implementation for scorebook."""
 
 import csv
 import json
@@ -10,38 +10,40 @@ from datasets import Dataset as HuggingFaceDataset
 from datasets import DatasetDict as HuggingFaceDatasetDict
 from datasets import load_dataset
 
+from scorebook.exceptions import (
+    DatasetConfigurationError,
+    DatasetLoadError,
+    DatasetNotInitializedError,
+    DatasetParseError,
+    DatasetSampleError,
+    MissingFieldError,
+)
 from scorebook.metrics import MetricBase, MetricRegistry
 from scorebook.utils import render_template, validate_path
 
 
 class EvalDataset:
-    """Eval Dataset implementation for scorebook.
+    """Evaluation Dataset for model evaluation and scoring.
 
-    EvalDatasets wrap HuggingFace datasets and provide a consistent interface for
-    evaluation tasks. Each dataset must specify input and label columns, either
-    directly or via Jinja2 templates.
+    An evaluation dataset defines explicit input and label features.
+    During evaluation, each input is passed to the model,
+    and the resulting output is compared against the
+    corresponding label using the configured metrics.
 
-    Important: Column Naming Convention
-    ------------------------------------
-    When using templates (input_template/label_template), the computed columns are
-    named with a special prefix:
-    - input_template → creates column "*input"
-    - label_template → creates column "*label"
+    Do not instantiate directly. Use a factory constructor:
+        - from_list
+        - from_csv
+        - from_json
+        - from_huggingface
+        - from_yaml
 
-    Original columns are preserved alongside the computed columns. When debugging,
-    you may see these "*input" and "*label" column names in error messages or when
-    inspecting dataset.column_names or dataset.input/dataset.label attributes.
-
-    Example:
-        # Using templates
-        dataset = EvalDataset.from_huggingface(
-            path="squad",
-            input_template="{{ question }} Context: {{ context }}",
-            label="answers"
-        )
-        # dataset.input will be "*input" (computed column)
-        # dataset.label will be "answers" (direct field)
-        # Both "*input" and original "question", "context" columns exist
+    Attributes:
+        name: Human-readable dataset name.
+        metrics: List of MetricBase instances used for scoring.
+        input: Column name used as the model input.
+        label: Column name used as the ground-truth label.
+        input_template: Optional Jinja2 template that renders the input from item features.
+        label_template: Optional Jinja2 template that renders the label from item features.
     """
 
     def __init__(
@@ -54,51 +56,59 @@ class EvalDataset:
         input_template: Optional[str] = None,
         label_template: Optional[str] = None,
     ):
+        """Create a new scorebook evaluation dataset instance.
+
+        Args:
+            name: The name of the evaluation dataset.
+            metrics: The metrics used for scoring.
+            hf_dataset: Evaluation items.
+            input: Dataset feature containing input values.
+            label: Dataset feature containing label values.
+            input_template: Jinja2 template for input.
+            label_template: Jinja2 template for label.
+
+        Raises:
+            DatasetConfigurationError:
+                If both/neither of input and input_template,
+                or both/neither of label and label_template are provided.
+            MissingFieldError:
+                If the resolved input or label column is not present in the HF dataset.
         """
-        Create a new scorebook evaluation dataset instance.
 
-        All EvalDatasets must have the specified input and label columns,
-        but may contain any additional columns from the original data source.
-
-        :param name: The name of the evaluation dataset.
-        :param metrics: The specified metrics associated with the dataset.
-        :param hf_dataset: The dataset as a hugging face dataset object.
-        :param input: Field name for input (mutually exclusive with input_template).
-        :param label: Field name for label (mutually exclusive with label_template).
-        :param input_template: Jinja2 template for input (mutually exclusive with input).
-        :param label_template: Jinja2 template for label (mutually exclusive with label).
-
-        :raises ValueError: If validation fails.
-        """
-        # Validate mutual exclusivity for input
+        # Validate mutual exclusivity for input and input_template
         if (input is None) == (input_template is None):
-            raise ValueError(
+            raise DatasetConfigurationError(
                 "Exactly one of 'input' or 'input_template' must be provided, not both or neither."
             )
 
-        # Validate mutual exclusivity for label
+        # Validate mutual exclusivity for label and label_template
         if (label is None) == (label_template is None):
-            raise ValueError(
+            raise DatasetConfigurationError(
                 "Exactly one of 'label' or 'label_template' must be provided, not both or neither."
             )
 
-        # Determine column names to use
+        # Determine the feature to be used as inputs
         input_column: str = (
             "*input" if input_template is not None else input  # type: ignore[assignment]
         )
+
+        # Determine the feature to be used as labels
         label_column: str = (
             "*label" if label_template is not None else label  # type: ignore[assignment]
         )
 
         # Validate that dataset has the required columns
         column_names = list(hf_dataset.column_names)
-        required_columns = {input_column, label_column}
         actual_columns = set(column_names)
 
-        if not required_columns.issubset(actual_columns):
-            raise ValueError(
-                f"EvalDataset must have columns '{input_column}' and '{label_column}'. "
-                f"Got: {column_names}"
+        if input_column not in actual_columns:
+            raise MissingFieldError(
+                field_name=input_column, field_type="input", available_fields=column_names
+            )
+
+        if label_column not in actual_columns:
+            raise MissingFieldError(
+                field_name=label_column, field_type="label", available_fields=column_names
             )
 
         self.name: str = name
@@ -113,94 +123,67 @@ class EvalDataset:
         self.input_template: Optional[str] = input_template
         self.label_template: Optional[str] = label_template
 
-    def __len__(self) -> int:
-        """Return the number of items in the dataset."""
-        if self._hf_dataset is None:
-            raise ValueError("Dataset is not initialized")
-        return len(self._hf_dataset)
-
-    def __getitem__(self, key: Union[int, str]) -> Union[Dict[str, Any], List[Any]]:
-        """
-        Allow item access by index (int) or by column name (str).
-
-        - eval_dataset[i] returns the i-th example (dict).
-        - eval_dataset["feature"] returns a list of values for that feature.
-        """
-        if self._hf_dataset is None:
-            raise ValueError("Dataset is not initialized")
-        if isinstance(key, int):
-            return dict(self._hf_dataset[key])  # Ensure we return a Dict[str, Any]
-        elif isinstance(key, str):
-            return list(self._hf_dataset[key])  # Ensure we return a List[Any]
-        else:
-            raise TypeError(f"Invalid key type: {type(key)}. Must be int or str.")
-
-    def __str__(self) -> str:
-        """Return a formatted string summary of the evaluation dataset."""
-        if self._hf_dataset is None:
-            return f"EvalDataset(name='{self.name}', status='uninitialized')"
-
-        num_rows = len(self._hf_dataset)
-        fields = ", ".join(self.column_names)
-        metrics = ", ".join([metric.name for metric in self.metrics])
-
-        # Build template info string
-        template_info = []
-        if self.input_template:
-            template_preview = (
-                self.input_template[:40] + "..."
-                if len(self.input_template) > 40
-                else self.input_template
-            )
-            template_info.append(f"input_template='{template_preview}'")
-        if self.label_template:
-            template_preview = (
-                self.label_template[:40] + "..."
-                if len(self.label_template) > 40
-                else self.label_template
-            )
-            template_info.append(f"label_template='{template_preview}'")
-
-        template_str = ", " + ", ".join(template_info) if template_info else ""
-
-        return (
-            f"EvalDataset(\n"
-            f"  name='{self.name}',\n"
-            f"  rows={num_rows},\n"
-            f"  fields=[{fields}],\n"
-            f"  metrics=[{metrics}],\n"
-            f"  input='{self.input}',\n"
-            f"  label='{self.label}'{template_str}\n"
-            f")"
-        )
-
-    def __iter__(self) -> Iterator[Dict[str, Any]]:
-        """Return an iterator over all examples in the dataset."""
-        if self._hf_dataset is None:
-            raise ValueError("Dataset is not initialized")
-        return iter(self._hf_dataset)
-
-    def shuffle(self) -> None:
-        """Randomly shuffle the dataset items."""
-        if self._hf_dataset is None:
-            raise ValueError("Dataset is not initialized")
-        self._hf_dataset.shuffle()
-
     @property
     def items(self) -> List[Any]:
         """Return a list of all examples in the dataset."""
         if self._hf_dataset is None:
-            raise ValueError("Dataset is not initialized")
+            raise DatasetNotInitializedError("Dataset is not initialized")
         return list(self._hf_dataset)
 
     @property
     def column_names(self) -> List[str]:
         """Return a list of column/feature names available in the dataset."""
         if self._hf_dataset is None:
-            raise ValueError("Dataset is not initialized")
+            raise DatasetNotInitializedError("Dataset is not initialized")
         return list(map(str, self._hf_dataset.column_names))
 
-    # === EvalDataset Factory Methods ===
+    def shuffle(self) -> None:
+        """Randomly shuffle the dataset items."""
+        if self._hf_dataset is None:
+            raise DatasetNotInitializedError("Dataset is not initialized")
+        self._hf_dataset.shuffle()
+
+    def sample(self, sample_size: int) -> "EvalDataset":
+        """Create a new dataset with randomly sampled items from this dataset.
+
+        Args:
+            sample_size: The number of items to sample from the dataset.
+
+        Returns:
+            A new EvalDataset with randomly sampled items.
+
+        Raises:
+            DatasetSampleError: If the sample size is smaller than the dataset.
+        """
+
+        # Validate requested sample size against available items
+        dataset_size = len(self.items)
+        if sample_size > dataset_size:
+            raise DatasetSampleError(
+                sample_size=sample_size, dataset_size=dataset_size, dataset_name=self.name
+            )
+
+        # Create randomly sampled items
+        sampled_items = random.sample(self.items, sample_size)
+
+        # Create HuggingFace dataset from sampled items
+        sampled_hf_dataset = HuggingFaceDataset.from_list(sampled_items)
+
+        # # Preserve original input/label spec; omit field names when templates are used
+        input_param = None if self.input_template else self.input
+        label_param = None if self.label_template else self.label
+
+        return EvalDataset(
+            name=self.name,
+            metrics=self.metrics,
+            hf_dataset=sampled_hf_dataset,
+            input=input_param,
+            label=label_param,
+            input_template=self.input_template,
+            label_template=self.label_template,
+        )
+
+    # === Factory Methods ===
 
     @classmethod
     def from_list(
@@ -213,30 +196,35 @@ class EvalDataset:
     ) -> "EvalDataset":
         """Instantiate an EvalDataset from a list of dictionaries.
 
-        All original columns are preserved. Since from_list only supports direct
-        field extraction (no templates), the specified fields must exist in the data.
-
         Args:
             name: The name of the evaluation dataset.
             metrics: The specified metrics associated with the dataset.
             items: List of dictionaries containing the dataset examples.
             input: The field name containing the input data.
-            label: The field name containing the label (ground truth).
+            label: The field name containing the label.
 
         Returns:
-            A scorebook EvalDataset with all original columns preserved.
+            A scorebook EvalDataset.
 
         Raises:
-            KeyError: If input or label field is missing from the first item.
+            MissingFieldError: If the input or label feature is not present in the first item.
         """
-        # Validate that fields exist in the data
-        if items and items[0]:
-            if input not in items[0]:
-                raise KeyError(f"Input field '{input}' not found in data")
-            if label not in items[0]:
-                raise KeyError(f"Label field '{label}' not found in data")
 
-        # No transformation - use data as-is!
+        if items and items[0]:
+            available_fields = list(items[0].keys())
+
+            # Raise an error if the input feature is missing from the first item
+            if input not in items[0]:
+                raise MissingFieldError(
+                    field_name=input, field_type="input", available_fields=available_fields
+                )
+
+            # Raises an error if the label feature is missing from the first item
+            if label not in items[0]:
+                raise MissingFieldError(
+                    field_name=label, field_type="label", available_fields=available_fields
+                )
+
         return cls(
             name=name,
             metrics=metrics,
@@ -259,55 +247,53 @@ class EvalDataset:
         newline: str = "",
         **reader_kwargs: Any,
     ) -> "EvalDataset":
-        """Instantiate a scorebook dataset from a CSV file.
-
-        All original columns are preserved. Since from_csv only supports direct
-        field extraction (no templates), the specified fields must exist in the data.
+        """Instantiate an EvalDataset from a CSV file.
 
         Args:
             path: Path to the CSV file.
             metrics: The specified metrics associated with the dataset.
             input: The field name containing the input data.
-            label: The field name containing the label (ground truth).
-            name: Optional name for the eval dataset, if not provided, the path is used
+            label: The field name containing the label.
+            name: Optional name for the eval dataset, if not provided, the path is used.
             encoding: Encoding of the CSV file.
             newline: Newline character of the CSV file.
-            reader_kwargs: Dict of kwargs passed to `csv.DictReader`.
+            reader_kwargs: Dict of kwargs passed to csv.DictReader.
 
         Returns:
-            A scorebook EvalDataset with all original columns preserved.
+            A scorebook EvalDataset.
 
         Raises:
-            FileNotFoundError: If the file does not exist at the given path.
-            ValueError: If the CSV file cannot be parsed or is empty.
-            KeyError: If input or label field is missing from the first row.
+            DatasetParseError: If csv parsing fails.
+            DatasetLoadError: If the csv file does not contain evaluation items.
+            MissingFieldError: If the input or label feature is not present in the first item.
         """
         reader_kwargs = reader_kwargs or {}
         validated_path = validate_path(path, expected_suffix=".csv")
 
         try:
             with open(validated_path, encoding=encoding, newline=newline) as csvfile:
-                reader = csv.DictReader(csvfile, **reader_kwargs)
-                data = [row for row in reader]
+                items = list(csv.DictReader(csvfile, **reader_kwargs))
         except csv.Error as e:
-            raise ValueError(f"Failed to parse CSV file {path}: {e}") from e
+            raise DatasetParseError(f"Failed to parse CSV file {path}: {e}") from e
 
-        if not data:
-            raise ValueError(f"CSV file {path} is empty or contains only headers.")
+        if not items:
+            raise DatasetLoadError(f"CSV file {path} is empty or contains only headers.")
 
-        # Validate that fields exist
-        if data and data[0]:
-            if input not in data[0]:
-                raise KeyError(f"Input field '{input}' not found in CSV")
-            if label not in data[0]:
-                raise KeyError(f"Label field '{label}' not found in CSV")
+        available_fields = list(items[0].keys())
+        if input not in items[0]:
+            raise MissingFieldError(
+                field_name=input, field_type="input", available_fields=available_fields
+            )
+        if label not in items[0]:
+            raise MissingFieldError(
+                field_name=label, field_type="label", available_fields=available_fields
+            )
 
-        # No transformation - use data as-is!
         name = name if name else validated_path.stem
         return cls(
             name=name,
             metrics=metrics,
-            hf_dataset=HuggingFaceDataset.from_list(data),
+            hf_dataset=HuggingFaceDataset.from_list(items),
             input=input,
             label=label,
             input_template=None,
@@ -328,72 +314,82 @@ class EvalDataset:
 
         The JSON file must follow one of two supported formats:
 
-        1. **Flat format** – a list of dictionaries:
+        1. Flat format – a list of dictionaries:
             [
-                {"question": "What is 2+2?", "answer": "4"},
-                {"question": "Capital of France?", "answer": "Paris"}
+                {"input": ..., "output": ...},
+                {"input": ..., "output": ...},
             ]
 
-        2. **Split format** – a dictionary of named splits:
+        2. Split format – a dictionary of named splits:
             {
-                "train": [{"question": ..., "answer": ...}],
-                "test": [{"question": ..., "answer": ...}]
+                "train": [{"input": ..., "output": ...}],
+                "test": [{"input": ..., "output": ...}]
             }
-
-        All original columns are preserved. Since from_json only supports direct
-        field extraction (no templates), the specified fields must exist in the data.
 
         Args:
             path: Path to the JSON file on disk.
             metrics: The specified metrics associated with the dataset.
             input: The field name containing the input data.
-            label: The field name containing the label (ground truth).
+            label: The field name containing the label.
             name: Optional name for the eval dataset, if not provided, the path is used
             split: If the JSON uses a split structure, this is the split name to load.
 
         Returns:
-            A scorebook EvalDataset with all original columns preserved.
+            A Scorebook EvalDataset.
 
         Raises:
-            FileNotFoundError: If the file does not exist.
-            ValueError: If the JSON is invalid or the structure is unsupported.
-            KeyError: If input or label field is missing from the first item.
+            DatasetParseError: If JSON parsing fails.
+            DatasetConfigurationError: If an invalid split is provided.
+            MissingFieldError: If the input or label feature is not present in the first item.
         """
         validated_path = validate_path(path, expected_suffix=".json")
 
         try:
             with validated_path.open("r", encoding="utf-8") as f:
-                data = json.load(f)
+                json_data = json.load(f)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in {path}: {e}") from e
+            raise DatasetParseError(f"Invalid JSON in {path}: {e}") from e
 
-        if isinstance(data, dict):
+        if isinstance(json_data, dict):
+
             if split is None:
-                raise ValueError(f"Split name must be provided for split-style JSON: {path}")
-            split_data = data.get(split)
-            if split_data is None:
-                raise ValueError(f"Split '{split}' not found in JSON file: {path}")
-            if not isinstance(split_data, list):
-                raise ValueError(f"Split '{split}' is not a list of examples in: {path}")
-            raw_data = split_data
-        elif isinstance(data, list):
-            raw_data = data
+                raise DatasetConfigurationError(
+                    f"Split name must be provided for split-style JSON: {path}"
+                )
+
+            items = json_data.get(split)
+            if items is None:
+                raise DatasetConfigurationError(f"Split '{split}' not found in JSON file: {path}")
+            if not isinstance(items, list):
+                raise DatasetConfigurationError(
+                    f"Split '{split}' is not a list of examples in: {path}"
+                )
+
+        elif isinstance(json_data, list):
+            items = json_data
+
         else:
-            raise ValueError(f"Unsupported JSON structure in {path}. Expected list or dict.")
+            raise DatasetConfigurationError(
+                f"Unsupported JSON structure in {path}. Expected list or dict."
+            )
 
         # Validate that fields exist
-        if raw_data and raw_data[0]:
-            if input not in raw_data[0]:
-                raise KeyError(f"Input field '{input}' not found in JSON")
-            if label not in raw_data[0]:
-                raise KeyError(f"Label field '{label}' not found in JSON")
+        if items and items[0]:
+            available_fields = list(items[0].keys())
+            if input not in items[0]:
+                raise MissingFieldError(
+                    field_name=input, field_type="input", available_fields=available_fields
+                )
+            if label not in items[0]:
+                raise MissingFieldError(
+                    field_name=label, field_type="label", available_fields=available_fields
+                )
 
-        # No transformation - use data as-is!
         name = name if name else validated_path.stem
         return cls(
             name=name,
             metrics=metrics,
-            hf_dataset=HuggingFaceDataset.from_list(raw_data),
+            hf_dataset=HuggingFaceDataset.from_list(items),
             input=input,
             label=label,
             input_template=None,
@@ -420,38 +416,46 @@ class EvalDataset:
         is split into multiple subsets (i.e., a DatasetDict), it defaults to loading the "test"
         split.
 
-        For datasets where the input/label is already in a single column, use the `input`/`label`
-        parameters to specify the column names. For datasets where the input/label needs to be
-        constructed from multiple columns, use the `input_template`/`label_template` parameters
+        For datasets where the input/label is already in a single column, use the input/label
+        parameters to specify the feature names. For datasets where the input/label needs to be
+        constructed from multiple columns, use the input_template/label_template parameters
         with Jinja2 template strings.
 
         Args:
             path: The path of the dataset on the Hugging Face Hub.
             metrics: The specified metrics associated with the dataset.
             input: Field name containing the input data (mutually exclusive with input_template).
-            input_template: Jinja2 template to construct input from multiple fields
-                          (mutually exclusive with input).
-            label: Field name containing the label (mutually exclusive with label_template).
-            label_template: Jinja2 template to construct label from multiple fields
-                          (mutually exclusive with label).
+            input_template:
+                Jinja2 template to construct input from multiple fields
+                (mutually exclusive with input).
+            label: Field name containing the label
+                (mutually exclusive with label_template).
+            label_template:
+                Jinja2 template to construct label from multiple fields
+                (mutually exclusive with label).
             name: Optional name for the eval dataset, by default HF "path:split:config" is used.
             split: Optional name of the split to load.
             config: Optional dataset configuration name.
 
         Returns:
-            An EvalDataset with 'input' and 'label' columns.
+            A Scorebook EvalDataset.
 
         Raises:
-            ValueError: If the dataset cannot be loaded, parameters are invalid, or the
-                       expected split is missing.
+            DatasetConfigurationError:
+                If both/neither of input and input_template,
+                or both/neither of label and label_template are provided.
+            DatasetLoadError: If HF dataset cannot be loaded.
         """
-        # Validate mutually exclusive parameters
+
+        # Validate mutual exclusivity for input and input_template
         if (input is None) == (input_template is None):
-            raise ValueError(
+            raise DatasetConfigurationError(
                 "Exactly one of 'input' or 'input_template' must be provided, not both or neither."
             )
+
+        # Validate mutual exclusivity for label and label_template
         if (label is None) == (label_template is None):
-            raise ValueError(
+            raise DatasetConfigurationError(
                 "Exactly one of 'label' or 'label_template' must be provided, not both or neither."
             )
 
@@ -465,7 +469,7 @@ class EvalDataset:
                 )
             ds = load_dataset(path, **kwargs)
         except Exception as e:
-            raise ValueError(f"Failed to load dataset '{path}' from Hugging Face: {e}") from e
+            raise DatasetLoadError(f"Failed to load dataset '{path}' from Hugging Face: {e}") from e
 
         if isinstance(ds, HuggingFaceDataset):
             hf_dataset = ds
@@ -473,11 +477,11 @@ class EvalDataset:
             if "test" in ds:
                 hf_dataset = ds["test"]
             else:
-                raise ValueError(
+                raise DatasetConfigurationError(
                     f"Split not specified and no 'test' split found in dataset '{path}'."
                 )
         else:
-            raise ValueError(f"Unexpected dataset type for '{path}': {type(ds)}")
+            raise DatasetConfigurationError(f"Unexpected dataset type for '{path}': {type(ds)}")
 
         # Only transform if templates are used
         if input_template is not None or label_template is not None:
@@ -497,10 +501,9 @@ class EvalDataset:
 
                 return result
 
-            # Apply transformation - DON'T remove any columns
             transformed_dataset = hf_dataset.map(transform_row)
         else:
-            # No templates - use dataset as-is (optimization!)
+
             transformed_dataset = hf_dataset
 
         dataset_name = name if name else ":".join(filter(None, [path, split, config]))
@@ -516,7 +519,7 @@ class EvalDataset:
 
     @classmethod
     def from_yaml(cls, path: str) -> "EvalDataset":
-        r"""Instantiate an EvalDataset from a YAML file.
+        r"""Instantiate an EvalDataset from Huggingface with a YAML Config file.
 
         The YAML file should contain configuration for loading a dataset from Hugging Face.
 
@@ -525,24 +528,31 @@ class EvalDataset:
         - name: Name for the evaluation dataset
         - metrics: List of metrics to evaluate
 
-        Input/Label specification (mutually exclusive options):
-        - Direct field names:
+        The input / label features must be specified / constructed by one of the following:
+
+        1. Feature Specification:
             input: "question"
             label: "answer"
-        - Templates for constructing from multiple fields:
+
+        2. Mapping Templates:
             templates:
               input: "{{ question }}\nOptions: {{ options }}"
               label: "{{ answer }}"
 
         Optional fields:
-        - split: Dataset split to load (e.g., "test")
-        - config: Dataset configuration name
+        - split: Dataset split to load.
+        - config: Dataset configuration name.
+        - metadata: Any additional metadata.
+
+        Args:
+            path: The path of YAML configuration file.
 
         Returns:
-            An EvalDataset instance configured according to the YAML file.
+            An EvalDataset.
 
         Raises:
-            ValueError: If the YAML file is invalid or missing required fields.
+            DatasetParseError: If YAML configuration file cannot be parsed.
+            DatasetConfigurationError: Invalid YAML configuration file.
         """
         validated_path = validate_path(path, expected_suffix=(".yaml", ".yml"))
 
@@ -550,15 +560,17 @@ class EvalDataset:
             with validated_path.open("r", encoding="utf-8") as f:
                 yaml_config = yaml.safe_load(f)
         except yaml.YAMLError as e:
-            raise ValueError(f"Invalid YAML in {path}: {e}") from e
+            raise DatasetParseError(f"Invalid YAML in {path}: {e}") from e
 
         # Validate required fields
         required_fields = ["path", "name", "metrics"]
         missing_fields = [field for field in required_fields if field not in yaml_config]
         if missing_fields:
-            raise ValueError(f"Missing required fields in YAML config: {', '.join(missing_fields)}")
+            raise DatasetConfigurationError(
+                f"Missing required fields in YAML config: {', '.join(missing_fields)}"
+            )
 
-        # Validate metrics exist before calling from_huggingface (fail fast)
+        # Validate metrics exist before calling from_huggingface
         metrics_to_validate = yaml_config["metrics"]
         if not isinstance(metrics_to_validate, list):
             metrics_to_validate = [metrics_to_validate]
@@ -567,7 +579,7 @@ class EvalDataset:
             try:
                 MetricRegistry.get(metric)
             except Exception as e:
-                raise ValueError(f"Invalid metric '{metric}' in YAML config: {e}")
+                raise DatasetConfigurationError(f"Invalid metric '{metric}' in YAML config: {e}")
 
         # Determine input/label specification
         has_templates = "templates" in yaml_config
@@ -578,11 +590,13 @@ class EvalDataset:
         if has_templates:
             templates = yaml_config["templates"]
             if not isinstance(templates, dict):
-                raise ValueError("'templates' must be a dictionary")
+                raise DatasetConfigurationError("'templates' must be a dictionary")
             if "input" not in templates or "label" not in templates:
-                raise ValueError("'templates' must contain both 'input' and 'label' keys")
+                raise DatasetConfigurationError(
+                    "'templates' must contain both 'input' and 'label' keys"
+                )
             if has_direct_input or has_direct_label:
-                raise ValueError(
+                raise DatasetConfigurationError(
                     "Cannot specify both 'templates' and direct 'input'/'label' fields"
                 )
             input_template = templates["input"]
@@ -591,7 +605,7 @@ class EvalDataset:
             label_field = None
         else:
             if not has_direct_input or not has_direct_label:
-                raise ValueError(
+                raise DatasetConfigurationError(
                     "Must specify either 'templates' or both 'input' and 'label' fields"
                 )
             input_field = yaml_config["input"]
@@ -612,17 +626,16 @@ class EvalDataset:
             config=yaml_config.get("config"),
         )
 
+    # === Helper Methods ===
+
     @staticmethod
     def _resolve_metrics(
         metrics: Union[
             str, Type[MetricBase], MetricBase, List[Union[str, Type[MetricBase], MetricBase]]
         ]
     ) -> List[MetricBase]:
-        """
-        Convert metric names/classes into a list of MetricBase instances using MetricRegistry.
+        """Normalize metrics params to a metric type."""
 
-        Used to normalize metrics to a metric type.
-        """
         if not isinstance(metrics, list):
             metrics = [metrics]
 
@@ -635,57 +648,72 @@ class EvalDataset:
 
         return resolved
 
-    def sample(self, sample_size: int) -> "EvalDataset":
-        """Create a new dataset with randomly sampled items from this dataset.
+    # === Dunder Methods ===
 
-        Preserves all columns and the input/label specifications from the
-        original dataset.
+    def __len__(self) -> int:
+        """Return the number of items in the dataset."""
+        if self._hf_dataset is None:
+            raise DatasetNotInitializedError("Dataset is not initialized")
+        return len(self._hf_dataset)
 
-        Args:
-            sample_size: The number of items to sample from the dataset
-
-        Returns:
-            A new EvalDataset with randomly sampled items
-
-        Raises:
-            ValueError: If sample_size is larger than the dataset size
+    def __getitem__(self, key: Union[int, str]) -> Union[Dict[str, Any], List[Any]]:
         """
-        dataset_size = len(self.items)
+        Allow item access by index (int) or by column name (str).
 
-        if sample_size > dataset_size:
-            raise ValueError(
-                f"Sample size {sample_size} is larger than dataset size {dataset_size} "
-                f"for dataset '{self.name}'"
+        - eval_dataset[i] returns the i-th example (dict).
+        - eval_dataset["feature"] returns a list of values for that feature.
+        """
+        if self._hf_dataset is None:
+            raise DatasetNotInitializedError("Dataset is not initialized")
+        if isinstance(key, int):
+            return dict(self._hf_dataset[key])  # Ensure we return a Dict[str, Any]
+        elif isinstance(key, str):
+            return list(self._hf_dataset[key])  # Ensure we return a List[Any]
+        else:
+            raise TypeError(f"Invalid key type: {type(key)}. Must be int or str.")
+
+    def __iter__(self) -> Iterator[Dict[str, Any]]:
+        """Return an iterator over all examples in the dataset."""
+        if self._hf_dataset is None:
+            raise DatasetNotInitializedError("Dataset is not initialized")
+        return iter(self._hf_dataset)
+
+    def __str__(self) -> str:
+        """Return a formatted string summary of the evaluation dataset."""
+        if self._hf_dataset is None:
+            return f"EvalDataset(name='{self.name}', status='uninitialized')"
+
+        num_rows = len(self._hf_dataset)
+        fields = ", ".join(self.column_names)
+        metrics = ", ".join([metric.name for metric in self.metrics])
+
+        # Build template info string
+        template_info = []
+        if self.input_template:
+            template_preview = (
+                self.input_template[:40] + "..."
+                if len(self.input_template) > 40
+                else self.input_template
             )
+            template_info.append(f"input_template='{template_preview}'")
 
-        # Create randomly sampled items
-        sampled_items = random.sample(self.items, sample_size)
+        if self.label_template:
+            template_preview = (
+                self.label_template[:40] + "..."
+                if len(self.label_template) > 40
+                else self.label_template
+            )
+            template_info.append(f"label_template='{template_preview}'")
 
-        # Create HuggingFace dataset from sampled items
-        sampled_hf_dataset = HuggingFaceDataset.from_list(sampled_items)
+        template_str = ", " + ", ".join(template_info) if template_info else ""
 
-        # Determine which parameters to pass based on what we have
-        # If we have templates, the column is "*input" or "*label"
-        # So we pass None for input/label field names
-        if self.input_template is not None:
-            input_param = None
-        else:
-            input_param = self.input
-
-        if self.label_template is not None:
-            label_param = None
-        else:
-            label_param = self.label
-
-        # Create new EvalDataset with same specifications as original
-        sampled_dataset = EvalDataset(
-            name=self.name,
-            metrics=self.metrics,
-            hf_dataset=sampled_hf_dataset,
-            input=input_param,
-            label=label_param,
-            input_template=self.input_template,
-            label_template=self.label_template,
+        return (
+            f"EvalDataset(\n"
+            f"  name='{self.name}',\n"
+            f"  rows={num_rows},\n"
+            f"  fields=[{fields}],\n"
+            f"  metrics=[{metrics}],\n"
+            f"  input='{self.input}',\n"
+            f"  label='{self.label}'{template_str}\n"
+            f")"
         )
-
-        return sampled_dataset

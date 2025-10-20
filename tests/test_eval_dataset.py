@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from scorebook import EvalDataset
+from scorebook.exceptions import DatasetConfigurationError, DatasetParseError
 from scorebook.metrics import Precision
 
 
@@ -69,7 +70,7 @@ def test_nonexistent_files():
 
 def test_invalid_split():
     json_dataset_path = Path(__file__).parent / "data" / "DatasetDict.json"
-    with pytest.raises(ValueError):
+    with pytest.raises(DatasetConfigurationError):
         EvalDataset.from_json(
             str(json_dataset_path), metrics=Precision, input="input", label="label", split="testing"
         )
@@ -116,8 +117,8 @@ split: "test"
     yaml_path = tmp_path / "invalid_config.yaml"
     yaml_path.write_text(yaml_content)
 
-    # Test that loading raises ValueError
-    with pytest.raises(ValueError):
+    # Test that loading raises DatasetConfigurationError
+    with pytest.raises(DatasetConfigurationError):
         EvalDataset.from_yaml(str(yaml_path))
 
 
@@ -133,6 +134,6 @@ metrics: [
     yaml_path = tmp_path / "invalid_syntax.yaml"
     yaml_path.write_text(yaml_content)
 
-    # Test that loading raises ValueError
-    with pytest.raises(ValueError):
+    # Test that loading raises DatasetParseError
+    with pytest.raises(DatasetParseError):
         EvalDataset.from_yaml(str(yaml_path))
