@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from itertools import cycle
 from typing import Callable, Generator, Optional
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 # ANSI Color codes
 RESET = "\033[0m"
