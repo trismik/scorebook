@@ -84,6 +84,10 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "class"
+markers = [
+    "unit: Unit tests that use mocks and don't require external dependencies",
+    "integration: Integration tests that may require network access or external services",
+]
 
 [tool.black]
 line-length = 100
