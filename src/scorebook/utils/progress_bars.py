@@ -1,5 +1,6 @@
 """Progress bar utilities for evaluation tracking."""
 
+import re
 import shutil
 import threading
 import time
@@ -45,6 +46,9 @@ SPINNER_FRAMES = ["⠋", "⠙", "⠚", "⠞", "⠖", "⠦", "⠴", "⠲", "⠳",
 # Progress bar labels
 EVALUATIONS_LABEL = "Evaluations"
 ITEMS_LABEL = "Items"
+
+# Compiled regex pattern for ANSI escape codes (used for calculating visual length)
+_ANSI_ESCAPE_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
 @dataclass
@@ -171,10 +175,7 @@ class ProgressBarFormatter:
         # Calculate visual length (without ANSI codes) for proper spacing
         def visual_length(text: str) -> int:
             """Calculate the visual length of text, excluding ANSI escape codes."""
-            import re
-
-            ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-            return len(ansi_escape.sub("", text))
+            return len(_ANSI_ESCAPE_PATTERN.sub("", text))
 
         term_width = shutil.get_terminal_size(fallback=TERMINAL_FALLBACK_SIZE).columns
         left_visual_length = visual_length(left_section)
