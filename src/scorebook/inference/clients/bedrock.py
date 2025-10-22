@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
-from tqdm.asyncio import tqdm
+from tqdm.auto import tqdm
 
 
 async def batch(

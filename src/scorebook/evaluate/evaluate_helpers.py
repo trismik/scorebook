@@ -279,7 +279,7 @@ def create_trismik_sync_client() -> TrismikClient:
 def get_model_name(
     inference_callable: Optional[Callable] = None, metadata: Optional[Dict[str, Any]] = None
 ) -> str:
-    """Determine a model's name with the fallback "unspecified"."""
+    """Determine a model's name with the fallback "Model"."""
 
     # First priority: metadata.model
     if metadata and "model" in metadata:
@@ -289,8 +289,8 @@ def get_model_name(
     if inference_callable and hasattr(inference_callable, "model"):
         return str(inference_callable.model)
 
-    # Fallback: "unspecified"
-    return "unspecified"
+    # Fallback: "Model"
+    return "Model"
 
 
 def format_results(

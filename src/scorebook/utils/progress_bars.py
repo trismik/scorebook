@@ -7,23 +7,86 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from itertools import cycle
-from typing import Callable, Generator, Optional
+from typing import Callable, Generator, Optional, cast
 
 from tqdm.auto import tqdm
 
-# ANSI Color codes
-RESET = "\033[0m"
-GREEN = "\033[32m"
-RED = "\033[31m"
-LIGHT_GREEN = "\033[92m"  # Lighter green for upload stats
-LIGHT_RED = "\033[91m"  # Lighter red for upload failure stats
 
-# Blue shimmer colors for sweep effect
-BLUE_BASE = "\033[34m"  # Standard blue (base color)
-BLUE_HIGHLIGHT = "\033[1;34m"  # Bright blue (subtle highlight for sweep)
-SHIMMER_WIDTH = 3  # Number of characters in the highlight sweep
+def _is_notebook() -> bool:
+    """Detect if code is running in a Jupyter notebook environment."""
+    try:
+        shell = get_ipython().__class__.__name__  # type: ignore[name-defined]
+        if shell == "ZMQInteractiveShell":
+            return True  # Jupyter notebook or qtconsole
+        return False
+    except NameError:
+        return False  # Standard Python interpreter
 
-# Spinner blue shimmer colors (cycle through these for spinner frames)
+
+# Detect environment once at module load
+_IS_NOTEBOOK = _is_notebook()
+
+# Color codes - ANSI for terminals, plain text for notebooks
+if _IS_NOTEBOOK:
+    # No colors in notebooks - just return plain text
+    RESET = ""
+
+    def GREEN(text: str) -> str:
+        """Return text without color formatting (notebook mode)."""
+        return text
+
+    def RED(text: str) -> str:
+        """Return text without color formatting (notebook mode)."""
+        return text
+
+    def LIGHT_GREEN(text: str) -> str:
+        """Return text without color formatting (notebook mode)."""
+        return text
+
+    def LIGHT_RED(text: str) -> str:
+        """Return text without color formatting (notebook mode)."""
+        return text
+
+    def BLUE_BASE(text: str) -> str:
+        """Return text without color formatting (notebook mode)."""
+        return text
+
+    def BLUE_HIGHLIGHT(text: str) -> str:
+        """Return text without color formatting (notebook mode)."""
+        return text
+
+else:
+    # ANSI colors for terminals
+    RESET = "\033[0m"
+
+    def GREEN(text: str) -> str:
+        """Return text with green ANSI color codes."""
+        return f"\033[32m{text}\033[0m"
+
+    def RED(text: str) -> str:
+        """Return text with red ANSI color codes."""
+        return f"\033[31m{text}\033[0m"
+
+    def LIGHT_GREEN(text: str) -> str:
+        """Return text with light green ANSI color codes."""
+        return f"\033[92m{text}\033[0m"
+
+    def LIGHT_RED(text: str) -> str:
+        """Return text with light red ANSI color codes."""
+        return f"\033[91m{text}\033[0m"
+
+    def BLUE_BASE(text: str) -> str:
+        """Return text with blue ANSI color codes."""
+        return f"\033[34m{text}\033[0m"
+
+    def BLUE_HIGHLIGHT(text: str) -> str:
+        """Return text with bright blue ANSI color codes."""
+        return f"\033[1;34m{text}\033[0m"
+
+
+SHIMMER_WIDTH = 3
+
+# Spinner blue shimmer colors for terminals
 SPINNER_BLUE_COLORS = [
     "\033[34m",  # Standard blue
     "\033[1;34m",  # Bright blue
@@ -147,20 +210,20 @@ class ProgressBarFormatter:
         """Build the run status section with plain and colored versions."""
         # Build base run statistics
         run_parts = [f"RUNS PASSED: {completed_runs}"]
-        colored_run_parts = [f"{GREEN}RUNS PASSED: {completed_runs}{RESET}"]
+        colored_run_parts = [GREEN(f"RUNS PASSED: {completed_runs}")]
 
         if failed_runs > 0:
             run_parts.append(f"RUNS FAILED: {failed_runs}")
-            colored_run_parts.append(f"{RED}RUNS FAILED: {failed_runs}{RESET}")
+            colored_run_parts.append(RED(f"RUNS FAILED: {failed_runs}"))
 
         # Add upload statistics if any uploads have occurred
         if uploaded_runs > 0 or upload_failed_runs > 0:
             run_parts.append(f"RUNS UPLOADED: {uploaded_runs}")
-            colored_run_parts.append(f"{LIGHT_GREEN}RUNS UPLOADED: {uploaded_runs}{RESET}")
+            colored_run_parts.append(LIGHT_GREEN(f"RUNS UPLOADED: {uploaded_runs}"))
 
             if upload_failed_runs > 0:
                 run_parts.append(f"UPLOADS FAILED: {upload_failed_runs}")
-                colored_run_parts.append(f"{LIGHT_RED}UPLOADS FAILED: {upload_failed_runs}{RESET}")
+                colored_run_parts.append(LIGHT_RED(f"UPLOADS FAILED: {upload_failed_runs}"))
 
         plain = f"[{', '.join(run_parts)}]"
         colored = f"[{', '.join(colored_run_parts)}]"
@@ -179,7 +242,7 @@ class ProgressBarFormatter:
 
         term_width = shutil.get_terminal_size(fallback=TERMINAL_FALLBACK_SIZE).columns
         left_visual_length = visual_length(left_section)
-        right_visual_length = len(plain_right)  # plain_right has no ANSI codes
+        right_visual_length = len(plain_right)  # plain_right has no ANSI codes or HTML
 
         spacing = term_width - left_visual_length - right_visual_length
         spacing = max(spacing, MINIMUM_HEADER_SPACING)
@@ -229,10 +292,16 @@ class SpinnerManager:
         self._thread = None
 
     def get_initial_frame(self) -> str:
-        """Get the first spinner frame with blue shimmer effect."""
+        """Get the first spinner frame with blue shimmer effect (terminals only)."""
         if not self._frames:
             return ""
         frame = self._frames[0]
+
+        # Return plain frame for notebooks (no ANSI colors)
+        if _IS_NOTEBOOK:
+            return frame
+
+        # Add color codes for terminals
         color = SPINNER_BLUE_COLORS[self._spinner_color_index % len(SPINNER_BLUE_COLORS)]
         return f"{color}{frame}{RESET}"
 
@@ -241,11 +310,17 @@ class SpinnerManager:
         return " " * self.frame_width
 
     def get_next_spinner_frame(self) -> str:
-        """Get the next spinner frame with blue shimmer effect."""
+        """Get the next spinner frame with blue shimmer effect (terminals only)."""
         if not self._frames or not self._cycle:
             return ""
 
-        frame = next(self._cycle)
+        frame = cast(str, next(self._cycle))
+
+        # Return plain frame for notebooks (no ANSI colors)
+        if _IS_NOTEBOOK:
+            return frame
+
+        # Add color codes for terminals
         color = SPINNER_BLUE_COLORS[self._spinner_color_index % len(SPINNER_BLUE_COLORS)]
         self._spinner_color_index += 1
         return f"{color}{frame}{RESET}"
@@ -270,7 +345,7 @@ class SpinnerManager:
                 ):
                     highlight_chars += text[i]
                     i += 1
-                result += f"{BLUE_HIGHLIGHT}{highlight_chars}{RESET}"
+                result += BLUE_HIGHLIGHT(highlight_chars)
             else:
                 # Start base segment
                 base_chars = ""
@@ -279,7 +354,7 @@ class SpinnerManager:
                 ):
                     base_chars += text[i]
                     i += 1
-                result += f"{BLUE_BASE}{base_chars}{RESET}"
+                result += BLUE_BASE(base_chars)
 
         # Advance shimmer position for next call
         self._shimmer_position += 1
@@ -321,55 +396,71 @@ class EvaluationProgressBars:
         self.uploaded_runs = 0
         self.upload_failed_runs = 0
         self._start_time: Optional[float] = None
+        self._notebook_spinner_index = 0  # For notebook spinner animation
 
     def start_progress_bars(self) -> None:
         """Start the evaluation progress bars."""
         self._start_time = time.monotonic()
 
-        # Initialize header bar with spinner
-        initial_frame = self.spinner.get_initial_frame()
-        evaluating_text = f"Evaluating {self.config.model_display}"
-        initial_shimmer = self.spinner.get_shimmer_text(evaluating_text)
-        header_desc = self.formatter.format_header(initial_frame, 0.0, 0, 0, 0, 0, initial_shimmer)
-        self._header_bar = tqdm(
-            total=0,
-            desc=header_desc,
-            position=0,
-            leave=True,
-            dynamic_ncols=True,
-            bar_format=HEADER_FORMAT,
-        )
+        if _IS_NOTEBOOK:
+            # Simplified notebook version - just one progress bar for evaluation runs
+            spinner_frame = SPINNER_FRAMES[0] if SPINNER_FRAMES else ""
+            desc = (
+                f"{spinner_frame} Evaluating {self.config.model_display} | "
+                f"{self.config.dataset_count} {self.config.dataset_label} | "
+                f"{self.config.hyperparam_count} {self.config.hyperparam_label}"
+            )
+            self._evaluations_bar = tqdm(
+                total=self.config.total_eval_runs,
+                desc=desc,
+                unit="run",
+                leave=False,
+                bar_format="{desc} | {n}/{total} Runs {percentage:3.0f}%|{bar}|",
+            )
+            # Start spinner animation for notebooks
+            self.spinner.start(self._update_notebook_spinner)
+        else:
+            # Full terminal version with header, spinner, and multiple bars
+            initial_frame = self.spinner.get_initial_frame()
+            evaluating_text = f"Evaluating {self.config.model_display}"
+            initial_shimmer = self.spinner.get_shimmer_text(evaluating_text)
+            header_desc = self.formatter.format_header(
+                initial_frame, 0.0, 0, 0, 0, 0, initial_shimmer
+            )
+            self._header_bar = tqdm(
+                total=0,
+                desc=header_desc,
+                leave=False,
+                dynamic_ncols=True,
+                bar_format=HEADER_FORMAT,
+            )
 
-        # Initialize evaluations progress bar
-        eval_desc = self.formatter.format_progress_description(
-            EVALUATIONS_LABEL, 0, self.config.total_eval_runs
-        )
-        self._evaluations_bar = tqdm(
-            total=self.config.total_eval_runs,
-            desc=eval_desc,
-            unit="run",
-            position=1,
-            leave=True,
-            dynamic_ncols=True,
-            bar_format=PROGRESS_BAR_FORMAT,
-        )
+            eval_desc = self.formatter.format_progress_description(
+                EVALUATIONS_LABEL, 0, self.config.total_eval_runs
+            )
+            self._evaluations_bar = tqdm(
+                total=self.config.total_eval_runs,
+                desc=eval_desc,
+                unit="run",
+                leave=False,
+                dynamic_ncols=True,
+                bar_format=PROGRESS_BAR_FORMAT,
+            )
 
-        # Initialize items progress bar
-        items_desc = self.formatter.format_progress_description(
-            ITEMS_LABEL, 0, self.config.total_items
-        )
-        self._items_bar = tqdm(
-            total=self.config.total_items,
-            desc=items_desc,
-            unit="item",
-            position=2,
-            leave=False,
-            dynamic_ncols=True,
-            bar_format=PROGRESS_BAR_FORMAT,
-        )
+            items_desc = self.formatter.format_progress_description(
+                ITEMS_LABEL, 0, self.config.total_items
+            )
+            self._items_bar = tqdm(
+                total=self.config.total_items,
+                desc=items_desc,
+                unit="item",
+                leave=False,
+                dynamic_ncols=True,
+                bar_format=PROGRESS_BAR_FORMAT,
+            )
 
-        self._refresh_progress_descriptions()
-        self.spinner.start(self._update_header_spinner)
+            self._refresh_progress_descriptions()
+            self.spinner.start(self._update_header_spinner)
 
     def on_run_completed(self, items_processed: int, succeeded: bool) -> None:
         """Update progress when an evaluation run completes."""
@@ -410,8 +501,15 @@ class EvaluationProgressBars:
 
         self._start_time = None
 
+        # Print summary after clearing progress bars
+        self._print_summary()
+
     def _refresh_progress_descriptions(self) -> None:
         """Refresh progress bar descriptions to maintain alignment as counts change."""
+        # Skip refresh in notebooks (spinner handles description updates)
+        if _IS_NOTEBOOK:
+            return
+
         if self._evaluations_bar is not None:
             eval_desc = self.formatter.format_progress_description(
                 EVALUATIONS_LABEL,
@@ -434,8 +532,19 @@ class EvaluationProgressBars:
         if self._items_bar is not None:
             self._items_bar.refresh()
 
+    def _update_notebook_spinner(self, frame: str) -> None:
+        """Update the notebook progress bar spinner (notebooks only)."""
+        if self._evaluations_bar is not None:
+            desc = (
+                f"{frame} Evaluating {self.config.model_display} | "
+                f"{self.config.dataset_count} {self.config.dataset_label} | "
+                f"{self.config.hyperparam_count} {self.config.hyperparam_label}"
+            )
+            self._evaluations_bar.set_description_str(desc, refresh=False)
+            self._evaluations_bar.refresh()
+
     def _update_header_spinner(self, frame: str) -> None:
-        """Update the header with a new spinner frame."""
+        """Update the header with a new spinner frame (terminals only)."""
         if self._header_bar is not None and self._start_time is not None:
             elapsed = time.monotonic() - self._start_time
             evaluating_text = f"Evaluating {self.config.model_display}"
@@ -454,6 +563,10 @@ class EvaluationProgressBars:
 
     def _finalize_header(self) -> None:
         """Finalize the header line without spinner animation."""
+        # Only for terminal mode
+        if _IS_NOTEBOOK:
+            return
+
         if self._header_bar is not None and self._start_time is not None:
             elapsed = time.monotonic() - self._start_time
             final_frame = self.spinner.get_empty_frame()
@@ -468,6 +581,32 @@ class EvaluationProgressBars:
                 "",
             )
             self._header_bar.set_description_str(final_desc, refresh=True)
+
+    def _print_summary(self) -> None:
+        """Print a clean summary after evaluation completes."""
+        # Build summary message
+        summary_parts = [f"Evaluating {self.config.model_display} Completed"]
+
+        # Add run completion info
+        total_runs = self.completed_runs + self.failed_runs
+        if self.failed_runs == 0:
+            summary_parts.append(f"{self.completed_runs} Runs Completed Successfully")
+        else:
+            summary_parts.append(f"{self.completed_runs}/{total_runs} Runs Completed Successfully")
+
+        # Add upload info if any uploads occurred
+        if self.uploaded_runs > 0 or self.upload_failed_runs > 0:
+            total_uploads = self.uploaded_runs + self.upload_failed_runs
+            if self.upload_failed_runs == 0:
+                summary_parts.append(f"{self.uploaded_runs} Runs Uploaded Successfully")
+            else:
+                summary_parts.append(
+                    f"{self.uploaded_runs}/{total_uploads} Runs Uploaded Successfully"
+                )
+
+        # Join parts with ", " and print
+        summary = ", ".join(summary_parts)
+        print(summary)
 
 
 @contextmanager
