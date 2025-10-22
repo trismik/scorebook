@@ -29,6 +29,7 @@ from scorebook.evaluate.evaluate_helpers import (
     validate_parameters,
 )
 from scorebook.exceptions import InferenceError, ScoreBookError
+from scorebook.inference.inference_pipeline import InferencePipeline
 from scorebook.types import (
     AdaptiveEvalRunResult,
     AdaptiveEvalRunSpec,
@@ -43,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 
 def evaluate(
-    inference: Callable,
+    inference: Union[Callable, InferencePipeline],
     datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
     metadata: Optional[Dict[str, Any]] = None,

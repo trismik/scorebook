@@ -119,6 +119,27 @@ def main() -> None:
                 lines = content.split("\n")
                 filtered_lines = [line for line in lines if line.strip() != "import asyncio"]
                 content = "\n".join(filtered_lines)
+
+                # Fix async metric handling in score.py (sync version should reject async metrics)
+                if new_name == "score.py":
+                    content = content.replace(
+                        "                # Async metric - await it\n"
+                        "                aggregate_scores, item_scores = metric.score(outputs, labels)",
+                        "                # Async metric not supported in sync version\n"
+                        "                raise MetricComputationError(\n"
+                        "                    metric.name,\n"
+                        '                    "scored_items",\n'
+                        "                    Exception(\n"
+                        "                        f\"Metric '{metric.name}' has an async score() method. \"\n"
+                        '                        "Use score_async() instead of score() for async metrics."\n'
+                        "                    ),\n"
+                        "                )",
+                    )
+                    content = content.replace(
+                        '    """Compute scores for all metrics (supports both sync and async metrics)."""',
+                        '    """Compute scores for all metrics."""',
+                    )
+
                 new_path.write_text(content)
 
                 print(f"   Generated: {new_path} (renamed from {gen_file.name})")
