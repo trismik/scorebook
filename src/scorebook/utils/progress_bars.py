@@ -93,7 +93,7 @@ TERMINAL_FALLBACK_SIZE = (120, 20)
 MINIMUM_HEADER_SPACING = 3
 
 # Spinner animation frames
-SPINNER_FRAMES_UNICODE = ["⠋", "⠙", "⠚", "⠞", "⠖", "⠦", "⠴", "⠲", "⠳", "⠓"]
+SPINNER_FRAMES_UNICODE = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 SPINNER_FRAMES_ASCII = ["|", "/", "-", "\\", "|", "/", "-", "\\"]
 
 
