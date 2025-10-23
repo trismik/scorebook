@@ -431,7 +431,12 @@ class SpinnerManager:
                 update_callback(frame)
                 time.sleep(SPINNER_INTERVAL_SECONDS)
             except Exception as e:
-                logger.error(f"Spinner animation failed: {e}", exc_info=True)
+                logger.error(
+                    f"Non-critical: Spinner animation thread encountered an error "
+                    f"and will stop. Progress bars will continue without animation. "
+                    f"Details: {e}",
+                    exc_info=True,
+                )
                 break  # Exit gracefully rather than crash silently
 
 
