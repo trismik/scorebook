@@ -127,6 +127,7 @@ class AdaptiveEvalRunResult:
     """Results from executing an adaptive evaluation run."""
 
     run_spec: AdaptiveEvalRunSpec
+    run_completed: bool
     scores: Dict[str, Any]
 
     @property

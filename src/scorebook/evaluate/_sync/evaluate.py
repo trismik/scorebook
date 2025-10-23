@@ -151,10 +151,7 @@ def execute_runs(
         # Update progress bars with items processed and success status
         if progress_bars is not None:
             items_processed = len(run.dataset.items)
-            succeeded = (
-                run_result.run_completed if isinstance(run_result, ClassicEvalRunResult) else True
-            )
-            progress_bars.on_run_completed(items_processed, succeeded)
+            progress_bars.on_run_completed(items_processed, run_result.run_completed)
 
         if (
             upload_results
@@ -283,15 +280,20 @@ def execute_adaptive_eval_run(
     """Execute an adaptive evaluation run."""
     logger.debug("Executing adaptive run for %s", run)
 
-    if trismik_client is None:
-        raise ScoreBookError("Trismik client is required for adaptive evaluation")
+    try:
+        if trismik_client is None:
+            raise ScoreBookError("Trismik client is required for adaptive evaluation")
 
-    adaptive_eval_run_result = run_adaptive_evaluation(
-        inference, run, experiment_id, project_id, metadata, trismik_client
-    )
-    logger.debug("Adaptive evaluation completed for run %s", adaptive_eval_run_result)
+        adaptive_eval_run_result = run_adaptive_evaluation(
+            inference, run, experiment_id, project_id, metadata, trismik_client
+        )
+        logger.debug("Adaptive evaluation completed for run %s", adaptive_eval_run_result)
 
-    return adaptive_eval_run_result
+        return adaptive_eval_run_result
+
+    except Exception as e:
+        logger.warning("Failed to complete adaptive eval run for %s: %s", run, str(e))
+        return AdaptiveEvalRunResult(run, False, {})
 
 
 def upload_classic_run_results(
@@ -438,4 +440,4 @@ def run_adaptive_evaluation(
     # Make scores JSON serializable
     scores = make_json_serializable(scores)
 
-    return AdaptiveEvalRunResult(run_spec=adaptive_run_spec, scores=scores)
+    return AdaptiveEvalRunResult(run_spec=adaptive_run_spec, run_completed=True, scores=scores)
