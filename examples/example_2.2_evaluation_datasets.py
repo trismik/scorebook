@@ -51,7 +51,7 @@ def main() -> Any:
                 },
                 {"role": "user", "content": input_text},
             ]
-            print(f"Question: {input_text}")
+
             output = pipeline(messages)
             inference_results.append(output[0]["generated_text"][-1]["content"])
 

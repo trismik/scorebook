@@ -19,6 +19,7 @@ from scorebook.evaluate.evaluate_helpers import (
     make_trismik_inference,
     prepare_datasets,
     prepare_hyperparameter_configs,
+    resolve_show_progress,
     resolve_upload_results,
     score_metrics,
     validate_parameters,
@@ -32,7 +33,7 @@ from scorebook.types import (
     EvalRunSpec,
 )
 from contextlib import nullcontext
-from scorebook.utils import evaluation_progress
+from scorebook.utils import evaluation_progress_context
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,7 @@ def evaluate(
     return_output: bool = False,
     upload_results: Union[Literal["auto"], bool] = "auto",
     sample_size: Optional[int] = None,
+    show_progress: Optional[bool] = None,
 ) -> Union[Dict, List, EvalResult]:
     """
     Evaluate a model across a collection of hyperparameters and datasets.
@@ -67,6 +69,8 @@ def evaluate(
         return_output: If True, returns model outputs for each dataset item
         upload_results: If True, uploads results to Trismik's dashboard
         sample_size: Optional number of items to sample from each dataset
+        show_progress: If None, uses SHOW_PROGRESS_BARS from settings.
+            If True/False, explicitly enables/disables progress bars for this evaluation.
 
     Returns:
         The evaluation results in the format specified by return parameters:
@@ -75,6 +79,7 @@ def evaluate(
     """
     # Resolve and validate parameters
     upload_results = cast(bool, resolve_upload_results(upload_results))
+    show_progress_bars = resolve_show_progress(show_progress)
     validate_parameters(locals(), evaluate)
 
     # Prepare datasets, hyperparameters, and eval run specs
@@ -95,10 +100,17 @@ def evaluate(
 
     with trismik_client or nullcontext():
         # Execute evaluation runs
-        with evaluation_progress(
+        # Calculate total items across all runs
+        total_items = sum(len(run.dataset.items) for run in eval_run_specs)
+        model_display = get_model_name(inference)
+
+        with evaluation_progress_context(
+            total_eval_runs=len(eval_run_specs),
+            total_items=total_items,
             dataset_count=len(datasets),
-            hyperparameter_config_count=len(hyperparameter_configs),
-            run_count=len(eval_run_specs),
+            hyperparam_count=len(hyperparameter_configs),
+            model_display=model_display,
+            enabled=show_progress_bars,
         ) as progress_bars:
             eval_result = execute_runs(
                 inference,
@@ -136,7 +148,10 @@ def execute_runs(
         run_result = execute_run(
             inference, run, experiment_id, project_id, metadata, trismik_client
         )
-        progress_bars.on_eval_run_completed(run.dataset_index)
+        # Update progress bars with items processed and success status
+        if progress_bars is not None:
+            items_processed = len(run.dataset.items)
+            progress_bars.on_run_completed(items_processed, run_result.run_completed)
 
         if (
             upload_results
@@ -146,10 +161,18 @@ def execute_runs(
             and run_result.run_completed
             and trismik_client is not None
         ):
-            run_id = upload_classic_run_results(
-                run_result, experiment_id, project_id, inference, metadata, trismik_client
-            )
-            run_result.run_id = run_id
+            try:
+                run_id = upload_classic_run_results(
+                    run_result, experiment_id, project_id, inference, metadata, trismik_client
+                )
+                run_result.run_id = run_id
+                if progress_bars is not None:
+                    progress_bars.on_upload_completed(succeeded=True)
+            except Exception as e:
+                logger.warning(f"Failed to upload run results: {e}")
+                if progress_bars is not None:
+                    progress_bars.on_upload_completed(succeeded=False)
+                # Continue evaluation even if upload fails
 
         return run_result
 
@@ -257,15 +280,20 @@ def execute_adaptive_eval_run(
     """Execute an adaptive evaluation run."""
     logger.debug("Executing adaptive run for %s", run)
 
-    if trismik_client is None:
-        raise ScoreBookError("Trismik client is required for adaptive evaluation")
+    try:
+        if trismik_client is None:
+            raise ScoreBookError("Trismik client is required for adaptive evaluation")
 
-    adaptive_eval_run_result = run_adaptive_evaluation(
-        inference, run, experiment_id, project_id, metadata, trismik_client
-    )
-    logger.debug("Adaptive evaluation completed for run %s", adaptive_eval_run_result)
+        adaptive_eval_run_result = run_adaptive_evaluation(
+            inference, run, experiment_id, project_id, metadata, trismik_client
+        )
+        logger.debug("Adaptive evaluation completed for run %s", adaptive_eval_run_result)
 
-    return adaptive_eval_run_result
+        return adaptive_eval_run_result
+
+    except Exception as e:
+        logger.warning("Failed to complete adaptive eval run for %s: %s", run, str(e))
+        return AdaptiveEvalRunResult(run, False, {})
 
 
 def upload_classic_run_results(
@@ -412,4 +440,4 @@ def run_adaptive_evaluation(
     # Make scores JSON serializable
     scores = make_json_serializable(scores)
 
-    return AdaptiveEvalRunResult(run_spec=adaptive_run_spec, scores=scores)
+    return AdaptiveEvalRunResult(run_spec=adaptive_run_spec, run_completed=True, scores=scores)

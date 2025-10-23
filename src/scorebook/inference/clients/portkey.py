@@ -13,7 +13,7 @@ import tempfile
 from typing import Any, List, Optional
 
 from portkey_ai import AsyncPortkey
-from tqdm.asyncio import tqdm
+from tqdm.auto import tqdm
 
 
 async def responses(

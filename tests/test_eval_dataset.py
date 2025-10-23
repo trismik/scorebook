@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -40,7 +41,13 @@ def test_load_csv_dataset():
     assert "label" in data_csv.column_names
 
 
+@pytest.mark.unit
 def test_load_huggingface_dataset():
+    """Test loading HuggingFace dataset (uses mock data, no network calls).
+
+    Note: This test uses mocked HuggingFace data defined in tests/fixtures/mock_hf_datasets.py
+    to avoid network dependencies and ensure fast, reliable tests.
+    """
     data_hf = EvalDataset.from_huggingface(
         "imdb", metrics=Precision, input="text", label="label", split="test"
     )
@@ -87,7 +94,13 @@ def test_metric_types():
     assert "label" in data_csv.column_names
 
 
+@pytest.mark.unit
 def test_load_yaml_dataset():
+    """Test loading dataset from YAML config (uses mock HuggingFace data).
+
+    Note: The YAML config specifies a HuggingFace dataset path, but this test
+    uses mocked data to avoid network dependencies. See conftest.py for details.
+    """
     yaml_path = Path(__file__).parent / "data" / "dataset_template.yaml"
 
     # Load dataset from YAML
@@ -137,3 +150,29 @@ metrics: [
     # Test that loading raises DatasetParseError
     with pytest.raises(DatasetParseError):
         EvalDataset.from_yaml(str(yaml_path))
+
+
+# === Integration Tests (Optional - Skipped in CI) ===
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(
+    os.getenv("CI") == "true", reason="Skip integration tests in CI to avoid network dependencies"
+)
+def test_load_real_huggingface_dataset():
+    """Integration test that actually loads from HuggingFace Hub.
+
+    This test is marked with @pytest.mark.integration and will NOT use mocks.
+    It will be skipped in CI environments to avoid network dependencies.
+
+    To run this test locally:
+        pytest tests/test_eval_dataset.py::test_load_real_huggingface_dataset -v
+    """
+    # Load a small subset to keep it fast
+    data_hf = EvalDataset.from_huggingface(
+        "imdb", metrics=Precision, input="text", label="label", split="test[:10]"
+    )
+    assert isinstance(data_hf, EvalDataset)
+    assert len(data_hf) == 10  # We only loaded 10 samples
+    assert "text" in data_hf.column_names
+    assert "label" in data_hf.column_names

@@ -12,6 +12,7 @@ dependencies = [
     "datasets>=3.6.0",
     "notebook (>=7.4.5,<8.0.0)",
     "trismik (>=1.0.1, <2.0.0)",
+    "ipywidgets>=8.0.0",
 ]
 
 [project.scripts]
@@ -26,6 +27,7 @@ python = ">=3.9,<3.14"
 datasets = ">=3.6.0"
 notebook = ">=7.4.5,<8.0.0"
 trismik = ">=1.0.1,<2.0.0"
+ipywidgets = ">=8.0.0"
 
 # Optional dependencies
 openai = {version = "*", optional = true}
@@ -84,6 +86,10 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "class"
+markers = [
+    "unit: Unit tests that use mocks and don't require external dependencies",
+    "integration: Integration tests that may require network access or external services",
+]
 
 [tool.black]
 line-length = 100

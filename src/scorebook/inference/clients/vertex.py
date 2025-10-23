@@ -18,7 +18,7 @@ import pandas as pd
 from google import genai
 from google.cloud import storage
 from google.genai import types
-from tqdm.asyncio import tqdm
+from tqdm.auto import tqdm
 
 
 async def responses(
