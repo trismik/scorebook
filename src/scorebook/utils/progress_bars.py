@@ -289,14 +289,15 @@ class SpinnerManager:
     """Manages spinner animation for the progress header.
 
     Features:
-    - Runs spinner animation in a background non-daemon thread
+    - Runs spinner animation in a background daemon thread
     - Applies blue color cycling to spinner frames (terminal only)
     - Provides shimmer sweep effect for text highlighting
     - Thread-safe state management with locks
 
     The spinner updates at SPINNER_INTERVAL_SECONDS frequency and
     automatically stops when stop() is called. In notebook environments,
-    plain text frames are used without ANSI color codes.
+    plain text frames are used without ANSI color codes. The daemon thread
+    ensures the program can exit cleanly even if the spinner doesn't stop.
     """
 
     def __init__(self) -> None:
@@ -326,7 +327,7 @@ class SpinnerManager:
 
         self._stop_event.clear()
         self._cycle = cycle(self._frames)
-        self._thread = threading.Thread(target=self._animate, args=(update_callback,), daemon=False)
+        self._thread = threading.Thread(target=self._animate, args=(update_callback,), daemon=True)
         self._thread.start()
 
     def stop(self) -> None:
