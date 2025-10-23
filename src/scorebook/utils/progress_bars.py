@@ -74,10 +74,6 @@ SPINNER_BLUE_COLORS = [
     "\033[96m",  # Light cyan
 ]
 
-# Validate that SPINNER_BLUE_COLORS is not empty (fail-safe)
-if not SPINNER_BLUE_COLORS:
-    SPINNER_BLUE_COLORS = ["\033[34m"]  # Fallback to basic blue
-
 # Progress bar configuration
 PROGRESS_BAR_FORMAT = "{desc}|{bar}|"  # Compact format for progress bars
 HEADER_FORMAT = "{desc}"  # Header shows only description, no bar
