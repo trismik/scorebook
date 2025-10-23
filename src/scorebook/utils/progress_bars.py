@@ -330,6 +330,10 @@ class SpinnerManager:
         self._thread = threading.Thread(target=self._animate, args=(update_callback,), daemon=True)
         self._thread.start()
 
+    def is_running(self) -> bool:
+        """Check if the spinner animation is currently running."""
+        return self._thread is not None and self._thread.is_alive()
+
     def stop(self) -> None:
         """Stop the spinner animation."""
         if self._thread is None:
@@ -667,7 +671,7 @@ class EvaluationProgressBars:
         elapsed = time.monotonic() - self._start_time
 
         # Get current spinner frame (or empty if stopped)
-        if self.spinner._thread is not None:
+        if self.spinner.is_running():
             # Spinner running, will update via callback soon
             return
         else:
