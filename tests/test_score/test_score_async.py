@@ -127,7 +127,7 @@ async def test_score_async_with_dataset_name():
     results = await score_async(
         items=items,
         metrics=Accuracy,
-        dataset="my_custom_dataset",
+        dataset_name="my_custom_dataset",
         upload_results=False,
     )
 

@@ -1,9 +1,15 @@
 """Type definitions for scorebook evaluation framework."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Type, Union
 
 from scorebook.eval_datasets import EvalDataset
+from scorebook.metrics.metric_base import MetricBase
+
+# Type alias for metrics parameter
+Metrics = Union[
+    str, "MetricBase", Type["MetricBase"], Sequence[Union[str, "MetricBase", Type["MetricBase"]]]
+]
 
 
 @dataclass
@@ -180,3 +186,12 @@ class EvalResult:
             results.append(run_result.aggregate_scores)
 
         return results
+
+
+@dataclass
+class MetricScore:
+    """Container for metric scores across multiple runs."""
+
+    metric_name: str
+    aggregate_scores: Dict[str, Any]
+    item_scores: List[Dict[str, Any]]

@@ -84,10 +84,14 @@ class MetricComputationError(EvaluationError):
         )
 
 
-class DataMismatchError(EvaluationError):
+class ScoreError(ScoreBookError):
+    """Raised when there are errors during scoring."""
+
+
+class DataMismatchError(ScoreError):
     """Raised when there's a mismatch between outputs and expected labels."""
 
-    def __init__(self, outputs_count: int, labels_count: int, dataset_name: str):
+    def __init__(self, outputs_count: int, labels_count: int, dataset_name: str = "Dataset"):
         """Initialize data mismatch error."""
         self.outputs_count = outputs_count
         self.labels_count = labels_count

@@ -121,7 +121,7 @@ def test_score_with_dataset_name():
     results = score(
         items=items,
         metrics=Accuracy,
-        dataset="my_custom_dataset",
+        dataset_name="my_custom_dataset",
         upload_results=False,
     )
 

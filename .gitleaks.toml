@@ -31,6 +31,21 @@ regexes = [
     '''(?i)enter.{0,3}(key|token|secret|password)''',
 ]
 
+# Stopwords that indicate false positives in Trismik SDK usage
+stopwords = [
+    'TrismikClassicEvalItem',
+    'TrismikClassicEvalMetric',
+    'TrismikClassicEvalRequest',
+    'TrismikClassicEvalResponse',
+    'modelOutput',
+    'goldOutput',
+    'metricId',
+    'submit_classic_eval',
+    'trismik_items',
+    'trismik_metrics',
+    'trismik_client',
+]
+
 # =============================================================================
 # CUSTOM RULES - Specifically designed to catch secrets in comments/docstrings
 # =============================================================================
@@ -42,7 +57,7 @@ regexes = [
 [[rules]]
 id = "trismik-api-key"
 description = "Trismik API Key"
-regex = '''trismik_[A-Za-z0-9_\-!@#$%^&*()+={}[\]:;"'<>,.?/\\|`~]{20,}'''
+regex = '''(?i)(?:trismik[_-]?api[_-]?key|TRISMIK_API_KEY)\s*[=:]\s*["\']?(trismik_[A-Za-z0-9_\-]{32,})["\']?'''
 tags = ["api-key", "trismik"]
 
 [[rules]]
