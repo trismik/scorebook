@@ -25,6 +25,36 @@ from scorebook.utils import expand_dict, is_awaitable
 logger = logging.getLogger(__name__)
 
 
+# TODO: Remove this when backend supports boolean item metrics
+NORMALIZE_METRICS_FOR_UPLOAD = True
+
+
+def normalize_metric_value(value: Any) -> Any:
+    """Normalize metric values for API upload compatibility.
+
+    TEMPORARY WORKAROUND: The Trismik API currently rejects boolean metric values.
+    This function converts boolean values to floats (True -> 1.0, False -> 0.0)
+    to ensure upload compatibility.
+
+    Args:
+        value: The metric value to normalize
+
+    Returns:
+        Float if value is bool, otherwise unchanged
+
+    TODO: Remove this function when backend supports boolean metrics natively.
+          To revert: Set NORMALIZE_METRICS_FOR_UPLOAD = False
+    """
+    if not NORMALIZE_METRICS_FOR_UPLOAD:
+        return value
+
+    # Convert booleans to floats for API compatibility
+    if isinstance(value, bool):
+        return float(value)  # True -> 1.0, False -> 0.0
+
+    return value
+
+
 def resolve_upload_results(upload_results: Union[Literal["auto"], bool]) -> bool:
     """Resolve the upload_results parameter based on trismik login status."""
 
@@ -109,7 +139,7 @@ def prepare_datasets(
 
         # Prepare adaptive datasets
         elif isinstance(dataset, str) and dataset.endswith(":adaptive"):
-            datasets_out.append(AdaptiveEvalDataset(dataset.replace(":adaptive", "")))
+            datasets_out.append(AdaptiveEvalDataset(dataset))
 
         # TODO: dataset name string registry
         elif isinstance(dataset, str):
@@ -220,9 +250,9 @@ def build_adaptive_eval_run_spec(
     metadata: Optional[Dict[str, Any]] = None,
 ) -> AdaptiveEvalRunSpec:
     """Build AdaptiveEvalRunSpec objects for a dataset/hyperparameter combination."""
-    dataset = adaptive_dataset.replace(":adaptive", "")
+    # Keep the full dataset name including ":adaptive" suffix for backend API
     adaptive_eval_run_spec = AdaptiveEvalRunSpec(
-        dataset,
+        adaptive_dataset,
         dataset_index,
         hyperparameter_config,
         hyperparameter_config_index,

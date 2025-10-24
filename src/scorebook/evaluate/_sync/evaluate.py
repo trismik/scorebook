@@ -2,6 +2,7 @@ import logging
 from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
 
 from trismik import TrismikAsyncClient, TrismikClient
+from trismik.settings import evaluation_settings
 from trismik.types import (
     TrismikClassicEvalItem,
     TrismikClassicEvalMetric,
@@ -11,6 +12,9 @@ from trismik.types import (
 )
 
 from scorebook.eval_datasets import EvalDataset
+from scorebook.evaluate.evaluate_helpers import (
+    normalize_metric_value,  # TODO - Remove when back-end is fixed
+)
 from scorebook.evaluate.evaluate_helpers import (
     build_eval_run_specs,
     create_trismik_sync_client,
@@ -101,7 +105,14 @@ def evaluate(
     with trismik_client or nullcontext():
         # Execute evaluation runs
         # Calculate total items across all runs
-        total_items = sum(len(run.dataset.items) for run in eval_run_specs)
+        total_items = sum(
+            (
+                len(run.dataset.items)
+                if isinstance(run, EvalRunSpec)
+                else evaluation_settings["max_iterations"]
+            )  # Adaptive evals use max_iterations
+            for run in eval_run_specs
+        )
         model_display = get_model_name(inference)
 
         with evaluation_progress_context(
@@ -150,7 +161,12 @@ def execute_runs(
         )
         # Update progress bars with items processed and success status
         if progress_bars is not None:
-            items_processed = len(run.dataset.items)
+            # Classic evals have .items; adaptive evals use max_iterations
+            items_processed = (
+                len(run.dataset.items)
+                if isinstance(run, EvalRunSpec)
+                else evaluation_settings["max_iterations"]
+            )
             progress_bars.on_run_completed(items_processed, run_result.run_completed)
 
         if (
@@ -332,10 +348,13 @@ def upload_classic_run_results(
             for metric_name, metric_data in run_result.scores.items():
                 if isinstance(metric_data, dict) and "item_scores" in metric_data:
                     if idx < len(metric_data["item_scores"]):
-                        item_metrics[metric_name] = metric_data["item_scores"][idx]
+                        # Normalize metric value for API compatibility
+                        item_metrics[metric_name] = normalize_metric_value(
+                            metric_data["item_scores"][idx]
+                        )
                 else:
                     # If scores is just a single value, use it for all items
-                    item_metrics[metric_name] = metric_data
+                    item_metrics[metric_name] = normalize_metric_value(metric_data)
 
         eval_item = TrismikClassicEvalItem(
             datasetItemId=str(idx),
@@ -356,11 +375,16 @@ def upload_classic_run_results(
                     metric_id = (
                         f"{metric_name}_{agg_name}" if agg_name != metric_name else metric_name
                     )
-                    metric = TrismikClassicEvalMetric(metricId=metric_id, value=agg_value)
+                    # Normalize metric value for API compatibility
+                    metric = TrismikClassicEvalMetric(
+                        metricId=metric_id, value=normalize_metric_value(agg_value)
+                    )
                     metrics.append(metric)
             else:
                 # Handle simple metric data (single value)
-                metric = TrismikClassicEvalMetric(metricId=metric_name, value=metric_data)
+                metric = TrismikClassicEvalMetric(
+                    metricId=metric_name, value=normalize_metric_value(metric_data)
+                )
                 metrics.append(metric)
 
     classic_eval_request = TrismikClassicEvalRequest(
