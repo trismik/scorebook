@@ -122,11 +122,14 @@ ignore = ["D202", "W503", "W504"]
 [[tool.unasync.rules]]
 fromdir = "src/scorebook/evaluate/_async/"
 todir = "src/scorebook/evaluate/_sync/"
+replacements."scorebook.score._async.score_async" = "scorebook.score._sync.score"
+replacements."scorebook.score._async" = "scorebook.score._sync"
 replacements.evaluate_async = "evaluate"
 replacements."Asynchronous evaluation complete" = "Synchronous evaluation complete"
 replacements."    run_results = asyncio.gather(*[worker(run) for run in runs])" = "    run_results = [worker(run) for run in runs]"
 replacements.async_nullcontext = "nullcontext"
 replacements.create_trismik_async_client = "create_trismik_sync_client"
+replacements.score_async = "score"
 
 [[tool.unasync.rules]]
 fromdir = "src/scorebook/score/_async/"

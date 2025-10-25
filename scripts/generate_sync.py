@@ -120,6 +120,13 @@ def main() -> None:
                 filtered_lines = [line for line in lines if line.strip() != "import asyncio"]
                 content = "\n".join(filtered_lines)
 
+                # Fix score import path for evaluate.py
+                if new_name == "evaluate.py":
+                    content = content.replace(
+                        "from scorebook.score._async.score import score",
+                        "from scorebook.score._sync.score import score",
+                    )
+
                 # Fix async metric handling in score.py (sync version should reject async metrics)
                 if new_name == "score.py":
                     content = content.replace(

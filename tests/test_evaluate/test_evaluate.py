@@ -417,7 +417,7 @@ def test_evaluate_mixed_success_failure_runs():
         assert len(run.outputs) == 5  # 5 items in dataset
         assert all(output == "1" for output in run.outputs)
         assert run.scores is not None
-        assert "accuracy" in run.scores
+        assert "accuracy" in run.aggregate_scores
 
     # Verify failed runs have None outputs and metrics
     for run in failed_runs:
@@ -491,7 +491,7 @@ def test_evaluate_mixed_success_failure_multiple_datasets():
         assert len(run.outputs) == 5  # 5 items in dataset
         assert all(output == "1" for output in run.outputs)
         assert run.scores is not None
-        assert "accuracy" in run.scores
+        assert "accuracy" in run.aggregate_scores
         assert not run.run_spec.hyperparameter_config["fail_this_run"]
 
     # Verify failed runs have None outputs and scores

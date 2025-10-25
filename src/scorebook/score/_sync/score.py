@@ -58,7 +58,9 @@ def score(
     labels = [item.get(label) for item in items]
 
     # Compute scores for each metric
-    metric_scores = calculate_metric_scores(metric_instances, outputs, labels, dataset_name)
+    metric_scores = calculate_metric_scores(
+        metric_instances, outputs, labels, dataset_name
+    )
 
     # Build results
     results: Dict[str, List[Dict[str, Any]]] = format_results(
