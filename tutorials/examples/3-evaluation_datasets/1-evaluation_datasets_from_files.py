@@ -66,10 +66,15 @@ def main() -> Any:
 
         return outputs
 
+    # Construct paths to example data files
+    example_datasets_dir = Path(__file__).parent / "example_datasets"
+    json_path = example_datasets_dir / "basic_questions.json"
+    csv_path = example_datasets_dir / "basic_questions.csv"
+
     # Load dataset from JSON file
     json_dataset = EvalDataset.from_json(
         name="basic_questions_json",
-        path="example_datasets/basic_questions.json",
+        path=str(json_path),
         metrics="accuracy",
         input="question",
         label="answer",
@@ -79,7 +84,7 @@ def main() -> Any:
     # Load dataset from CSV file
     csv_dataset = EvalDataset.from_csv(
         name="basic_questions_csv",
-        path="example_datasets/basic_questions.csv",
+        path=str(csv_path),
         metrics="accuracy",
         input="question",
         label="answer",

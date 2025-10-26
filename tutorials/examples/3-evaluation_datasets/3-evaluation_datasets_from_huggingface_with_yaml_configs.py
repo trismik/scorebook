@@ -77,12 +77,17 @@ async def main() -> Any:
 
         return outputs
 
+    # Construct paths to YAML config files
+    yaml_configs_dir = Path(__file__).parent / "example_yaml_configs"
+    cais_mmlu_yaml = yaml_configs_dir / "Cais-MMLU.yaml"
+    tiger_mmlu_pro_yaml = yaml_configs_dir / "TIGER-Lab-MMLU-Pro.yaml"
+
     # Load Cais-MMLU dataset from YAML configuration
-    cais_mmlu = EvalDataset.from_yaml("example_yaml_configs/Cais-MMLU.yaml")
+    cais_mmlu = EvalDataset.from_yaml(str(cais_mmlu_yaml))
     print(f"Loaded {cais_mmlu.name} from YAML config: {len(cais_mmlu.items)} items")
 
     # Load TIGER-Lab MMLU-Pro dataset from YAML configuration
-    tiger_mmlu_pro = EvalDataset.from_yaml("example_yaml_configs/TIGER-Lab-MMLU-Pro.yaml")
+    tiger_mmlu_pro = EvalDataset.from_yaml(str(tiger_mmlu_pro_yaml))
     print(f"Loaded {tiger_mmlu_pro.name} from YAML config: {len(tiger_mmlu_pro.items)} items")
 
     # Run evaluation on both datasets

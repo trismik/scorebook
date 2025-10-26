@@ -72,8 +72,9 @@ def main() -> Any:
         return outputs
 
     # Load evaluation dataset
+    dataset_path = Path(__file__).parent.parent / "3-evaluation_datasets" / "example_datasets" / "basic_questions.json"
     dataset = EvalDataset.from_json(
-        path="../../2-evaluate/example_datasets/basic_questions.json",
+        path=str(dataset_path),
         metrics="accuracy",
         input="question",
         label="answer",
