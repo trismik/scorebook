@@ -9,7 +9,7 @@ from scorebook.metrics import Precision
 
 
 def test_load_flat_dataset():
-    json_dataset_path = Path(__file__).parent / "data" / "Dataset.json"
+    json_dataset_path = Path(__file__).parent.parent / "data" / "Dataset.json"
     data_flat = EvalDataset.from_json(
         str(json_dataset_path), metrics=Precision, input="input", label="label"
     )
@@ -20,7 +20,7 @@ def test_load_flat_dataset():
 
 
 def test_load_split_dataset():
-    json_dataset_dict_path = Path(__file__).parent / "data" / "DatasetDict.json"
+    json_dataset_dict_path = Path(__file__).parent.parent / "data" / "DatasetDict.json"
     data_split = EvalDataset.from_json(
         str(json_dataset_dict_path), metrics=Precision, input="input", label="label", split="train"
     )
@@ -31,7 +31,7 @@ def test_load_split_dataset():
 
 
 def test_load_csv_dataset():
-    csv_dataset_path = Path(__file__).parent / "data" / "Dataset.csv"
+    csv_dataset_path = Path(__file__).parent.parent / "data" / "Dataset.csv"
     data_csv = EvalDataset.from_csv(
         str(csv_dataset_path), metrics=Precision, input="input", label="label"
     )
@@ -76,7 +76,7 @@ def test_nonexistent_files():
 
 
 def test_invalid_split():
-    json_dataset_path = Path(__file__).parent / "data" / "DatasetDict.json"
+    json_dataset_path = Path(__file__).parent.parent / "data" / "DatasetDict.json"
     with pytest.raises(DatasetConfigurationError):
         EvalDataset.from_json(
             str(json_dataset_path), metrics=Precision, input="input", label="label", split="testing"
@@ -84,7 +84,7 @@ def test_invalid_split():
 
 
 def test_metric_types():
-    dataset_path = Path(__file__).parent / "data" / "Dataset.csv"
+    dataset_path = Path(__file__).parent.parent / "data" / "Dataset.csv"
     data_csv = EvalDataset.from_csv(
         str(dataset_path), metrics=[Precision, "Accuracy"], input="input", label="label"
     )
@@ -101,7 +101,7 @@ def test_load_yaml_dataset():
     Note: The YAML config specifies a HuggingFace dataset path, but this test
     uses mocked data to avoid network dependencies. See conftest.py for details.
     """
-    yaml_path = Path(__file__).parent / "data" / "dataset_template.yaml"
+    yaml_path = Path(__file__).parent.parent / "data" / "dataset_template.yaml"
 
     # Load dataset from YAML
     data_yaml = EvalDataset.from_yaml(str(yaml_path))

@@ -133,7 +133,7 @@ class Args:
 
     def __init__(self) -> None:
         """Parse command line arguments."""
-        self.output_dir: Path = Path(".")  # Will be overridden in setup_arguments
+        self.output_dir: Path = Path("")  # Will be overridden in setup_arguments
         self.model: Optional[str] = None
         self.aws_region: Optional[str] = None
         self.aws_profile: Optional[str] = None

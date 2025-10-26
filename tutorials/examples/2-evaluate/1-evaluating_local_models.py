@@ -1,17 +1,23 @@
-"""Example 1 - A Simple Scorebook Evaluation."""
+"""Tutorials - Evaluate - Example 1 - Evaluating Local Models."""
 
+import sys
+from pathlib import Path
 from pprint import pprint
 from typing import Any, List
 
 import transformers
 from dotenv import load_dotenv
-from example_helpers import save_results_to_json, setup_logging, setup_output_directory
+
+sys.path.insert(0, str(Path(__file__).parent.parent / ".example_utils"))
+
+from output import save_results_to_json
+from setup import setup_logging
 
 from scorebook import EvalDataset, evaluate
 
 
 def main() -> Any:
-    """Run a simple Scorebook evaluation.
+    """Run a simple Scorebook evaluation on a local model.
 
     This example demonstrates the fundamental workflow for evaluating a model using Scorebook.
 
@@ -86,6 +92,7 @@ def main() -> Any:
             "temperature": 0.7,
             "system_message": "Answer the question directly and concisely.",
         },
+        return_items=True,
         upload_results=False,  # Disable uploading for this example
     )
 
@@ -96,7 +103,8 @@ def main() -> Any:
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="example_1")
-    output_dir = setup_output_directory()
+    log_file = setup_logging(experiment_id="1-evaluating_local_models")
+    output_dir = Path(__file__).parent / "results"
+    output_dir.mkdir(exist_ok=True)
     results_dict = main()
-    save_results_to_json(results_dict, output_dir, "example_1_output.json")
+    save_results_to_json(results_dict, output_dir, "1-evaluating_local_models_output.json")

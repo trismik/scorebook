@@ -1,14 +1,20 @@
-"""Example 3 - Using Inference Pipelines."""
+"""Tutorials - Evaluate - Example 6 - Inference Pipelines."""
 
 from pprint import pprint
 from typing import Any, List
 
 import transformers
 from dotenv import load_dotenv
-from example_helpers import save_results_to_json, setup_logging, setup_output_directory
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent / ".example_utils"))
+
+from output import save_results_to_json
+from setup import setup_logging
+
 
 from scorebook import EvalDataset, InferencePipeline, evaluate
-from scorebook.metrics import Accuracy
 
 
 def main() -> Any:
@@ -98,10 +104,18 @@ def main() -> Any:
         postprocessor=postprocessor,
     )
 
-    # Step 2: Load the evaluation dataset
-    eval_dataset = EvalDataset.from_json(
-        path="examples/example_datasets/basic_questions.json",
-        metrics=Accuracy,
+    # Step 2: Create a list of evaluation items
+    evaluation_items = [
+        {"question": "What is 2 + 2?", "answer": "4"},
+        {"question": "What is the capital of France?", "answer": "Paris"},
+        {"question": "Who wrote Romeo and Juliet?", "answer": "William Shakespeare"},
+    ]
+
+    # Create an evaluation dataset
+    evaluation_dataset = EvalDataset.from_list(
+        name="basic_questions",
+        metrics="accuracy",
+        items=evaluation_items,
         input="question",
         label="answer",
     )
@@ -109,13 +123,13 @@ def main() -> Any:
     # Step 3: Run the evaluation using the inference pipeline and dataset
     results = evaluate(
         inference_pipeline,
-        eval_dataset,
+        evaluation_dataset,
         hyperparameters={
             "temperature": 0.7,
             "system_message": "Answer the question directly and concisely.",
         },
-        return_items=True,  # Enable to include results for individual items in the dict returned.
-        return_output=True,  # Enable to include the model's output for individual items.
+        return_items=True,     # Enable to include results for individual items in the dict returned.
+        return_output=True,    # Enable to include the model's output for individual items.
         upload_results=False,  # Disable uploading for this example
     )
 
@@ -125,7 +139,8 @@ def main() -> Any:
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="example_3")
-    output_dir = setup_output_directory()
+    log_file = setup_logging(experiment_id="6-inference_output")
+    output_dir = Path(__file__).parent / "results"
+    output_dir.mkdir(exist_ok=True)
     results_dict = main()
-    save_results_to_json(results_dict, output_dir, "example_3_output.json")
+    save_results_to_json(results_dict, output_dir, "6-inference_output_output.json")

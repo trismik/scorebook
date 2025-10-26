@@ -116,7 +116,7 @@ class TestTokenRetrieval:
         save_token("stored-token")
 
         # Set environment variable
-        os.environ["TRISMIK_API_KEY"] = "env-token"
+        os.environ["TRISMIK_API_KEY"] = "env-token"  # pragma: allowlist secret
 
         # Environment variable should take priority
         assert get_token() == "env-token"
@@ -132,7 +132,7 @@ class TestTokenRetrieval:
 
     def test_get_token_env_var_with_whitespace(self, clean_env):
         """Test environment variable token is stripped."""
-        os.environ["TRISMIK_API_KEY"] = "  env-token-with-spaces  "
+        os.environ["TRISMIK_API_KEY"] = "  env-token-with-spaces  "  # pragma: allowlist secret
         assert get_token() == "env-token-with-spaces"
 
 
@@ -243,7 +243,7 @@ class TestIntegration:
         save_token("stored-token")
 
         # Set environment variable
-        os.environ["TRISMIK_API_KEY"] = "env-token"
+        os.environ["TRISMIK_API_KEY"] = "env-token"  # pragma: allowlist secret
 
         # Environment variable should win
         assert get_token() == "env-token"

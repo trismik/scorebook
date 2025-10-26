@@ -3,11 +3,15 @@ repos:
     rev: v4.5.0
     hooks:
     -   id: trailing-whitespace
+        exclude: ^tutorials/
     -   id: end-of-file-fixer
+        exclude: ^tutorials/
     -   id: check-yaml
     -   id: check-added-large-files
     -   id: check-ast
+        exclude: ^tutorials/
     -   id: check-json
+        exclude: ^tutorials/
     -   id: check-merge-conflict
     -   id: detect-private-key
 
@@ -15,21 +19,21 @@ repos:
     rev: 24.3.0
     hooks:
     -   id: black
-        exclude: ^(src/scorebook/evaluate/_sync/|src/scorebook/score/_sync/|examples/)
+        exclude: ^(src/scorebook/evaluate/_sync/|src/scorebook/score/_sync/|tutorials/)
 
 -   repo: https://github.com/PyCQA/autoflake
     rev: v2.3.1
     hooks:
     -   id: autoflake
         args: [--remove-all-unused-imports, --in-place, --recursive, .]
-        exclude: ^(src/scorebook/evaluate/_sync/|src/scorebook/score/_sync/|examples/)
+        exclude: ^(src/scorebook/evaluate/_sync/|src/scorebook/score/_sync/|tutorials/)
 
 -   repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
     -   id: isort
         args: ["--profile", "black"]
-        exclude: ^(src/scorebook/evaluate/_sync/|src/scorebook/score/_sync/|examples/)
+        exclude: ^(src/scorebook/evaluate/_sync/|src/scorebook/score/_sync/|tutorials/)
 
 -   repo: https://github.com/pycqa/flake8
     rev: 7.0.0
@@ -39,16 +43,17 @@ repos:
         args: [
             "--max-line-length=100",
             "--extend-ignore=E203",
-            "--exclude=.git,__pycache__,build,dist,src/scorebook/evaluate/_sync,src/scorebook/score/_sync,examples",
+            "--exclude=.git,__pycache__,build,dist,src/scorebook/evaluate/_sync,src/scorebook/score/_sync,tutorials",
             "--per-file-ignores=__init__.py:F401,tests/*.py:D100,D101,D102,D103,D104"
         ]
+        exclude: ^tutorials/
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.15.0
     hooks:
     -   id: mypy
         additional_dependencies: [types-python-dateutil, types-PyYAML]
-        exclude: "(tests/.*\\.py|src/scorebook/evaluate/_sync/.*\\.py|src/scorebook/score/_sync/.*\\.py|examples/.*\\.py)"
+        exclude: "(tests/.*\\.py|src/scorebook/evaluate/_sync/.*\\.py|src/scorebook/score/_sync/.*\\.py|tutorials/.*\\.py)"
 
 - repo: https://github.com/Yelp/detect-secrets
   rev: v1.5.0
