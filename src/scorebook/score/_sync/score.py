@@ -16,7 +16,7 @@ def score(
     metrics: Metrics,
     output: str = "output",
     label: str = "label",
-    input: Optional[str] = None,
+    input: str = "input",
     hyperparameters: Optional[Dict[str, Any]] = None,
     dataset_name: Optional[str] = None,
     model_name: Optional[str] = None,
@@ -35,8 +35,8 @@ def score(
             or a list of any combination of these.
         output: Key in items dictionaries containing model outputs. Defaults to "output".
         label: Key in items dictionaries containing ground truth labels. Defaults to "label".
-        input: Optional key in items dictionaries containing inputs for reference.
-            Defaults to None.
+        input: Key in items dictionaries containing inputs for reference.
+            Defaults to "input".
         hyperparameters: Optional dictionary of hyperparameters used during inference.
             Defaults to None.
         dataset_name: Optional name of the dataset being evaluated. Defaults to None.
@@ -79,8 +79,7 @@ def score(
     metric_instances = resolve_metrics(metrics)
 
     # Extract outputs and labels from items
-    input_key = input if input is not None else "input"
-    inputs = [item.get(input_key) for item in items]
+    inputs = [item.get(input) for item in items]
     outputs = [item.get(output) for item in items]
     labels = [item.get(label) for item in items]
 

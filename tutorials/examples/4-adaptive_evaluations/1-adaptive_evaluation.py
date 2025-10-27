@@ -95,7 +95,7 @@ async def main() -> Any:
     # Step 2: Run adaptive evaluation
     results = await evaluate_async(
         inference,
-        datasets="MMLUPro2025:adaptive",  # Adaptive datasets have the ":adaptive" suffix
+        datasets="trismik/CommonSenseQA:adaptive",  # Adaptive datasets have the ":adaptive" suffix
         experiment_id="Adaptive-MMLU-Pro-Evaluation",
         project_id='TRISMIK_PROJECT_ID',
         return_dict=True,
