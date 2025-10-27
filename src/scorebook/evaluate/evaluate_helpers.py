@@ -4,7 +4,7 @@ import asyncio
 import dataclasses
 import inspect
 import logging
-from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Union
 
 from trismik._async.client import TrismikAsyncClient
 from trismik._sync.client import TrismikClient
@@ -53,32 +53,6 @@ def normalize_metric_value(value: Any) -> Any:
         return float(value)  # True -> 1.0, False -> 0.0
 
     return value
-
-
-def resolve_upload_results(upload_results: Union[Literal["auto"], bool]) -> bool:
-    """Resolve the upload_results parameter based on trismik login status."""
-
-    if upload_results == "auto":
-        upload_results = get_token() is not None
-        logger.debug("Auto upload results resolved to: %s", upload_results)
-
-    return upload_results
-
-
-def resolve_show_progress(show_progress: Optional[bool]) -> bool:
-    """Resolve whether to show progress bars.
-
-    Args:
-        show_progress: Explicit setting (None uses default from settings)
-
-    Returns:
-        bool: Whether to show progress bars
-    """
-    if show_progress is None:
-        from scorebook.settings import SHOW_PROGRESS_BARS
-
-        return bool(SHOW_PROGRESS_BARS)
-    return show_progress
 
 
 def validate_parameters(params: Dict[str, Any], caller: Callable[..., Any]) -> None:

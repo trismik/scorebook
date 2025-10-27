@@ -15,8 +15,6 @@ from scorebook.evaluate.evaluate_helpers import (
     make_trismik_inference,
     prepare_datasets,
     prepare_hyperparameter_configs,
-    resolve_show_progress,
-    resolve_upload_results,
     validate_parameters,
 )
 from scorebook.exceptions import InferenceError, ScoreBookError
@@ -29,7 +27,12 @@ from scorebook.types import (
     EvalResult,
     EvalRunSpec,
 )
-from scorebook.utils import async_nullcontext, evaluation_progress_context
+from scorebook.utils import (
+    async_nullcontext,
+    evaluation_progress_context,
+    resolve_show_progress,
+    resolve_upload_results,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -251,10 +254,10 @@ async def execute_classic_eval_run(
             for i in range(len(inference_outputs))
         ]
 
-        # 3. Get model name for upload
+        # 3. Get the model name for upload
         model_name = get_model_name(inference, metadata)
 
-        # 4. Call score_async (handles both scoring AND uploading)
+        # 4. Call score_async
         scores = await score_async(
             items=items,
             metrics=run.dataset.metrics,
@@ -268,6 +271,7 @@ async def execute_classic_eval_run(
             experiment_id=experiment_id,
             project_id=project_id,
             upload_results=upload_results,
+            show_progress=False,
         )
 
         # 5. Extract run_id if upload succeeded

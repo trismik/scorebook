@@ -1,16 +1,12 @@
+import inspect
 import logging
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
-from scorebook.evaluate.evaluate_helpers import resolve_upload_results
-from scorebook.exceptions import ParameterValidationError
-from scorebook.score.score_helpers import (
-    calculate_metric_scores_async,
-    format_results,
-    resolve_metrics,
-    validate_items,
-)
+from scorebook.exceptions import DataMismatchError, ParameterValidationError
+from scorebook.score.score_helpers import format_results, resolve_metrics, validate_items
 from scorebook.trismik.upload_results import upload_run_result_async
-from scorebook.types import Metrics
+from scorebook.types import Metrics, MetricScore
+from scorebook.utils import resolve_show_progress, resolve_upload_results, scoring_progress_context
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +49,8 @@ async def score_async(
             Required if upload_results is True. Defaults to None.
         upload_results: Whether to upload results to Trismik. Can be True, False, or "auto"
             (uploads if experiment_id and project_id are provided). Defaults to "auto".
-        show_progress: Optional flag to show progress bar during scoring. Defaults to None.
+        show_progress: Whether to display a progress bar during scoring. If None, uses
+            SHOW_PROGRESS_BARS from settings (defaults to True). Defaults to None.
 
     Returns:
         Dictionary containing scoring results with keys:
@@ -63,6 +60,7 @@ async def score_async(
 
     # Resolve and validate parameters
     upload_results = cast(bool, resolve_upload_results(upload_results))
+    show_progress_bars = resolve_show_progress(show_progress)
 
     # Validate upload requirements
     if upload_results and (experiment_id is None or project_id is None):
@@ -86,10 +84,32 @@ async def score_async(
     outputs = [item.get(output) for item in items]
     labels = [item.get(label) for item in items]
 
-    # Compute scores for each metric
-    metric_scores = await calculate_metric_scores_async(
-        metric_instances, outputs, labels, dataset_name
-    )
+    # Validate outputs and labels have same length
+    if len(outputs) != len(labels):
+        raise DataMismatchError(len(outputs), len(labels), dataset_name)
+
+    # Compute scores for each metric with progress display
+    metric_scores: List[MetricScore] = []
+    with scoring_progress_context(
+        total_metrics=len(metric_instances),
+        enabled=show_progress_bars,
+    ) as progress_bar:
+        for metric in metric_instances:
+            # Update progress bar with current metric name
+            if progress_bar is not None:
+                progress_bar.set_current_metric(metric.name)
+
+            # Score the metric
+            if inspect.iscoroutinefunction(metric.score):
+                aggregate_scores, item_scores = await metric.score(outputs, labels)
+            else:
+                aggregate_scores, item_scores = metric.score(outputs, labels)
+
+            metric_scores.append(MetricScore(metric.name, aggregate_scores, item_scores))
+
+            # Update progress
+            if progress_bar is not None:
+                progress_bar.update(1)
 
     # Build results
     results: Dict[str, List[Dict[str, Any]]] = format_results(
