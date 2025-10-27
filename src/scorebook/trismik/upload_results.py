@@ -1,4 +1,4 @@
-"""Upload evaluation and scoring results to Trismik platform."""
+"""Upload evaluation and scoring results to Trismik's experimentation platform."""
 
 import logging
 from typing import Any, Dict, List, Optional
@@ -33,14 +33,14 @@ def upload_run_result(
     metadata: Optional[Dict[str, Any]] = None,
     model_name: Optional[str] = None,
 ) -> str:
-    """Upload evaluation or scoring results to Trismik platform (synchronous).
+    """Upload evaluation or scoring results to Trismik's platform (synchronous).
 
-    This function uploads results in the format returned by evaluate() or score()
+    This function uploads results in the format returned by the evaluate or score
     functions to the Trismik platform for tracking and analysis.
 
     Args:
         run_result: Dict with keys 'aggregate_results' and 'item_results' containing
-            evaluation/scoring results. Structure matches output of evaluate()/score().
+            evaluation/scoring results. Structure matches the output of evaluate()/score().
         experiment_id: Trismik experiment identifier
         project_id: Trismik project identifier
         dataset_name: Optional dataset name. If not provided, extracted from metadata
@@ -56,21 +56,6 @@ def upload_run_result(
 
     Raises:
         Exception: If upload fails (re-raises underlying exceptions)
-
-    Example:
-        ```python
-        from scorebook.trismik.upload_results import upload_run_result
-
-        results = score(items=[...], metrics="accuracy")
-        run_id = upload_run_result(
-            run_result=results,
-            experiment_id="exp123",
-            project_id="proj456",
-            dataset_name="math_qa",
-            hyperparameters={"temperature": 0.7},
-            model_name="gpt-4",
-        )
-        ```
     """
     # Create Trismik client
     trismik_client = create_trismik_sync_client()
@@ -166,14 +151,14 @@ async def upload_run_result_async(
     metadata: Optional[Dict[str, Any]] = None,
     model_name: Optional[str] = None,
 ) -> str:
-    """Upload evaluation or scoring results to Trismik platform (asynchronous).
+    """Upload evaluation or scoring results to Trismik's platform (asynchronous).
 
-    This function uploads results in the format returned by evaluate_async() or
-    score_async() functions to the Trismik platform for tracking and analysis.
+    This function uploads results in the format returned by the evaluate or
+    score functions to the Trismik platform for tracking and analysis.
 
     Args:
         run_result: Dict with keys 'aggregate_results' and 'item_results' containing
-            evaluation/scoring results. Structure matches output of evaluate()/score().
+            evaluation/scoring results. Structure matches the output of evaluate()/score().
         experiment_id: Trismik experiment identifier
         project_id: Trismik project identifier
         dataset_name: Optional dataset name. If not provided, extracted from metadata
@@ -189,21 +174,6 @@ async def upload_run_result_async(
 
     Raises:
         Exception: If upload fails (re-raises underlying exceptions)
-
-    Example:
-        ```python
-        from scorebook.trismik.upload_results import upload_run_result_async
-
-        results = await score_async(items=[...], metrics="accuracy")
-        run_id = await upload_run_result_async(
-            run_result=results,
-            experiment_id="exp123",
-            project_id="proj456",
-            dataset_name="math_qa",
-            hyperparameters={"temperature": 0.7},
-            model_name="gpt-4",
-        )
-        ```
     """
     # Create Trismik async client
     trismik_client = create_trismik_async_client()
