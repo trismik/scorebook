@@ -80,7 +80,7 @@ def main() -> Any:
     )
 
     # Step 1: Log in with your Trismik API key
-    login("TRISMIK_API_KEY")
+    login("TRISMIK_API_KEY") # TODO: ADD YOUR TRISMIK API KEY
 
 
     # Step 2: Run evaluation with result uploading
@@ -95,7 +95,7 @@ def main() -> Any:
             "system_message": "Answer the question directly and concisely.",
         },
         experiment_id="Uploading-Results-Example",  # Creates/uses this experiment
-        project_id="222621962210d89b4ddc769ca487ee0d37686462",
+        project_id="TRISMIK_PROJECT_ID", # TODO: ADD YOUR TRISMIK PROJECT ID
         metadata={
             "model": model_name,
             "description": "Example evaluation demonstrating result uploading",
