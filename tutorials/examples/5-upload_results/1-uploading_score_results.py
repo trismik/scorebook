@@ -88,7 +88,7 @@ def main() -> Any:
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="1-uploading_score_results")
+    log_file = setup_logging(experiment_id="1-uploading_score_results", base_dir=Path(__file__).parent)
     output_dir = Path(__file__).parent / "results"
     output_dir.mkdir(exist_ok=True)
     results_dict = main()

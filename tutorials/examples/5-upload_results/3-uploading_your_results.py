@@ -1,6 +1,5 @@
-"""Tutorials - Upload Results - Example 3 - Uploading Your Own Results."""
+"""Tutorials - Upload Results - Example 3 - Uploading Pre-Scored Results."""
 
-import os
 import sys
 from pathlib import Path
 from pprint import pprint
@@ -13,104 +12,144 @@ sys.path.insert(0, str(Path(__file__).parent.parent / ".example_utils"))
 from output import save_results_to_json
 from setup import setup_logging
 
-from scorebook import login, score
+from scorebook import login, upload_run_result
 
 
 def main() -> Any:
-    """Upload your own pre-computed scoring results to Trismik's dashboard.
+    """Upload pre-scored results directly to Trismik's dashboard.
 
-    This example demonstrates how to upload results that you've already
-    computed or obtained from external sources. This is useful when:
-        - You have results from a previous evaluation
-        - You used a custom evaluation framework
-        - You want to import historical data into Trismik
-        - You computed scores using your own metrics
+    This example demonstrates how to upload results where metrics are ALREADY computed.
+    This is different from score() or evaluate() which compute metrics for you.
 
-    The key is to format your data as items with outputs and labels,
-    then use score() to compute standardized metrics and upload.
+    Use upload_run_result() when you:
+        - Already have metric scores calculated
+        - Used a custom evaluation framework that computed metrics
+        - Want to import historical evaluation data with existing scores
+        - Have results from external tools (e.g., other eval frameworks)
+
+    The key difference from Examples 1 & 2:
+        - Example 1 (score): You have outputs/labels → Scorebook computes metrics
+        - Example 2 (evaluate): Scorebook runs inference AND computes metrics
+        - Example 3 (upload_run_result): You have EVERYTHING including metrics → Just upload
 
     Prerequisites:
         - Valid Trismik API key set in TRISMIK_API_KEY environment variable
         - A Trismik project ID
     """
 
-    # Example: You have results from running your model externally
-    # Format them as items with input, output, and label fields
-    my_model_results = [
-        {
-            "input": "Translate 'hello' to Spanish",
-            "output": "hola",
-            "label": "hola",
-        },
-        {
-            "input": "Translate 'goodbye' to Spanish",
-            "output": "adiós",
-            "label": "adiós",
-        },
-        {
-            "input": "Translate 'thank you' to Spanish",
-            "output": "gracias",
-            "label": "gracias",
-        },
-        {
-            "input": "Translate 'please' to Spanish",
-            "output": "por favor",
-            "label": "por favor",
-        },
-        {
-            "input": "Translate 'good morning' to Spanish",
-            "output": "buenos días",
-            "label": "buenos días",
-        },
-    ]
-
     # Step 1: Log in with your Trismik API key
-    api_key = os.environ.get("TRISMIK_API_KEY")
-    if not api_key:
-        raise ValueError(
-            "TRISMIK_API_KEY environment variable must be set. "
-            "Get your API key from https://app.trismik.com/settings"
-        )
-    login(api_key)
+    login("TRISMIK_API_KEY") # TODO: ADD YOUR TRISMIK API KEY
 
-    # Step 2: Get project ID from environment
-    project_id = os.environ.get("TRISMIK_PROJECT_ID")
-    if not project_id:
-        raise ValueError(
-            "TRISMIK_PROJECT_ID environment variable must be set. "
-            "Find your project ID at https://app.trismik.com"
-        )
+    # Step 2: Format your pre-scored results
+    # This is the structure that upload_run_result() expects:
+    # - aggregate_results: List with one dict containing overall metrics
+    # - item_results: List of dicts with per-item data and metric scores
 
-    # Step 3: Score and upload your results
-    # score() will compute metrics and upload to Trismik
-    print("\nUploading your pre-computed results...")
-    print("Scorebook will compute metrics and upload to Trismik dashboard.\n")
+    # Example: You already ran an evaluation with your custom framework
+    # and computed accuracy, f1_score, etc.
+    my_pre_scored_results = {
+        "aggregate_results": [
+            {
+                "dataset": "spanish_translation",
+                "accuracy": 0.8,  # Your pre-computed aggregate accuracy
+                "bleu_score": 0.75,  # Your pre-computed BLEU score
+                # Add any hyperparameters used (optional)
+                "temperature": 0.7,
+                "max_tokens": 100,
+            }
+        ],
+        "item_results": [
+            {
+                "id": 0,
+                "dataset_name": "spanish_translation",
+                "input": "Translate 'hello' to Spanish",
+                "output": "hola",
+                "label": "hola",
+                "accuracy": 1.0,  # Item-level metric scores
+                "bleu_score": 1.0,
+                "temperature": 0.7,
+                "max_tokens": 100,
+            },
+            {
+                "id": 1,
+                "dataset_name": "spanish_translation",
+                "input": "Translate 'goodbye' to Spanish",
+                "output": "adiós",
+                "label": "adiós",
+                "accuracy": 1.0,
+                "bleu_score": 0.95,
+                "temperature": 0.7,
+                "max_tokens": 100,
+            },
+            {
+                "id": 2,
+                "dataset_name": "spanish_translation",
+                "input": "Translate 'thank you' to Spanish",
+                "output": "gracias",
+                "label": "gracias",
+                "accuracy": 1.0,
+                "bleu_score": 1.0,
+                "temperature": 0.7,
+                "max_tokens": 100,
+            },
+            {
+                "id": 3,
+                "dataset_name": "spanish_translation",
+                "input": "Translate 'please' to Spanish",
+                "output": "por favor",
+                "label": "por favor",
+                "accuracy": 1.0,
+                "bleu_score": 1.0,
+                "temperature": 0.7,
+                "max_tokens": 100,
+            },
+            {
+                "id": 4,
+                "dataset_name": "spanish_translation",
+                "input": "Translate 'good morning' to Spanish",
+                "output": "buenos dias",  # Missing accent - wrong answer
+                "label": "buenos días",
+                "accuracy": 0.0,
+                "bleu_score": 0.85,
+                "temperature": 0.7,
+                "max_tokens": 100,
+            },
+        ],
+    }
 
-    results = score(
-        items=my_model_results,
-        metrics="accuracy",  # Let Scorebook compute standard metrics
+    # Step 3: Upload your pre-scored results directly
+    print("\nUploading pre-scored results to Trismik...")
+    print("Metrics are already computed - just uploading to dashboard.\n")
+
+    run_id = upload_run_result(
+        run_result=my_pre_scored_results,
+        experiment_id="Pre-Scored-Results-Example",
+        project_id="TRISMIK_PROJECT_ID", # TODO: ADD YOUR TRISMIK PROJECT ID
         dataset_name="spanish_translation",
-        model_name="my-custom-model-v1",
-        experiment_id="Custom-Results-Upload",
-        project_id=project_id,
-        metadata={
-            "description": "Results from external evaluation",
-            "source": "Custom evaluation framework",
-            "date": "2025-01-15",
+        hyperparameters={
+            "temperature": 0.7,
+            "max_tokens": 100,
         },
-        upload_results=True,
+        metadata={
+            "description": "Results with pre-computed metrics from custom framework",
+            "source": "Custom evaluation tool",
+            "evaluation_date": "2025-01-15",
+        },
+        model_name="my-custom-translator-v2",
     )
 
-    print("\nYour results uploaded successfully!")
-    print(f"View your results at: https://app.trismik.com/projects/{project_id}\n")
+    print(f"\nResults uploaded successfully with run_id: {run_id}")
 
-    pprint(results)
-    return results
+    # Add run_id to results for reference
+    my_pre_scored_results["run_id"] = run_id
+
+    pprint(my_pre_scored_results)
+    return my_pre_scored_results
 
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="3-uploading_your_results")
+    log_file = setup_logging(experiment_id="3-uploading_your_results", base_dir=Path(__file__).parent)
     output_dir = Path(__file__).parent / "results"
     output_dir.mkdir(exist_ok=True)
     results_dict = main()

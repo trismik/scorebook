@@ -1,6 +1,5 @@
 """Tutorials - Upload Results - Example 2 - Uploading evaluate() Results."""
 
-import os
 import sys
 from pathlib import Path
 from pprint import pprint
@@ -81,23 +80,10 @@ def main() -> Any:
     )
 
     # Step 1: Log in with your Trismik API key
-    api_key = os.environ.get("TRISMIK_API_KEY")
-    if not api_key:
-        raise ValueError(
-            "TRISMIK_API_KEY environment variable must be set. "
-            "Get your API key from https://app.trismik.com/settings"
-        )
-    login(api_key)
+    login("TRISMIK_API_KEY")
 
-    # Step 2: Get project ID from environment
-    project_id = os.environ.get("TRISMIK_PROJECT_ID")
-    if not project_id:
-        raise ValueError(
-            "TRISMIK_PROJECT_ID environment variable must be set. "
-            "Find your project ID at https://app.trismik.com"
-        )
 
-    # Step 3: Run evaluation with result uploading
+    # Step 2: Run evaluation with result uploading
     # When you provide experiment_id and project_id, results are automatically uploaded
     print(f"\nRunning evaluation with model: {model_name}")
     print("Results will be uploaded to Trismik dashboard.\n")
@@ -109,7 +95,7 @@ def main() -> Any:
             "system_message": "Answer the question directly and concisely.",
         },
         experiment_id="Uploading-Results-Example",  # Creates/uses this experiment
-        project_id=project_id,
+        project_id="222621962210d89b4ddc769ca487ee0d37686462",
         metadata={
             "model": model_name,
             "description": "Example evaluation demonstrating result uploading",
@@ -120,15 +106,14 @@ def main() -> Any:
     )
 
     print("\nResults uploaded successfully!")
-    print(f"View your results at: https://app.trismik.com/projects/{project_id}\n")
-
     pprint(results)
+
     return results
 
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="2-uploading_evaluate_results")
+    log_file = setup_logging(experiment_id="2-uploading_evaluate_results", base_dir=Path(__file__).parent)
     output_dir = Path(__file__).parent / "results"
     output_dir.mkdir(exist_ok=True)
     results_dict = main()

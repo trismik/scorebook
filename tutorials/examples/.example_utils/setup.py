@@ -32,10 +32,24 @@ def setup_output_directory() -> Path:
     return output_dir
 
 
-def setup_logging(log_dir: str = "logs", experiment_id: Optional[str] = None) -> Path:
-    """Configure logging for evaluation runs."""
-    log_dir_path: Path = Path(log_dir)
-    log_dir_path.mkdir(exist_ok=True)
+def setup_logging(
+    log_dir: str = "logs",
+    experiment_id: Optional[str] = None,
+    base_dir: Optional[Path] = None,
+) -> Path:
+    """Configure logging for evaluation runs.
+
+    Args:
+        log_dir: Name of the log directory (default: "logs")
+        experiment_id: Optional identifier for the experiment
+        base_dir: Base directory where log_dir should be created.
+                  If None, uses current working directory.
+    """
+    if base_dir is None:
+        base_dir = Path.cwd()
+
+    log_dir_path: Path = base_dir / log_dir
+    log_dir_path.mkdir(exist_ok=True, parents=True)
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if experiment_id:

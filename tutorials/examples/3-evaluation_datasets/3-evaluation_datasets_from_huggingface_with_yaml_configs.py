@@ -107,7 +107,7 @@ async def main() -> Any:
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="3-evaluation_datasets_from_yaml")
+    log_file = setup_logging(experiment_id="3-evaluation_datasets_from_yaml", base_dir=Path(__file__).parent)
     output_dir = Path(__file__).parent / "results"
     output_dir.mkdir(exist_ok=True)
     results_dict = asyncio.run(main())

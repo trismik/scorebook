@@ -77,14 +77,11 @@ def upload_run_result(
     aggregate_results = run_result.get("aggregate_results", [])
     item_results = run_result.get("item_results", [])
 
-    # Use provided hyperparameters or extract from aggregate_results
+    # Use provided hyperparameters or default to empty dict
+    # Note: We don't extract hyperparameters from aggregate_results to avoid
+    # misclassifying metrics as hyperparameters
     if hyperparameters is None:
         hyperparameters = {}
-        if aggregate_results:
-            # Extract hyperparameters from aggregate result (exclude known fields and metrics)
-            for key, value in aggregate_results[0].items():
-                if key not in KNOWN_AGGREGATE_FIELDS:
-                    hyperparameters[key] = value
 
     # Create eval items from item_results
     trismik_items: List[TrismikClassicEvalItem] = []
@@ -95,10 +92,10 @@ def upload_run_result(
         model_output = str(item.get("output", ""))
         gold_output = str(item.get("label", ""))
 
-        # Extract item-level metrics (exclude known fields)
+        # Extract item-level metrics (exclude known fields and hyperparameters)
         item_metrics: Dict[str, Any] = {}
         for key, value in item.items():
-            if key not in KNOWN_ITEM_FIELDS:
+            if key not in KNOWN_ITEM_FIELDS and key not in (hyperparameters or {}):
                 # Normalize metric value for API compatibility
                 item_metrics[key] = normalize_metric_value(value)
 
@@ -195,14 +192,11 @@ async def upload_run_result_async(
     aggregate_results = run_result.get("aggregate_results", [])
     item_results = run_result.get("item_results", [])
 
-    # Use provided hyperparameters or extract from aggregate_results
+    # Use provided hyperparameters or default to empty dict
+    # Note: We don't extract hyperparameters from aggregate_results to avoid
+    # misclassifying metrics as hyperparameters
     if hyperparameters is None:
         hyperparameters = {}
-        if aggregate_results:
-            # Extract hyperparameters from aggregate result (exclude known fields and metrics)
-            for key, value in aggregate_results[0].items():
-                if key not in KNOWN_AGGREGATE_FIELDS:
-                    hyperparameters[key] = value
 
     # Create eval items from item_results
     trismik_items: List[TrismikClassicEvalItem] = []
@@ -213,10 +207,10 @@ async def upload_run_result_async(
         model_output = str(item.get("output", ""))
         gold_output = str(item.get("label", ""))
 
-        # Extract item-level metrics (exclude known fields)
+        # Extract item-level metrics (exclude known fields and hyperparameters)
         item_metrics: Dict[str, Any] = {}
         for key, value in item.items():
-            if key not in KNOWN_ITEM_FIELDS:
+            if key not in KNOWN_ITEM_FIELDS and key not in (hyperparameters or {}):
                 # Normalize metric value for API compatibility
                 item_metrics[key] = normalize_metric_value(value)
 

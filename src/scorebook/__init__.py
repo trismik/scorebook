@@ -14,6 +14,7 @@ from scorebook.evaluate import evaluate, evaluate_async
 from scorebook.inference.inference_pipeline import InferencePipeline
 from scorebook.score import score, score_async
 from scorebook.trismik.credentials import login, logout, whoami
+from scorebook.trismik.upload_results import upload_run_result, upload_run_result_async
 from scorebook.utils.render_template import render_template
 
 __all__ = [
@@ -27,4 +28,6 @@ __all__ = [
     "logout",
     "whoami",
     "InferencePipeline",
+    "upload_run_result",
+    "upload_run_result_async",
 ]
