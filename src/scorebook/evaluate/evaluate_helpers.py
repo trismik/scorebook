@@ -2,7 +2,6 @@
 
 import asyncio
 import dataclasses
-import inspect
 import logging
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Union
 
@@ -349,10 +348,7 @@ def make_trismik_inference(
     """
 
     # Check if the inference function is async
-    is_async = inspect.iscoroutinefunction(inference_function) or (
-        hasattr(inference_function, "__call__")
-        and inspect.iscoroutinefunction(inference_function.__call__)
-    )
+    is_async = is_awaitable(inference_function)
 
     def sync_trismik_inference_function(eval_items: Any, **kwargs: Any) -> Any:
         # Single TrismikMultipleChoiceTextItem dataclass

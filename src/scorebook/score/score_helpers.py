@@ -1,6 +1,5 @@
 """Helper functions shared between score() and score_async()."""
 
-import inspect
 import logging
 from typing import Any, Dict, List, Mapping, Optional, Type, Union
 
@@ -8,6 +7,7 @@ from scorebook.exceptions import DataMismatchError, ParameterValidationError
 from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.metric_registry import MetricRegistry
 from scorebook.types import MetricScore
+from scorebook.utils import is_awaitable
 
 logger = logging.getLogger(__name__)
 
@@ -65,14 +65,16 @@ async def calculate_metric_scores_async(
     outputs: List[Any],
     labels: List[Any],
     dataset_name: Optional[str],
+    progress_bar: Optional[Any] = None,
 ) -> List[MetricScore]:
-    """Calculate metric scores asynchronously for given outputs and labels.
+    """Calculate metric scores asynchronously (supports both sync and async metrics).
 
     Args:
         metrics: List of metric instances to compute scores for.
         outputs: List of model outputs.
         labels: List of ground truth labels.
         dataset_name: Name of the dataset being scored.
+        progress_bar: Optional progress bar to update during computation.
 
     Returns:
         List of MetricScore objects containing aggregate and item-level scores.
@@ -86,13 +88,18 @@ async def calculate_metric_scores_async(
     metric_scores: List[MetricScore] = []
     for metric in metrics:
 
-        if inspect.iscoroutinefunction(metric.score):
-            aggregate_scores, item_scores = await metric.score(outputs, labels)
-            metric_scores.append(MetricScore(metric.name, aggregate_scores, item_scores))
+        if progress_bar is not None:
+            progress_bar.set_current_metric(metric.name)
 
+        if is_awaitable(metric.score):
+            aggregate_scores, item_scores = await metric.score(outputs, labels)
         else:
             aggregate_scores, item_scores = metric.score(outputs, labels)
-            metric_scores.append(MetricScore(metric.name, aggregate_scores, item_scores))
+
+        metric_scores.append(MetricScore(metric.name, aggregate_scores, item_scores))
+
+        if progress_bar is not None:
+            progress_bar.update(1)
 
     return metric_scores
 
@@ -102,28 +109,44 @@ def calculate_metric_scores(
     outputs: List[Any],
     labels: List[Any],
     dataset_name: Optional[str],
+    progress_bar: Optional[Any] = None,
 ) -> List[MetricScore]:
-    """Calculate metric scores synchronously for given outputs and labels.
+    """Calculate metric scores synchronously (sync metrics only).
 
     Args:
         metrics: List of metric instances to compute scores for.
         outputs: List of model outputs.
         labels: List of ground truth labels.
         dataset_name: Name of the dataset being scored.
+        progress_bar: Optional progress bar to update during computation.
 
     Returns:
         List of MetricScore objects containing aggregate and item-level scores.
 
     Raises:
         DataMismatchError: If outputs and labels have different lengths.
+        ParameterValidationError: If any metric has an async score method.
     """
     if len(outputs) != len(labels):
         raise DataMismatchError(len(outputs), len(labels), dataset_name)
 
     metric_scores: List[MetricScore] = []
     for metric in metrics:
+
+        if progress_bar is not None:
+            progress_bar.set_current_metric(metric.name)
+
+        if is_awaitable(metric.score):
+            raise ParameterValidationError(
+                f"Metric '{metric.name}' has an async score() method. "
+                "Use score_async() instead of score() for async metrics."
+            )
+
         aggregate_scores, item_scores = metric.score(outputs, labels)
         metric_scores.append(MetricScore(metric.name, aggregate_scores, item_scores))
+
+        if progress_bar is not None:
+            progress_bar.update(1)
 
     return metric_scores
 

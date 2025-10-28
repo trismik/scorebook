@@ -1,11 +1,15 @@
-import inspect
 import logging
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 from scorebook.exceptions import DataMismatchError, ParameterValidationError
-from scorebook.score.score_helpers import format_results, resolve_metrics, validate_items
+from scorebook.score.score_helpers import (
+    calculate_metric_scores_async,
+    format_results,
+    resolve_metrics,
+    validate_items,
+)
 from scorebook.trismik.upload_results import upload_run_result_async
-from scorebook.types import Metrics, MetricScore
+from scorebook.types import Metrics
 from scorebook.utils import resolve_show_progress, resolve_upload_results, scoring_progress_context
 
 logger = logging.getLogger(__name__)
@@ -88,27 +92,17 @@ async def score_async(
         raise DataMismatchError(len(outputs), len(labels), dataset_name)
 
     # Compute scores for each metric with progress display
-    metric_scores: List[MetricScore] = []
     with scoring_progress_context(
         total_metrics=len(metric_instances),
         enabled=show_progress_bars,
     ) as progress_bar:
-        for metric in metric_instances:
-            # Update progress bar with current metric name
-            if progress_bar is not None:
-                progress_bar.set_current_metric(metric.name)
-
-            # Score the metric
-            if inspect.iscoroutinefunction(metric.score):
-                aggregate_scores, item_scores = await metric.score(outputs, labels)
-            else:
-                aggregate_scores, item_scores = metric.score(outputs, labels)
-
-            metric_scores.append(MetricScore(metric.name, aggregate_scores, item_scores))
-
-            # Update progress
-            if progress_bar is not None:
-                progress_bar.update(1)
+        metric_scores = await calculate_metric_scores_async(
+            metrics=metric_instances,
+            outputs=outputs,
+            labels=labels,
+            dataset_name=dataset_name,
+            progress_bar=progress_bar,
+        )
 
     # Build results
     results: Dict[str, List[Dict[str, Any]]] = format_results(
