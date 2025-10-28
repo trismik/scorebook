@@ -61,7 +61,7 @@ def main() -> Any:
         "item_results": [
             {
                 "id": 0,
-                "dataset_name": "spanish_translation",
+                "dataset": "spanish_translation",
                 "input": "Translate 'hello' to Spanish",
                 "output": "hola",
                 "label": "hola",
@@ -72,7 +72,7 @@ def main() -> Any:
             },
             {
                 "id": 1,
-                "dataset_name": "spanish_translation",
+                "dataset": "spanish_translation",
                 "input": "Translate 'goodbye' to Spanish",
                 "output": "adiós",
                 "label": "adiós",
@@ -83,7 +83,7 @@ def main() -> Any:
             },
             {
                 "id": 2,
-                "dataset_name": "spanish_translation",
+                "dataset": "spanish_translation",
                 "input": "Translate 'thank you' to Spanish",
                 "output": "gracias",
                 "label": "gracias",
@@ -94,7 +94,7 @@ def main() -> Any:
             },
             {
                 "id": 3,
-                "dataset_name": "spanish_translation",
+                "dataset": "spanish_translation",
                 "input": "Translate 'please' to Spanish",
                 "output": "por favor",
                 "label": "por favor",
@@ -105,7 +105,7 @@ def main() -> Any:
             },
             {
                 "id": 4,
-                "dataset_name": "spanish_translation",
+                "dataset": "spanish_translation",
                 "input": "Translate 'good morning' to Spanish",
                 "output": "buenos dias",  # Missing accent - wrong answer
                 "label": "buenos días",

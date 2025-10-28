@@ -183,7 +183,7 @@ def format_results(
     for idx in range(len(outputs)):
         item_result: Dict[str, Any] = {
             "id": idx,
-            "dataset_name": dataset_name,
+            "dataset": dataset_name,
             "output": outputs[idx],
             "label": labels[idx],
             **hyperparameters,
