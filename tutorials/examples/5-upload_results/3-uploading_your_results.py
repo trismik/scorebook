@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / ".example_utils"))
 from output import save_results_to_json
 from setup import setup_logging
 
-from scorebook import login, upload_run_result
+from scorebook import login, upload_result
 
 
 def main() -> Any:
@@ -21,7 +21,7 @@ def main() -> Any:
     This example demonstrates how to upload results where metrics are ALREADY computed.
     This is different from score() or evaluate() which compute metrics for you.
 
-    Use upload_run_result() when you:
+    Use upload_result() when you:
         - Already have metric scores calculated
         - Used a custom evaluation framework that computed metrics
         - Want to import historical evaluation data with existing scores
@@ -30,7 +30,7 @@ def main() -> Any:
     The key difference from Examples 1 & 2:
         - Example 1 (score): You have outputs/labels → Scorebook computes metrics
         - Example 2 (evaluate): Scorebook runs inference AND computes metrics
-        - Example 3 (upload_run_result): You have EVERYTHING including metrics → Just upload
+        - Example 3 (upload_result): You have EVERYTHING including metrics → Just upload
 
     Prerequisites:
         - Valid Trismik API key set in TRISMIK_API_KEY environment variable
@@ -41,7 +41,7 @@ def main() -> Any:
     login("TRISMIK_API_KEY") # TODO: ADD YOUR TRISMIK API KEY
 
     # Step 2: Format your pre-scored results
-    # This is the structure that upload_run_result() expects:
+    # This is the structure that upload_result() expects:
     # - aggregate_results: List with one dict containing overall metrics
     # - item_results: List of dicts with per-item data and metric scores
 
@@ -121,7 +121,7 @@ def main() -> Any:
     print("\nUploading pre-scored results to Trismik...")
     print("Metrics are already computed - just uploading to dashboard.\n")
 
-    run_id = upload_run_result(
+    run_id = upload_result(
         run_result=my_pre_scored_results,
         experiment_id="Pre-Scored-Results-Example",
         project_id="TRISMIK_PROJECT_ID", # TODO: ADD YOUR TRISMIK PROJECT ID

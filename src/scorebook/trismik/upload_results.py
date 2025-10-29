@@ -24,7 +24,7 @@ KNOWN_AGGREGATE_FIELDS = {"dataset", "run_id", "run_completed"}
 KNOWN_ITEM_FIELDS = {"id", "dataset_name", "input", "output", "label", "run_id"}
 
 
-def upload_run_result(
+def upload_result(
     run_result: Dict[str, List[Dict[str, Any]]],
     experiment_id: str,
     project_id: str,
@@ -139,7 +139,7 @@ def upload_run_result(
     return run_id
 
 
-async def upload_run_result_async(
+async def upload_result_async(
     run_result: Dict[str, List[Dict[str, Any]]],
     experiment_id: str,
     project_id: str,
@@ -159,7 +159,7 @@ async def upload_run_result_async(
         experiment_id: Trismik experiment identifier
         project_id: Trismik project identifier
         dataset_name: Optional dataset name. If not provided, extracted from metadata
-            or defaults to "Dataset"
+        or defaults to "Dataset"
         hyperparameters: Optional dict of hyperparameters. If not provided, extracted
             from run_result.
         metadata: Optional metadata dict (can include 'model' and 'dataset' keys)

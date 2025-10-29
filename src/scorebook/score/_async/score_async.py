@@ -8,7 +8,7 @@ from scorebook.score.score_helpers import (
     resolve_metrics,
     validate_items,
 )
-from scorebook.trismik.upload_results import upload_run_result_async
+from scorebook.trismik.upload_results import upload_result_async
 from scorebook.types import Metrics
 from scorebook.utils import resolve_show_progress, resolve_upload_results, scoring_progress_context
 
@@ -117,7 +117,7 @@ async def score_async(
     # Upload if requested
     if upload_results and experiment_id and project_id:
         try:
-            run_id = await upload_run_result_async(
+            run_id = await upload_result_async(
                 run_result=results,
                 experiment_id=experiment_id,
                 project_id=project_id,
