@@ -260,9 +260,9 @@ def execute_classic_eval_run(
         scores = score(
             items=items,
             metrics=run.dataset.metrics,
-            output="output",  # Explicit parameter
-            label="label",  # Explicit parameter
-            input="input",  # Explicit parameter
+            output_column="output",  # Explicit parameter
+            label_column="label",  # Explicit parameter
+            input_column="input",  # Explicit parameter
             hyperparameters=run.hyperparameter_config,
             dataset_name=run.dataset.name,
             model_name=model_name,

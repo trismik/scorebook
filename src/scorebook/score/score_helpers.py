@@ -12,7 +12,7 @@ from scorebook.utils import is_awaitable
 logger = logging.getLogger(__name__)
 
 
-def validate_items(items: List[Dict[str, Any]], output: str, label: str) -> None:
+def validate_items(items: List[Dict[str, Any]], output_column: str, label_column: str) -> None:
     """Validate the items parameter."""
     if not isinstance(items, list):
         raise ParameterValidationError("items must be a list")
@@ -20,7 +20,7 @@ def validate_items(items: List[Dict[str, Any]], output: str, label: str) -> None
     if len(items) == 0:
         raise ParameterValidationError("items list cannot be empty")
 
-    required = {output, label}
+    required = {output_column, label_column}
     for idx, item in enumerate(items):
         if not isinstance(item, Mapping):
             raise ParameterValidationError(f"Item at index {idx} is not a dict")

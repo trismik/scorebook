@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 def score(
     items: List[Dict[str, Any]],
     metrics: Metrics,
-    output: str = "output",
-    label: str = "label",
-    input: str = "input",
+    output_column: str = "output",
+    label_column: str = "label",
+    input_column: str = "input",
     hyperparameters: Optional[Dict[str, Any]] = None,
     dataset_name: Optional[str] = None,
     model_name: Optional[str] = None,
@@ -34,12 +34,12 @@ def score(
 
     Args:
         items: List of dictionaries containing model outputs and labels. Each item should
-            have keys matching the output and label parameters.
+            have keys matching the output_column and label_column parameters.
         metrics: Metric(s) to compute. Can be a single Metric class, instance, string name,
             or a list of any combination of these.
-        output: Key in items dictionaries containing model outputs. Defaults to "output".
-        label: Key in items dictionaries containing ground truth labels. Defaults to "label".
-        input: Key in items dictionaries containing inputs for reference.
+        output_column: Key in items dictionaries containing model outputs. Defaults to "output".
+        label_column: Key in items dictionaries containing ground truth labels. Defaults to "label".
+        input_column: Key in items dictionaries containing inputs for reference.
             Defaults to "input".
         hyperparameters: Optional dictionary of hyperparameters used during inference.
             Defaults to None.
@@ -73,7 +73,7 @@ def score(
         )
 
     # Validate items parameter
-    validate_items(items, output, label)
+    validate_items(items, output_column, label_column)
 
     # Validate hyperparameters is a dict (not list)
     if hyperparameters is not None and not isinstance(hyperparameters, dict):
@@ -83,9 +83,9 @@ def score(
     metric_instances = resolve_metrics(metrics)
 
     # Extract outputs and labels from items
-    inputs = [item.get(input) for item in items]
-    outputs = [item.get(output) for item in items]
-    labels = [item.get(label) for item in items]
+    inputs = [item.get(input_column) for item in items]
+    outputs = [item.get(output_column) for item in items]
+    labels = [item.get(label_column) for item in items]
 
     # Validate outputs and labels have same length
     if len(outputs) != len(labels):
