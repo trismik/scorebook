@@ -11,7 +11,7 @@ requires-python = ">=3.9, <3.14"
 dependencies = [
     "datasets>=3.6.0",
     "notebook (>=7.4.5,<8.0.0)",
-    "trismik (>=1.0.1, <2.0.0)",
+    "trismik==1.0.1",
     "ipywidgets>=8.0.0",
 ]
 
@@ -26,7 +26,7 @@ packages = [{ include = "scorebook", from = "src" }]
 python = ">=3.9,<3.14"
 datasets = ">=3.6.0"
 notebook = ">=7.4.5,<8.0.0"
-trismik = ">=1.0.1,<2.0.0"
+trismik = "1.0.1"
 ipywidgets = ">=8.0.0"
 
 # Optional dependencies
@@ -119,16 +119,22 @@ install_types = true
 [tool.flake8] # note that this depends on Flake8-pyproject
 ignore = ["D202", "W503", "W504"]
 
-[tool.unasync]
 [[tool.unasync.rules]]
 fromdir = "src/scorebook/evaluate/_async/"
 todir = "src/scorebook/evaluate/_sync/"
+replacements."scorebook.score._async.score_async" = "scorebook.score._sync.score"
+replacements."scorebook.score._async" = "scorebook.score._sync"
+replacements.evaluate_async = "evaluate"
+replacements."Asynchronous evaluation complete" = "Synchronous evaluation complete"
+replacements."    run_results = asyncio.gather(*[worker(run) for run in runs])" = "    run_results = [worker(run) for run in runs]"
+replacements.async_nullcontext = "nullcontext"
+replacements.create_trismik_async_client = "create_trismik_sync_client"
+replacements.score_async = "score"
 
-
-# Custom replacements beyond default async/await transformations
-[tool.unasync.rules.replacements]
-"evaluate_async" = "evaluate"
-"Asynchronous evaluation complete" = "Synchronous evaluation complete"
-"    run_results = asyncio.gather(*[worker(run) for run in runs])" = "    run_results = [worker(run) for run in runs]"
-"async_nullcontext" = "nullcontext"
-"create_trismik_async_client" = "create_trismik_sync_client"
+[[tool.unasync.rules]]
+fromdir = "src/scorebook/score/_async/"
+todir = "src/scorebook/score/_sync/"
+replacements.score_async = "score"
+replacements."Async scoring complete" = "Scoring complete"
+replacements.calculate_metric_scores_async = "calculate_metric_scores"
+replacements.upload_result_async = "upload_result"

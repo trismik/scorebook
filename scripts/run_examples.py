@@ -2,7 +2,7 @@
 """Script to run all examples with toggleable execution.
 
 Toggle the boolean flags below to enable/disable specific examples.
-By default, examples 6, 8, and 9 are disabled.
+By default, examples requiring API keys or credentials are disabled.
 
 Usage:
     python scripts/run_examples.py           # Run all enabled examples
@@ -20,16 +20,26 @@ from typing import Dict
 # =============================================================================
 
 EXAMPLE_FLAGS = {
-    "example_1_simple_evaluation.py": True,
-    "example_2.1_evaluation_datasets.py": True,
-    "example_2.2_evaluation_datasets.py": True,
-    "example_3_inference_pipelines.py": True,
-    "example_4_batch_inference.py": True,
-    "example_5_cloud_inference.py": True,
-    "example_6_cloud_batch_inference.py": False,  # Disabled by default
-    "example_7_hyperparameters.py": True,
-    "example_8_uploading_results.py": False,  # Disabled by default
-    "example_9_adaptive_evaluation.py": False,  # Disabled by default
+    # 1-score: Basic scoring examples
+    "1-score/1-scoring_model_accuracy.py": True,
+    # 2-evaluate: Evaluation examples
+    "2-evaluate/1-evaluating_local_models.py": True,
+    "2-evaluate/2-evaluating_local_models_with_batching.py": True,
+    "2-evaluate/3-evaluating_cloud_models.py": False,  # Requires OpenAI API key
+    "2-evaluate/4-evaluating_cloud_models_with_batching.py": False,  # Requires OpenAI API key
+    "2-evaluate/5-hyperparameter_sweeps.py": True,
+    "2-evaluate/6-inference_pipelines.py": True,
+    # 3-evaluation_datasets: Dataset loading examples
+    "3-evaluation_datasets/1-evaluation_datasets_from_files.py": True,
+    "3-evaluation_datasets/2-evaluation_datasets_from_huggingface.py": False,  # Requires OpenAI
+    # Requires OpenAI
+    "3-evaluation_datasets/3-evaluation_datasets_from_huggingface_with_yaml_configs.py": False,
+    # 4-adaptive_evaluations: Adaptive evaluation examples
+    "4-adaptive_evaluations/1-adaptive_evaluation.py": False,  # Requires Trismik + OpenAI
+    # 5-upload_results: Result upload examples
+    "5-upload_results/1-uploading_score_results.py": False,  # Requires Trismik API key
+    "5-upload_results/2-uploading_evaluate_results.py": False,  # Requires Trismik API key
+    "5-upload_results/3-uploading_your_results.py": False,  # Requires Trismik API key
 }
 
 # =============================================================================
@@ -37,16 +47,17 @@ EXAMPLE_FLAGS = {
 # =============================================================================
 
 
-def run_example(example_path: Path) -> bool:
+def run_example(example_path: Path, project_root: Path) -> bool:
     """Run a single example and return True if successful, False otherwise."""
     print(f"\n{'=' * 80}")
-    print(f"Running: {example_path.name}")
+    examples_base = project_root / "tutorials" / "examples"
+    print(f"Running: {example_path.relative_to(examples_base)}")
     print(f"{'=' * 80}\n")
 
     try:
         result = subprocess.run(
             [sys.executable, str(example_path)],
-            cwd=example_path.parent.parent,  # Run from project root
+            cwd=project_root,  # Run from project root
             capture_output=True,
             text=True,
             timeout=300,  # 5 minute timeout per example
@@ -61,7 +72,7 @@ def run_example(example_path: Path) -> bool:
         else:
             print(result.stdout)
             print("STDERR:", result.stderr)
-            print(f"\n✗ {example_path.name} failed with exit code {result.returncode}")
+            print(f"\n✗ {example_path.name} failed with code {result.returncode}")
             return False
 
     except subprocess.TimeoutExpired:
@@ -86,7 +97,7 @@ def main() -> None:
     # Find the examples directory
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
-    examples_dir = project_root / "examples"
+    examples_dir = project_root / "tutorials" / "examples"
 
     if not examples_dir.exists():
         print(f"Error: Examples directory not found at {examples_dir}")
@@ -121,7 +132,8 @@ def main() -> None:
             print(f"  ✗ {name}")
 
     if not enabled_examples:
-        print("\nNo examples enabled. Edit EXAMPLE_FLAGS in this script to enable examples.")
+        print("\nNo examples enabled.")
+        print("Edit EXAMPLE_FLAGS in this script to enable examples.")
         sys.exit(0)
 
     # If dry-run, exit here
@@ -139,7 +151,7 @@ def main() -> None:
 
     results: Dict[str, bool] = {}
     for example_name, example_path in enabled_examples:
-        success = run_example(example_path)
+        success = run_example(example_path, project_root)
         results[example_name] = success
 
     # Print final summary

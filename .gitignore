@@ -211,6 +211,7 @@ tests/**/results/
 examples/**/results/
 examples/**/example_results/
 examples/demo_results/
+tutorials/**/results/
 /results/
 /scorebook/results/
 

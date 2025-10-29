@@ -3,18 +3,9 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
 
 from trismik import TrismikAsyncClient, TrismikClient
 from trismik.settings import evaluation_settings
-from trismik.types import (
-    TrismikClassicEvalItem,
-    TrismikClassicEvalMetric,
-    TrismikClassicEvalRequest,
-    TrismikClassicEvalResponse,
-    TrismikRunMetadata,
-)
+from trismik.types import TrismikRunMetadata
 
 from scorebook.eval_datasets import EvalDataset
-from scorebook.evaluate.evaluate_helpers import (
-    normalize_metric_value,  # TODO - Remove when back-end is fixed
-)
 from scorebook.evaluate.evaluate_helpers import (
     build_eval_run_specs,
     create_trismik_sync_client,
@@ -23,12 +14,11 @@ from scorebook.evaluate.evaluate_helpers import (
     make_trismik_inference,
     prepare_datasets,
     prepare_hyperparameter_configs,
-    resolve_show_progress,
-    resolve_upload_results,
-    score_metrics,
     validate_parameters,
 )
 from scorebook.exceptions import InferenceError, ScoreBookError
+from scorebook.inference.inference_pipeline import InferencePipeline
+from scorebook.score._sync.score import score
 from scorebook.types import (
     AdaptiveEvalRunResult,
     AdaptiveEvalRunSpec,
@@ -36,14 +26,18 @@ from scorebook.types import (
     EvalResult,
     EvalRunSpec,
 )
-from contextlib import nullcontext
-from scorebook.utils import evaluation_progress_context
+from scorebook.utils import (
+    nullcontext,
+    evaluation_progress_context,
+    resolve_show_progress,
+    resolve_upload_results,
+)
 
 logger = logging.getLogger(__name__)
 
 
 def evaluate(
-    inference: Callable,
+    inference: Union[Callable, InferencePipeline],
     datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
     hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
     metadata: Optional[Dict[str, Any]] = None,
@@ -94,7 +88,7 @@ def evaluate(
         key=lambda run: (run.dataset_index, run.hyperparameters_index),
     )
 
-    # Create Trismik client if needed (for adaptive evals or uploads)
+    # Create a Trismik client if needed (for adaptive evals or uploads)
     needs_client = upload_results or any(
         isinstance(run, AdaptiveEvalRunSpec) for run in eval_run_specs
     )
@@ -156,9 +150,11 @@ def execute_runs(
     def worker(
         run: Union[EvalRunSpec, AdaptiveEvalRunSpec]
     ) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
+        # Execute run (score_async handles upload internally for classic evals)
         run_result = execute_run(
-            inference, run, experiment_id, project_id, metadata, trismik_client
+            inference, run, upload_results, experiment_id, project_id, metadata, trismik_client
         )
+
         # Update progress bars with items processed and success status
         if progress_bars is not None:
             # Classic evals have .items; adaptive evals use max_iterations
@@ -169,26 +165,17 @@ def execute_runs(
             )
             progress_bars.on_run_completed(items_processed, run_result.run_completed)
 
+        # Update upload progress for classic evals
         if (
             upload_results
             and isinstance(run_result, ClassicEvalRunResult)
-            and experiment_id
-            and project_id
             and run_result.run_completed
-            and trismik_client is not None
         ):
-            try:
-                run_id = upload_classic_run_results(
-                    run_result, experiment_id, project_id, inference, metadata, trismik_client
-                )
-                run_result.run_id = run_id
+            # Check if upload succeeded by checking for run_id
+            if experiment_id and project_id:
+                upload_succeeded = run_result.run_id is not None
                 if progress_bars is not None:
-                    progress_bars.on_upload_completed(succeeded=True)
-            except Exception as e:
-                logger.warning(f"Failed to upload run results: {e}")
-                if progress_bars is not None:
-                    progress_bars.on_upload_completed(succeeded=False)
-                # Continue evaluation even if upload fails
+                    progress_bars.on_upload_completed(succeeded=upload_succeeded)
 
         return run_result
 
@@ -207,6 +194,7 @@ def execute_runs(
 def execute_run(
     inference: Callable,
     run: Union[EvalRunSpec, AdaptiveEvalRunSpec],
+    upload_results: bool,  # NEW PARAMETER
     experiment_id: Optional[str] = None,
     project_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
@@ -215,7 +203,9 @@ def execute_run(
     """Execute a single evaluation run."""
 
     if isinstance(run, EvalRunSpec):
-        return execute_classic_eval_run(inference, run)
+        return execute_classic_eval_run(
+            inference, run, upload_results, experiment_id, project_id, metadata
+        )
 
     elif isinstance(run, AdaptiveEvalRunSpec):
         resolved_experiment_id = experiment_id if experiment_id is not None else run.experiment_id
@@ -233,24 +223,79 @@ def execute_run(
         raise ScoreBookError(f"An internal error occurred: {type(run)} is not a valid run type")
 
 
-def execute_classic_eval_run(inference: Callable, run: EvalRunSpec) -> ClassicEvalRunResult:
-    """Execute a classic evaluation run."""
+def execute_classic_eval_run(
+    inference: Callable,
+    run: EvalRunSpec,
+    upload_results: bool,
+    experiment_id: Optional[str],
+    project_id: Optional[str],
+    metadata: Optional[Dict[str, Any]],
+) -> ClassicEvalRunResult:
+    """Execute a classic evaluation run using score_async() for scoring and uploading."""
     logger.debug("Executing classic eval run for %s", run)
 
     inference_outputs = None
-    metric_scores = None
+    scores = None
 
     try:
+        # 1. Run inference
         inference_outputs = run_inference_callable(
             inference, run.inputs, run.hyperparameter_config
         )
-        metric_scores = score_metrics(run.dataset, inference_outputs, run.labels)
-        logger.debug("Classic evaluation completed for run %s", run)
-        return ClassicEvalRunResult(run, True, inference_outputs, metric_scores)
+
+        # 2. Build items for score_async
+        items = [
+            {
+                "input": run.inputs[i] if i < len(run.inputs) else None,
+                "output": inference_outputs[i],
+                "label": run.labels[i] if i < len(run.labels) else "",
+            }
+            for i in range(len(inference_outputs))
+        ]
+
+        # 3. Get the model name for upload
+        model_name = get_model_name(inference, metadata)
+
+        # 4. Call score_async
+        scores = score(
+            items=items,
+            metrics=run.dataset.metrics,
+            output_column="output",  # Explicit parameter
+            label_column="label",  # Explicit parameter
+            input_column="input",  # Explicit parameter
+            hyperparameters=run.hyperparameter_config,
+            dataset_name=run.dataset.name,
+            model_name=model_name,
+            metadata=metadata,
+            experiment_id=experiment_id,
+            project_id=project_id,
+            upload_results=upload_results,
+            show_progress=False,
+        )
+
+        # 5. Extract run_id if upload succeeded
+        run_id = None
+        if scores.get("aggregate_results") and len(scores["aggregate_results"]) > 0:
+            run_id = scores["aggregate_results"][0].get("run_id")
+
+        logger.debug("Classic evaluation completed for run %s (run_id: %s)", run, run_id)
+        return ClassicEvalRunResult(
+            run_spec=run,
+            run_completed=True,
+            outputs=inference_outputs,
+            scores=scores,
+            run_id=run_id,
+        )
 
     except Exception as e:
         logger.warning("Failed to complete classic eval run for %s: %s", run, str(e))
-        return ClassicEvalRunResult(run, False, inference_outputs, metric_scores)
+        return ClassicEvalRunResult(
+            run_spec=run,
+            run_completed=False,
+            outputs=inference_outputs,
+            scores=scores,
+            run_id=None,
+        )
 
 
 def run_inference_callable(
@@ -310,101 +355,6 @@ def execute_adaptive_eval_run(
     except Exception as e:
         logger.warning("Failed to complete adaptive eval run for %s: %s", run, str(e))
         return AdaptiveEvalRunResult(run, False, {})
-
-
-def upload_classic_run_results(
-    run_result: ClassicEvalRunResult,
-    experiment_id: str,
-    project_id: str,
-    inference_callable: Optional[Callable],
-    metadata: Optional[Dict[str, Any]],
-    trismik_client: Union[TrismikClient, TrismikAsyncClient],
-) -> str:
-    """Upload a classic evaluation run result to Trismik platform.
-
-    Args:
-        run: The evaluation run result to upload
-        experiment_id: Trismik experiment identifier
-        project_id: Trismik project identifier
-        model: Model name used for evaluation
-        metadata: Optional metadata dictionary
-        trismik_client: Trismik client instance
-
-    Returns:
-        Run id
-    """
-    model = get_model_name(inference_callable)
-
-    # Create eval items from run_spec inputs, outputs, and labels
-    items: List[TrismikClassicEvalItem] = []
-    inputs_outputs = zip(run_result.run_spec.inputs, run_result.outputs)
-    for idx, (input_value, output) in enumerate(inputs_outputs):
-        labels = run_result.run_spec.labels
-        label = labels[idx] if idx < len(labels) else ""
-
-        # Calculate item-level metrics for this item
-        item_metrics: Dict[str, Any] = {}
-        if run_result.scores:
-            for metric_name, metric_data in run_result.scores.items():
-                if isinstance(metric_data, dict) and "item_scores" in metric_data:
-                    if idx < len(metric_data["item_scores"]):
-                        # Normalize metric value for API compatibility
-                        item_metrics[metric_name] = normalize_metric_value(
-                            metric_data["item_scores"][idx]
-                        )
-                else:
-                    # If scores is just a single value, use it for all items
-                    item_metrics[metric_name] = normalize_metric_value(metric_data)
-
-        eval_item = TrismikClassicEvalItem(
-            datasetItemId=str(idx),
-            modelInput=str(input_value),
-            modelOutput=str(output),
-            goldOutput=str(label),
-            metrics=item_metrics,
-        )
-        items.append(eval_item)
-
-    # Create eval metrics from run aggregate scores
-    metrics: List[TrismikClassicEvalMetric] = []
-    if run_result.scores:
-        for metric_name, metric_data in run_result.scores.items():
-            if isinstance(metric_data, dict) and "aggregate_scores" in metric_data:
-                # Handle structured metric data with aggregate scores
-                for agg_name, agg_value in metric_data["aggregate_scores"].items():
-                    metric_id = (
-                        f"{metric_name}_{agg_name}" if agg_name != metric_name else metric_name
-                    )
-                    # Normalize metric value for API compatibility
-                    metric = TrismikClassicEvalMetric(
-                        metricId=metric_id, value=normalize_metric_value(agg_value)
-                    )
-                    metrics.append(metric)
-            else:
-                # Handle simple metric data (single value)
-                metric = TrismikClassicEvalMetric(
-                    metricId=metric_name, value=normalize_metric_value(metric_data)
-                )
-                metrics.append(metric)
-
-    classic_eval_request = TrismikClassicEvalRequest(
-        project_id,
-        experiment_id,
-        run_result.run_spec.dataset.name,
-        model,
-        run_result.run_spec.hyperparameter_config,
-        items,
-        metrics,
-    )
-
-    response: TrismikClassicEvalResponse = trismik_client.submit_classic_eval(
-        classic_eval_request
-    )
-
-    run_id: str = response.id
-    logger.info(f"Classic eval run uploaded successfully with run_id: {run_id}")
-
-    return run_id
 
 
 def run_adaptive_evaluation(

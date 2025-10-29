@@ -1,9 +1,15 @@
 """Type definitions for scorebook evaluation framework."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Type, Union
 
 from scorebook.eval_datasets import EvalDataset
+from scorebook.metrics.metric_base import MetricBase
+
+# Type alias for metrics parameter
+Metrics = Union[
+    str, "MetricBase", Type["MetricBase"], Sequence[Union[str, "MetricBase", Type["MetricBase"]]]
+]
 
 
 @dataclass
@@ -54,72 +60,36 @@ class ClassicEvalRunResult:
     run_spec: EvalRunSpec
     run_completed: bool
     outputs: Optional[List[Any]]
-    scores: Optional[Dict[str, Any]]
+    scores: Optional[Dict[str, List[Dict[str, Any]]]]  # score_async format
     run_id: Optional[str] = None
 
     @property
     def item_scores(self) -> List[Dict[str, Any]]:
         """Return a list of dictionaries containing scores for each evaluated item."""
-        results = []
-
-        if self.outputs:
-            for idx, output in enumerate(self.outputs):
-                if idx >= len(self.run_spec.inputs):
-                    break
-
-                result = {
-                    "id": idx,
-                    "dataset_name": self.run_spec.dataset.name,
-                    "input": self.run_spec.inputs[idx],
-                    "label": self.run_spec.labels[idx] if idx < len(self.run_spec.labels) else None,
-                    "output": output,
-                    **self.run_spec.hyperparameter_config,
-                }
-
-                # Add run_id if available
-                if self.run_id is not None:
-                    result["run_id"] = self.run_id
-
-                # Add individual item scores if available
-                if self.scores is not None:
-                    for metric_name, metric_data in self.scores.items():
-                        if isinstance(metric_data, dict) and "item_scores" in metric_data:
-                            if idx < len(metric_data["item_scores"]):
-                                result[metric_name] = metric_data["item_scores"][idx]
-                        else:
-                            # If scores is just a single value, replicate it for each item
-                            result[metric_name] = metric_data
-
-                results.append(result)
-
-        return results
+        if self.scores and "item_results" in self.scores:
+            # score_async already built this in the exact format we need
+            return self.scores["item_results"]
+        return []
 
     @property
     def aggregate_scores(self) -> Dict[str, Any]:
         """Return the aggregated scores for this run."""
-        result = {
+        if (
+            self.scores
+            and "aggregate_results" in self.scores
+            and len(self.scores["aggregate_results"]) > 0
+        ):
+            result = self.scores["aggregate_results"][0].copy()
+            # Add run_completed (not included in score_async format)
+            result["run_completed"] = self.run_completed
+            return result
+
+        # Fallback if no scores available
+        return {
             "dataset": self.run_spec.dataset.name,
             "run_completed": self.run_completed,
             **self.run_spec.hyperparameter_config,
         }
-
-        # Add run_id if available
-        if self.run_id is not None:
-            result["run_id"] = self.run_id
-
-        # Add aggregate scores from metrics
-        if self.scores is not None:
-            for metric_name, metric_data in self.scores.items():
-                if isinstance(metric_data, dict) and "aggregate_scores" in metric_data:
-                    # Flatten the aggregate scores from each metric
-                    for key, value in metric_data["aggregate_scores"].items():
-                        score_key = key if key == metric_name else f"{metric_name}_{key}"
-                        result[score_key] = value
-                else:
-                    # If scores is just a single value, use it as is
-                    result[metric_name] = metric_data
-
-        return result
 
 
 @dataclass
@@ -180,3 +150,12 @@ class EvalResult:
             results.append(run_result.aggregate_scores)
 
         return results
+
+
+@dataclass
+class MetricScore:
+    """Container for metric scores across multiple runs."""
+
+    metric_name: str
+    aggregate_scores: Dict[str, Any]
+    item_scores: List[Dict[str, Any]]

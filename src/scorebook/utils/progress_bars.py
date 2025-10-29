@@ -787,3 +787,70 @@ def evaluation_progress_context(
         yield progress_bars
     finally:
         progress_bars.close_progress_bars()
+
+
+@contextmanager
+def scoring_progress_context(
+    total_metrics: int,
+    enabled: bool = True,
+) -> Generator[Optional[tqdm], None, None]:
+    """Context manager for scoring progress display.
+
+    Args:
+        total_metrics: Total number of metrics to score
+        enabled: Whether to show progress bar (default: True)
+
+    Yields:
+        Optional[tqdm]: Progress bar instance (None if disabled)
+    """
+    if not enabled:
+        yield None
+        return
+
+    # Use appropriate spinner frames based on environment
+    spinner_frames = SPINNER_FRAMES if SPINNER_FRAMES else ["|"]
+    spinner_cycle_obj = cycle(spinner_frames)
+
+    # Get initial spinner frame
+    initial_frame = next(spinner_cycle_obj)
+
+    progress_bar = tqdm(
+        total=total_metrics,
+        desc=f"{initial_frame} Scoring metrics",
+        unit="metric",
+        leave=False,
+        bar_format="{desc} | {n}/{total} metrics {percentage:3.0f}%|{bar}|",
+    )
+
+    # Start spinner animation thread
+    stop_event = threading.Event()
+    current_metric_name = [""]  # List to allow mutation in closure
+
+    def animate_spinner() -> None:
+        """Update spinner and description in background thread."""
+        while not stop_event.is_set():
+            try:
+                frame = next(spinner_cycle_obj)
+                metric_suffix = f": {current_metric_name[0]}" if current_metric_name[0] else ""
+                progress_bar.set_description_str(
+                    f"{frame} Scoring metrics{metric_suffix}", refresh=True
+                )
+                time.sleep(SPINNER_INTERVAL_SECONDS)
+            except Exception:
+                break
+
+    spinner_thread = threading.Thread(target=animate_spinner, daemon=True)
+    spinner_thread.start()
+
+    # Attach helper method to update current metric name
+    def set_current_metric(metric_name: str) -> None:
+        current_metric_name[0] = metric_name
+
+    progress_bar.set_current_metric = set_current_metric
+
+    try:
+        yield progress_bar
+    finally:
+        stop_event.set()
+        spinner_thread.join(timeout=1.0)
+        progress_bar.close()

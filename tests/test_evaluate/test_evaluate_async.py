@@ -98,7 +98,8 @@ def test_evaluate_async_vs_sync_same_results(sample_dataset):
     async_eval = async_results.run_results[0]
 
     assert sync_eval.outputs == async_eval.outputs
-    assert sync_eval.scores == async_eval.scores
+    assert sync_eval.aggregate_scores == async_eval.aggregate_scores
+    assert sync_eval.item_scores == async_eval.item_scores
 
 
 def test_evaluate_async_with_multiple_datasets():
