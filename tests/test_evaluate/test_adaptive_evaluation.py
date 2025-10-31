@@ -13,91 +13,7 @@ import pytest
 from scorebook.evaluate import evaluate_async
 from scorebook.exceptions import ParameterValidationError, ScoreBookError
 from scorebook.types import AdaptiveEvalRunResult, EvalResult
-
-
-# Mock classes for trismik types
-class MockAdaptiveTestScore:
-    """Mock for trismik.types.AdaptiveTestScore."""
-
-    def __init__(self, theta: float = 0.75, std_error: float = 0.15):
-        """Initialize mock adaptive test score."""
-        self.theta = theta
-        self.std_error = std_error
-
-
-class MockTrismikRunResults:
-    """Mock for trismik.types.TrismikRunResults."""
-
-    def __init__(self, run_id: str = "mock_run_123", theta: float = 0.75, std_error: float = 0.15):
-        """Initialize mock trismik run results."""
-        self.run_id = run_id
-        self.score = MockAdaptiveTestScore(theta, std_error)
-        self.responses = []
-        self.scores = {"overall": MockAdaptiveTestScore(theta, std_error)}
-
-
-class MockTrismikDatasetInfo:
-    """Mock for trismik.types.TrismikDatasetInfo."""
-
-    def __init__(self, test_id: str, splits: List[str], is_adaptive: bool = True, name: str = None):
-        """Initialize mock dataset info."""
-        self.id = test_id
-        self.name = name or test_id
-        self.isAdaptive = is_adaptive
-        self.splits = splits
-        self.datacard = None
-
-
-class MockTrismikAsyncClient:
-    """Mock for TrismikAsyncClient."""
-
-    def __init__(self, dataset_splits: Dict[str, List[str]] = None):
-        """Initialize mock client.
-
-        Args:
-            dataset_splits: Dict mapping test_id to available splits.
-                          Defaults to {"test_dataset:adaptive": ["validation", "test"]}
-        """
-        self.dataset_splits = dataset_splits or {"test_dataset:adaptive": ["validation", "test"]}
-        self.run_calls = []  # Track calls to run()
-
-    async def __aenter__(self):
-        """Enter async context."""
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Exit async context."""
-        pass
-
-    async def get_dataset_info(self, test_id: str) -> MockTrismikDatasetInfo:
-        """Mock get_dataset_info."""
-        splits = self.dataset_splits.get(test_id, ["validation", "test"])
-        return MockTrismikDatasetInfo(test_id, splits)
-
-    async def run(
-        self,
-        test_id: str,
-        split: str,
-        project_id: str,
-        experiment: str,
-        run_metadata: Any,
-        item_processor: Any,
-        return_dict: bool = True,
-        with_responses: bool = False,
-    ) -> MockTrismikRunResults:
-        """Mock run method."""
-        # Track the call
-        self.run_calls.append(
-            {
-                "test_id": test_id,
-                "split": split,
-                "project_id": project_id,
-                "experiment": experiment,
-            }
-        )
-
-        # Return mock results
-        return MockTrismikRunResults(run_id=f"run_{test_id}_{split}", theta=0.75, std_error=0.15)
+from tests.fixtures.mock_trismik import MockTrismikAsyncClient, MockTrismikSyncClient
 
 
 def create_simple_async_inference():
@@ -519,21 +435,7 @@ def test_sync_resolve_split_fallback():
     """Test sync version of resolve_split with fallback."""
     from scorebook.evaluate.evaluate_helpers import resolve_split_sync
 
-    # Create a sync version of the mock client
-    class MockTrismikSyncClient:
-        def __init__(self, splits):
-            self.splits = splits
-
-        def get_dataset_info(self, test_id):
-            return MockTrismikDatasetInfo(test_id, self.splits)
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            pass
-
-    client = MockTrismikSyncClient(["validation", "test"])
+    client = MockTrismikSyncClient({"test:adaptive": ["validation", "test"]})
 
     # No split specified - should use validation
     result = resolve_split_sync("test:adaptive", None, client)
@@ -544,14 +446,7 @@ def test_sync_resolve_split_fallback_to_test():
     """Test sync version of resolve_split falls back to test."""
     from scorebook.evaluate.evaluate_helpers import resolve_split_sync
 
-    class MockTrismikSyncClient:
-        def __init__(self, splits):
-            self.splits = splits
-
-        def get_dataset_info(self, test_id):
-            return MockTrismikDatasetInfo(test_id, self.splits)
-
-    client = MockTrismikSyncClient(["test", "train"])  # No validation
+    client = MockTrismikSyncClient({"test:adaptive": ["test", "train"]})  # No validation
 
     # No split specified - should use test
     result = resolve_split_sync("test:adaptive", None, client)
@@ -562,14 +457,7 @@ def test_sync_resolve_split_user_specified():
     """Test sync version with user-specified split."""
     from scorebook.evaluate.evaluate_helpers import resolve_split_sync
 
-    class MockTrismikSyncClient:
-        def __init__(self, splits):
-            self.splits = splits
-
-        def get_dataset_info(self, test_id):
-            return MockTrismikDatasetInfo(test_id, self.splits)
-
-    client = MockTrismikSyncClient(["validation", "test", "custom"])
+    client = MockTrismikSyncClient({"test:adaptive": ["validation", "test", "custom"]})
 
     # User specifies 'custom' split
     result = resolve_split_sync("test:adaptive", "custom", client)
@@ -580,14 +468,7 @@ def test_sync_resolve_split_invalid():
     """Test sync version with invalid split."""
     from scorebook.evaluate.evaluate_helpers import resolve_split_sync
 
-    class MockTrismikSyncClient:
-        def __init__(self, splits):
-            self.splits = splits
-
-        def get_dataset_info(self, test_id):
-            return MockTrismikDatasetInfo(test_id, self.splits)
-
-    client = MockTrismikSyncClient(["validation", "test"])
+    client = MockTrismikSyncClient({"test:adaptive": ["validation", "test"]})
 
     # User specifies invalid split
     with pytest.raises(ScoreBookError) as exc_info:
