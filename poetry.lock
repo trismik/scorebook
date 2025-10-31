@@ -5577,14 +5577,14 @@ vision = ["Pillow (>=10.0.1,<=15.0)"]
 
 [[package]]
 name = "trismik"
-version = "1.0.1"
+version = "1.0.2"
 description = ""
 optional = false
 python-versions = "<3.14,>=3.9"
 groups = ["main"]
 files = [
-    {file = "trismik-1.0.1-py3-none-any.whl", hash = "sha256:dd54781809264b1b56bd9cd126cc56fc9a19aa24d99e2121e62773cc96d9e01c"},
-    {file = "trismik-1.0.1.tar.gz", hash = "sha256:1ece961c3c837748769de9aa60f50fdbec59699e87775c58fff4d57b971f4d92"},
+    {file = "trismik-1.0.2-py3-none-any.whl", hash = "sha256:91ee8e68d37405c1695b844f08e84f9d4f256934ad59bd25c7e270f9a749fcc3"},
+    {file = "trismik-1.0.2.tar.gz", hash = "sha256:0641ac94a101f2f6dd5d04777a180db21c7f5a5e6079b3b16be382a1585cf09f"},
 ]
 
 [package.dependencies]
@@ -6243,4 +6243,4 @@ vertex = ["fsspec", "google-cloud-storage", "google-genai", "pandas", "python-do
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.14"
-content-hash = "49cae683a485dc65c2a97fab88582f05780826ef245931ff15a0ba64fef0f395"
+content-hash = "04b07f39fc68c100c8edbe96f56f7f607e42f4b922713234a55d4edf730c364f"

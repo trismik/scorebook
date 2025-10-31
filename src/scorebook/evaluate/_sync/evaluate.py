@@ -14,6 +14,7 @@ from scorebook.evaluate.evaluate_helpers import (
     make_trismik_inference,
     prepare_datasets,
     prepare_hyperparameter_configs,
+    resolve_split_sync,
     validate_parameters,
 )
 from scorebook.exceptions import InferenceError, ScoreBookError
@@ -377,8 +378,16 @@ def run_adaptive_evaluation(
     Returns:
         Results from the adaptive evaluation
     """
+    # Resolve the split to use (with fallback: user-specified -> validation -> test)
+    resolved_split = resolve_split_sync(
+        test_id=adaptive_run_spec.dataset,
+        user_specified_split=adaptive_run_spec.split,
+        trismik_client=trismik_client,
+    )
+
     trismik_results = trismik_client.run(
         test_id=adaptive_run_spec.dataset,
+        split=resolved_split,
         project_id=project_id,
         experiment=experiment_id,
         run_metadata=TrismikRunMetadata(
