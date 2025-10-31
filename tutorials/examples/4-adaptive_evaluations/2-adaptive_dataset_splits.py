@@ -36,7 +36,7 @@ async def main() -> Any:
         """Process inputs through OpenAI's API.
 
         Args:
-            inputs: Input values from an EvalDataset. For adaptive MMLU-Pro,
+            inputs: Input values from an EvalDataset. For adaptive headQA,
                    each input is a dict with 'question' and 'options' keys.
             hyperparameters: Model hyperparameters.
 
