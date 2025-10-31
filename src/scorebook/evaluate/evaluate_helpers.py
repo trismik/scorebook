@@ -111,8 +111,24 @@ def prepare_datasets(
             datasets_out.append(dataset)
 
         # Prepare adaptive datasets
-        elif isinstance(dataset, str) and dataset.endswith(":adaptive"):
-            datasets_out.append(AdaptiveEvalDataset(dataset))
+        elif isinstance(dataset, str) and ":adaptive" in dataset:
+            # Parse format: "test_id:adaptive" or "test_id:adaptive:split_name"
+            parts = dataset.split(":")
+            if len(parts) == 2 and parts[1] == "adaptive":
+                # No split specified: "test_id:adaptive"
+                datasets_out.append(AdaptiveEvalDataset(name=dataset, split=None))
+            elif len(parts) == 3 and parts[1] == "adaptive":
+                # Split specified: "test_id:adaptive:split_name"
+                test_id_with_adaptive = f"{parts[0]}:adaptive"
+                split_name = parts[2]
+                datasets_out.append(
+                    AdaptiveEvalDataset(name=test_id_with_adaptive, split=split_name)
+                )
+            else:
+                raise ParameterValidationError(
+                    f"Invalid adaptive dataset format: '{dataset}'. "
+                    f"Expected 'test_id:adaptive' or 'test_id:adaptive:split_name'"
+                )
 
         # TODO: dataset name string registry
         elif isinstance(dataset, str):
@@ -174,6 +190,7 @@ def build_eval_run_specs(
                         hyperparameters_index,
                         experiment_id,
                         project_id,
+                        dataset.split,
                         metadata,
                     )
                 )
@@ -220,6 +237,7 @@ def build_adaptive_eval_run_spec(
     hyperparameter_config_index: int,
     experiment_id: str,
     project_id: str,
+    split: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
 ) -> AdaptiveEvalRunSpec:
     """Build AdaptiveEvalRunSpec objects for a dataset/hyperparameter combination."""
@@ -231,6 +249,7 @@ def build_adaptive_eval_run_spec(
         hyperparameter_config_index,
         experiment_id,
         project_id,
+        split,
         metadata,
     )
     logger.debug("Built AdaptiveEvalRunSpec: %s", adaptive_eval_run_spec)
@@ -386,3 +405,119 @@ def make_trismik_inference(
         )
 
     return sync_trismik_inference_function
+
+
+async def resolve_split_async(
+    test_id: str,
+    user_specified_split: Optional[str],
+    trismik_client: TrismikAsyncClient,
+) -> str:
+    """Resolve the dataset split to use for adaptive evaluation.
+
+    Resolution order:
+    1. If user specified a split, validate it exists and use it
+    2. If not specified, try 'validation' split
+    3. If 'validation' doesn't exist, try 'test' split
+    4. If neither exists, raise an error
+
+    Args:
+        test_id: The test dataset ID (without ":adaptive" suffix)
+        user_specified_split: Optional split name specified by the user
+        trismik_client: Trismik client instance for querying dataset info
+
+    Returns:
+        The resolved split name to use
+
+    Raises:
+        ScoreBookError: If the specified split doesn't exist or no valid splits are found
+    """
+    # Query dataset info to get available splits
+    dataset_info = await trismik_client.get_dataset_info(test_id)
+    available_splits = dataset_info.splits if hasattr(dataset_info, "splits") else []
+
+    logger.debug(f"Available splits for {test_id}: {available_splits}")
+
+    # If user specified a split, validate and use it
+    if user_specified_split is not None:
+        if user_specified_split in available_splits:
+            logger.info(f"Using user-specified split '{user_specified_split}' for {test_id}")
+            return user_specified_split
+        else:
+            raise ScoreBookError(
+                f"Specified split '{user_specified_split}' not found for dataset '{test_id}'. "
+                f"Available splits: {available_splits}"
+            )
+
+    # Try validation split first
+    if "validation" in available_splits:
+        logger.info(f"Using 'validation' split for {test_id}")
+        return "validation"
+
+    # Try test split next
+    if "test" in available_splits:
+        logger.info(f"Using 'test' split for {test_id}")
+        return "test"
+
+    # No valid split found
+    raise ScoreBookError(
+        f"No suitable split found for dataset '{test_id}'. "
+        f"Expected 'validation' or 'test' split. Available splits: {available_splits}"
+    )
+
+
+def resolve_split_sync(
+    test_id: str,
+    user_specified_split: Optional[str],
+    trismik_client: TrismikClient,
+) -> str:
+    """Resolve the dataset split to use for adaptive evaluation (synchronous version).
+
+    Resolution order:
+    1. If user specified a split, validate it exists and use it
+    2. If not specified, try 'validation' split
+    3. If 'validation' doesn't exist, try 'test' split
+    4. If neither exists, raise an error
+
+    Args:
+        test_id: The test dataset ID (without ":adaptive" suffix)
+        user_specified_split: Optional split name specified by the user
+        trismik_client: Trismik client instance for querying dataset info
+
+    Returns:
+        The resolved split name to use
+
+    Raises:
+        ScoreBookError: If the specified split doesn't exist or no valid splits are found
+    """
+    # Query dataset info to get available splits
+    dataset_info = trismik_client.get_dataset_info(test_id)
+    available_splits = dataset_info.splits if hasattr(dataset_info, "splits") else []
+
+    logger.debug(f"Available splits for {test_id}: {available_splits}")
+
+    # If user specified a split, validate and use it
+    if user_specified_split is not None:
+        if user_specified_split in available_splits:
+            logger.info(f"Using user-specified split '{user_specified_split}' for {test_id}")
+            return user_specified_split
+        else:
+            raise ScoreBookError(
+                f"Specified split '{user_specified_split}' not found for dataset '{test_id}'. "
+                f"Available splits: {available_splits}"
+            )
+
+    # Try validation split first
+    if "validation" in available_splits:
+        logger.info(f"Using 'validation' split for {test_id}")
+        return "validation"
+
+    # Try test split next
+    if "test" in available_splits:
+        logger.info(f"Using 'test' split for {test_id}")
+        return "test"
+
+    # No valid split found
+    raise ScoreBookError(
+        f"No suitable split found for dataset '{test_id}'. "
+        f"Expected 'validation' or 'test' split. Available splits: {available_splits}"
+    )

@@ -1,4 +1,4 @@
-"""Tutorials - Adaptive Evaluations - Example 1 - Adaptive Evaluation."""
+"""Tutorials - Adaptive Evaluations - Example 2 - Adaptive Dataset Splits."""
 
 import asyncio
 import string
@@ -19,16 +19,7 @@ from scorebook import evaluate_async, login
 
 
 async def main() -> Any:
-    """Run an adaptive evaluation using Trismik's adaptive testing.
-
-    This example demonstrates how to use Trismik's adaptive evaluation feature.
-    Adaptive evaluations use Item Response Theory (IRT) to efficiently estimate
-    model capabilities by selecting questions based on previous responses.
-
-    Benefits of adaptive evaluation:
-        - More efficient: Fewer questions needed to assess capability
-        - Precise measurement: Better statistical confidence intervals
-        - Optimal difficulty: Questions adapt to model's skill level
+    """
 
     Prerequisites:
         - Valid Trismik API key set in TRISMIK_API_KEY environment variable
@@ -95,8 +86,8 @@ async def main() -> Any:
     # Step 2: Run adaptive evaluation
     results = await evaluate_async(
         inference,
-        datasets="trismik/headQA:adaptive",  # Adaptive datasets have the ":adaptive" suffix
-        experiment_id="Adaptive-Head-QA-Evaluation",
+        datasets="trismik/headQA:adaptive:test",  # Adaptive datasets have the ":adaptive" suffix
+        experiment_id="Adaptive-Head-QA-Test-Evaluation",
         project_id='TRISMIK-PROJECT-ID',
         return_dict=True,
         return_aggregates=True,
@@ -110,8 +101,8 @@ async def main() -> Any:
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="1-adaptive_evaluation", base_dir=Path(__file__).parent)
+    log_file = setup_logging(experiment_id="2-adaptive_dataset_splits", base_dir=Path(__file__).parent)
     output_dir = Path(__file__).parent / "results"
     output_dir.mkdir(exist_ok=True)
     results_dict = asyncio.run(main())
-    save_results_to_json(results_dict, output_dir, "1-adaptive_evaluation_output.json")
+    save_results_to_json(results_dict, output_dir, "2-adaptive_dataset_splits_output.json")
