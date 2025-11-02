@@ -6,7 +6,7 @@ mocking the trismik client to avoid integration tests.
 
 import asyncio
 from typing import Any, Dict, List
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -382,10 +382,8 @@ async def test_adaptive_evaluation_failure_handling():
     # Create a mock client that raises an error
     mock_client = MockTrismikAsyncClient()
 
-    async def failing_run(*args, **kwargs):
-        raise Exception("Mock trismik error")
-
-    mock_client.run = failing_run
+    # Use AsyncMock with side_effect to raise when awaited
+    mock_client.run = AsyncMock(side_effect=Exception("Mock trismik error"))
 
     # Patch where create_trismik_async_client is used in evaluate_async
     with patch(
