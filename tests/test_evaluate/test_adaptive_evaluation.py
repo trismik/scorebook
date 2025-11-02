@@ -180,16 +180,10 @@ async def test_adaptive_evaluation_with_explicit_split():
     inference = create_simple_async_inference()
     mock_client = MockTrismikAsyncClient({"test_dataset:adaptive": ["validation", "test"]})
 
-    # Patch both the creation and the actual evaluate_async imports
-    with (
-        patch(
-            "scorebook.evaluate.evaluate_helpers.create_trismik_async_client",
-            return_value=mock_client,
-        ),
-        patch(
-            "scorebook.evaluate._async.evaluate_async.create_trismik_async_client",
-            return_value=mock_client,
-        ),
+    # Patch where create_trismik_async_client is used in evaluate_async
+    with patch(
+        "scorebook.evaluate._async.evaluate_async.create_trismik_async_client",
+        return_value=mock_client,
     ):
         results = await evaluate_async(
             inference,
@@ -220,15 +214,10 @@ async def test_adaptive_evaluation_with_fallback_split():
     inference = create_simple_async_inference()
     mock_client = MockTrismikAsyncClient({"test_dataset:adaptive": ["validation", "test"]})
 
-    with (
-        patch(
-            "scorebook.evaluate.evaluate_helpers.create_trismik_async_client",
-            return_value=mock_client,
-        ),
-        patch(
-            "scorebook.evaluate._async.evaluate_async.create_trismik_async_client",
-            return_value=mock_client,
-        ),
+    # Patch where create_trismik_async_client is used in evaluate_async
+    with patch(
+        "scorebook.evaluate._async.evaluate_async.create_trismik_async_client",
+        return_value=mock_client,
     ):
         results = await evaluate_async(
             inference,
@@ -258,15 +247,10 @@ async def test_adaptive_evaluation_multiple_datasets_different_splits():
         }
     )
 
-    with (
-        patch(
-            "scorebook.evaluate.evaluate_helpers.create_trismik_async_client",
-            return_value=mock_client,
-        ),
-        patch(
-            "scorebook.evaluate._async.evaluate_async.create_trismik_async_client",
-            return_value=mock_client,
-        ),
+    # Patch where create_trismik_async_client is used in evaluate_async
+    with patch(
+        "scorebook.evaluate._async.evaluate_async.create_trismik_async_client",
+        return_value=mock_client,
     ):
         results = await evaluate_async(
             inference,
@@ -297,15 +281,10 @@ async def test_adaptive_evaluation_results_structure():
     inference = create_simple_async_inference()
     mock_client = MockTrismikAsyncClient({"test_dataset:adaptive": ["validation", "test"]})
 
-    with (
-        patch(
-            "scorebook.evaluate.evaluate_helpers.create_trismik_async_client",
-            return_value=mock_client,
-        ),
-        patch(
-            "scorebook.evaluate._async.evaluate_async.create_trismik_async_client",
-            return_value=mock_client,
-        ),
+    # Patch where create_trismik_async_client is used in evaluate_async
+    with patch(
+        "scorebook.evaluate._async.evaluate_async.create_trismik_async_client",
+        return_value=mock_client,
     ):
         results = await evaluate_async(
             inference,
@@ -372,15 +351,10 @@ async def test_adaptive_evaluation_with_hyperparameters():
     inference = create_simple_async_inference()
     mock_client = MockTrismikAsyncClient({"test_dataset:adaptive": ["validation", "test"]})
 
-    with (
-        patch(
-            "scorebook.evaluate.evaluate_helpers.create_trismik_async_client",
-            return_value=mock_client,
-        ),
-        patch(
-            "scorebook.evaluate._async.evaluate_async.create_trismik_async_client",
-            return_value=mock_client,
-        ),
+    # Patch where create_trismik_async_client is used in evaluate_async
+    with patch(
+        "scorebook.evaluate._async.evaluate_async.create_trismik_async_client",
+        return_value=mock_client,
     ):
         results = await evaluate_async(
             inference,
@@ -413,8 +387,9 @@ async def test_adaptive_evaluation_failure_handling():
 
     mock_client.run = failing_run
 
+    # Patch where create_trismik_async_client is used in evaluate_async
     with patch(
-        "scorebook.evaluate.evaluate_helpers.create_trismik_async_client",
+        "scorebook.evaluate._async.evaluate_async.create_trismik_async_client",
         return_value=mock_client,
     ):
         results = await evaluate_async(
