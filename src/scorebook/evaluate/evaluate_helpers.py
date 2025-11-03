@@ -105,6 +105,12 @@ def prepare_datasets(
 
         # Prepare classic datasets
         if isinstance(dataset, EvalDataset):
+            # Warn if dataset split differs from provided split parameter
+            if split is not None and dataset.split is not None and dataset.split != split:
+                logger.warning(
+                    f"Dataset '{dataset.name}' has split '{dataset.split}' but evaluate split "
+                    f"parameter is '{split}'. The dataset split will be used."
+                )
 
             if sample_size is not None:
                 dataset = dataset.sample(sample_size)
