@@ -86,7 +86,8 @@ async def main() -> Any:
     # Step 2: Run adaptive evaluation
     results = await evaluate_async(
         inference,
-        datasets="trismik/headQA:adaptive:test",  # Adaptive datasets have the ":adaptive" suffix
+        datasets="trismik/headQA:adaptive",  # Adaptive datasets have the ":adaptive" suffix
+        split="test",                        # Specify the test split for evaluation
         experiment_id="Adaptive-Head-QA-Test-Evaluation",
         project_id='TRISMIK-PROJECT-ID',
         return_dict=True,

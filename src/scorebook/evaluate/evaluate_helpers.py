@@ -91,6 +91,7 @@ def validate_parameters(params: Dict[str, Any], caller: Callable[..., Any]) -> N
 
 def prepare_datasets(
     datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
+    split: Optional[str] = None,
     sample_size: Optional[int] = None,
 ) -> List[Union[EvalDataset, AdaptiveEvalDataset]]:
     """Prepare and separate input datasets into classic and adaptive evaluation datasets."""
@@ -112,23 +113,16 @@ def prepare_datasets(
 
         # Prepare adaptive datasets
         elif isinstance(dataset, str) and ":adaptive" in dataset:
-            # Parse format: "test_id:adaptive" or "test_id:adaptive:split_name"
+            # Parse adaptive dataset
             parts = dataset.split(":")
-            if len(parts) == 2 and parts[1] == "adaptive":
-                # No split specified: "test_id:adaptive"
-                datasets_out.append(AdaptiveEvalDataset(name=dataset, split=None))
-            elif len(parts) == 3 and parts[1] == "adaptive":
-                # Split specified: "test_id:adaptive:split_name"
-                test_id_with_adaptive = f"{parts[0]}:adaptive"
-                split_name = parts[2]
-                datasets_out.append(
-                    AdaptiveEvalDataset(name=test_id_with_adaptive, split=split_name)
-                )
-            else:
+            if len(parts) != 2 or parts[1] != "adaptive":
                 raise ParameterValidationError(
                     f"Invalid adaptive dataset format: '{dataset}'. "
-                    f"Expected 'test_id:adaptive' or 'test_id:adaptive:split_name'"
+                    f"Use 'test_id:adaptive' format and specify split via the split parameter."
                 )
+
+            # Use the split parameter for all adaptive datasets
+            datasets_out.append(AdaptiveEvalDataset(name=dataset, split=split))
 
         # TODO: dataset name string registry
         elif isinstance(dataset, str):

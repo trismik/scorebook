@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 async def evaluate_async(
     inference: Union[Callable, InferencePipeline],
     datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
+    split: Optional[str] = None,
     hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
     metadata: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
@@ -59,6 +60,7 @@ async def evaluate_async(
     Args:
         inference: The inference callable to evaluate
         datasets: Dataset(s) to evaluate on
+        split: Split to use for evaluation (default: "validation")
         hyperparameters: Hyperparameter configuration(s) to evaluate with
         metadata: Optional metadata to attach to the evaluation
         experiment_id: Optional experiment identifier
@@ -83,7 +85,7 @@ async def evaluate_async(
     validate_parameters(locals(), evaluate_async)
 
     # Prepare datasets, hyperparameters, and eval run specs
-    datasets = prepare_datasets(datasets, sample_size)
+    datasets = prepare_datasets(datasets, split, sample_size)
     hyperparameter_configs = prepare_hyperparameter_configs(hyperparameters)
     eval_run_specs = sorted(
         build_eval_run_specs(datasets, hyperparameter_configs, experiment_id, project_id, metadata),
