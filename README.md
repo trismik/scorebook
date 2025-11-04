@@ -77,7 +77,7 @@ results = score(
 **Score Results**:
 
 The following shows a snippet of how results from `score` are structured. "item_results" will contain a dict object for each evaluation item.
-```json
+```
 {
     "aggregate_results": [
         {
@@ -153,7 +153,7 @@ evaluation_results = evaluate(
 The following shows a snippet of how results from `evaluate` are structured.
 The "item_results" will contain a dict object for each evaluation item.
 
-```json
+```
 {
     "aggregate_results": [
         {
@@ -213,7 +213,7 @@ results = evaluate(
 
 When running an adaptive evaluation, each run will return two interconnected metrics, _theta_ a standard error value. The theta value is an estimation of a model's ability that is highly correlated with the metric used for a given dataset.
 Theta values are unbounded, a value of 0 represents a model getting 50% of predictions correct, and higher or lower scores represent better or worse ability respectively.
-```json
+```
 {
     "aggregate_results": [
         {
