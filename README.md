@@ -11,7 +11,7 @@
   <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
 </p>
 
-Scorebook provides a flexible and extensible framework for evaluating models such as large language models (LLMs). Easily evaluate any model using evaluation datasets from Hugging Face such as MMLU-Pro, HellaSwag, and CommonSenseQA, or with data from any other source. Evaluations calculate scores for any number of specified metrics such as accuracy, precision, and recall, as well as any custom defined metrics, inluding LLM as a judge (LLMaJ).
+Scorebook provides a flexible and extensible framework for evaluating models such as large language models (LLMs). Easily evaluate any model using evaluation datasets from Hugging Face such as MMLU-Pro, HellaSwag, and CommonSenseQA, or with data from any other source. Evaluations calculate scores for any number of specified metrics such as accuracy, precision, and recall, as well as any custom defined metrics, including LLM as a judge (LLMaJ).
 
 ## Key Features
 
@@ -42,7 +42,7 @@ Scorebook contains two core functions:
 - `score`: Accepts generated model outputs and metrics to calculate scores.
 - `evaluate`: Accepts an inference function and evaluation datasets with metrics, to run model inference, generate model outputs, and calculate scores. The evaluate function can be used to run both **classical evaluations** and **adaptive evaluations**.
 
-Both functions by default return a python dict, with two items for aggregate scores, and item scores.
+Both functions by default return a python dict, with two items for aggregate_results and item_results.
 Additionally, both functions have an asynchronous counterpart, `score_async` and `evaluate_async` which are awaitable coroutines that allow asynchronous inference functions or metric score functions.
 
 Scorebook also contains integration with Trismik's platform for adaptive evaluations, and the use of Trismik's experimentation dashboard.
@@ -77,7 +77,8 @@ results = score(
 **Score Results**:
 
 The following shows a snippet of how results from `score` are structured. "item_results" will contain a dict object for each evaluation item.
-```
+
+```json
 {
     "aggregate_results": [
         {
@@ -93,7 +94,10 @@ The following shows a snippet of how results from `score` are structured. "item_
             "output": "4",
             "label": "4",
             "accuracy": true
-        }...
+        }
+        // ... additional items
+    ]
+}
 ```
 
 ---
@@ -150,10 +154,9 @@ evaluation_results = evaluate(
 
 **Evaluation Results**:
 
-The following shows a snippet of how results from `evaluate` are structured.
-The "item_results" will contain a dict object for each evaluation item.
+The following shows a snippet of how results from `evaluate` are structured. The "item_results" will contain a dict object for each evaluation item.
 
-```
+```json
 {
     "aggregate_results": [
         {
@@ -172,14 +175,17 @@ The "item_results" will contain a dict object for each evaluation item.
             "label": "4",
             "temperature": 0.7,
             "accuracy": true
-        }...
+        }
+        // ... additional items
+    ]
+}
 ```
 
 ---
 
 ### _Adaptive_ Evaluations with `evaluate`
 
-To run an adaptive evaluation, simpley use one of [Trismik's adaptive datasets](). Trismik's computerized adaptive testing (CAT) algorithim, will inteligently select the next evaluation item to provide, to estimate a model's ability score, theta value, with a minimal standard deviation and number of evaluation items used. To run adaptive evaluations, a Trismik API key is required.
+To run an adaptive evaluation, simply use one of [Trismik's adaptive datasets](https://docs.trismik.com/adaptiveTesting/adaptive-testing-introduction/). Trismik's computerized adaptive testing (CAT) algorithm, will intelligently select the next evaluation item to provide, to estimate a model's ability score, theta value, with a minimal standard deviation and number of evaluation items used. To run adaptive evaluations, a Trismik API key is required.
 
 **Adaptive Evaluation Example**:
 ```python
@@ -205,20 +211,20 @@ results = evaluate(
     inference_function,
     datasets = "trismik/headQA:adaptive",    # Adaptive datasets have the ":adaptive" suffix
     project_id = "TRISMIK_PROJECT_ID",       # Required: Create a project on your Trismik dashboard
-    experiment_id = "TRISMIK_PROJECT_ID",    # Optional: An identifier to upload this run under
+    experiment_id = "TRISMIK_EXPERIMENT_ID", # Optional: An identifier to upload this run under
 )
 ```
 
 **Adaptive Evaluation Results**:
 
-When running an adaptive evaluation, each run will return two interconnected metrics, _theta_ a standard error value. The theta value is an estimation of a model's ability that is highly correlated with the metric used for a given dataset.
-Theta values are unbounded, a value of 0 represents a model getting 50% of predictions correct, and higher or lower scores represent better or worse ability respectively.
-```
+When running an adaptive evaluation, each run will return two interconnected metrics, _theta_ and a standard error value. The theta value is an estimation of a model's ability that is highly correlated with the metric used for a given dataset. Theta values are unbounded, a value of 0 represents a model getting 50% of predictions correct, and higher or lower scores represent better or worse ability respectively.
+
+```json
 {
     "aggregate_results": [
         {
             "dataset": "trismik/headQA:adaptive",
-            "experiment_id": "TRISMIK_PROJECT_ID",
+            "experiment_id": "TRISMIK_EXPERIMENT_ID",
             "project_id": "TRISMIK_PROJECT_ID",
             "run_id": "RUN_ID",
             "score": {
@@ -236,15 +242,15 @@ Theta values are unbounded, a value of 0 represents a model getting 50% of predi
 
 ### Metrics
 
-Metrics are used to quantify the performance of a model, and Scorebook contains built in metrics, are allows for the creation of custom metrics.
-Every metric extends the `MetricBase` class, which is a callable class, which when called, executes the metric's internal `score` function,  which accepts a list of model outputs and labels, and returns a list of scores for each evaluation item, and a dictionary for aggregate scores.
+Metrics are used to quantify the performance of a model, and Scorebook contains built in metrics, and allows for the creation of custom metrics.
+Every metric extends the `MetricBase` class, which is a callable class, which when called, executes the metric's internal `score` function,  which accepts a list of model outputs and labels, and returns a list of scores for each evaluation item, and a dictionary for aggregate_results.
 
 #### Using Metrics
 
-The `score` function and the `EvalDataset` class can except a single, or multiple registered metric when called or instantiated respectively. They can be passed as objects, or as strings, where the associated string name for a metric is it's class name in lowercase.
+The `score` function and the `EvalDataset` class can accept a single, or multiple registered metric when called or instantiated respectively. They can be passed as objects, or as strings, where the associated string name for a metric is it's class name in lowercase.
 
 ```python
-# Both are valid useages of metrics.
+# Both are valid usages of metrics.
 
 results = scorebook.score(evaluation_items, [Accuracy, Precision])
 
@@ -253,9 +259,9 @@ results = scorebook.score(evaluation_items, ["accuracy", "precision"])
 
 #### Built-In Metrics
 
-| Metric        | Sync/Async | Aggregate Scores                | Item Scores                           |
-|---------------|------------|---------------------------------|---------------------------------------|
-| `Accuracy`    | Sync       | `Boolean`: Exact match between output and label | `Float`: Percentage of correct outputs  |
+| Metric     | Sync/Async | Aggregate Scores                                 | Item Scores                             |
+|------------|------------|--------------------------------------------------|-----------------------------------------|
+| `Accuracy` | Sync       | `Float`: Percentage of correct outputs           | `Boolean`: Exact match between output and label |
 
 #### Custom Metrics
 Create custom metrics by extending `MetricBase` and defining a `score` function.
@@ -264,20 +270,21 @@ The metric's score function can use any calculation to generate scores, the only
 
 **Metric Score Method Arguments**:
 
-- `outputs: List[Any]`
-- `labels: List[Any`
+- `outputs: List[Any]` - The list of model outputs
+- `labels: List[Any]` - The list of ground truth labels
 
 **Metric Score Method Returns**:
 
-- `scores: Dict[str: Any]`
+A tuple of two values:
+1. `aggregate_scores: Dict[str, Any]` - A dict containing aggregate metric scores across all items
+2. `item_scores: List[Any]` - A list containing individual scores for each item
 
-The dict scores returned by a metric's score method, should contain two keys, "aggregate_scores" and "item_scores" with a dict of aggrgate scores, and list of item scores respectively.
 See how the [accuracy](https://github.com/trismik/scorebook/blob/main/src/scorebook/metrics/accuracy.py) metric is implemented for guidance.
 
-The example below shows the creation and registration of a spell checking metric, which generates a scores for the percentage of correctly spelt words.
+The example below shows the creation and registration of a spell checking metric, which generates scores for the percentage of correctly spelt words.
 
 ```python
-from spellchecker import SpellChecker # pip install pyspellchecker
+from spellchecker import SpellChecker  # pip install pyspellchecker
 from scorebook.metrics import MetricBase, MetricRegistry
 
 @MetricRegistry.register()
@@ -292,14 +299,19 @@ class SpellCheck(MetricBase):
 
     @staticmethod
     def score(outputs, labels):
-
-        items = []
+        # Calculate item scores
+        item_scores = []
         for s in outputs:
             words = [w.strip(".,;:!?\"'()").lower() for w in (s or "").split() if w.strip()]
             acc = 1.0 if not words else 1.0 - len(SpellCheck._sp.unknown(words)) / len(words)
-            items.append(acc)
+            item_scores.append(acc)
 
-        return {"spellcheck": sum(items)/len(items) if items else 0.0}, items
+        # Calculate aggregate scores
+        aggregate_scores = {
+            "spellcheck": sum(item_scores) / len(item_scores) if item_scores else 0.0
+        }
+
+        return aggregate_scores, item_scores
 ```
 
 ### Evaluation Datasets
@@ -321,7 +333,7 @@ In Scorebook, an evaluation dataset, represented by the `EvalDataset` class, is 
 
 Evaluation Datasets can be created using the `EvalDataset`'s factory methods:
 
-- `EvalDataset.from_list`: provided a list of evaluation items as Python dicts.
+- `EvalDataset.from_list`: provided with a list of evaluation items as Python dicts.
 - `EvalDataset.from_json`: provided the path to a valid json file, containing structured evaluation items.
 - `EvalDataset.from_csv`: provided the path to a valid csv file, containing structured evaluation items.
 
@@ -408,6 +420,9 @@ def preprocessor(item, **hyperparameters):
     ]}
 
 def inference_function(processed_items, **hyperparameters):
+    # Create or call a model
+    model = Model()
+
     # Run model inference on preprocessed items
     return [model.generate(item, temperature=hyperparameters["temperature"])
             for item in processed_items]
