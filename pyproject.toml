@@ -129,7 +129,6 @@ replacements."Asynchronous evaluation complete" = "Synchronous evaluation comple
 replacements."    run_results = asyncio.gather(*[worker(run) for run in runs])" = "    run_results = [worker(run) for run in runs]"
 replacements.async_nullcontext = "nullcontext"
 replacements.create_trismik_async_client = "create_trismik_sync_client"
-replacements.resolve_split_async = "resolve_split_sync"
 replacements.score_async = "score"
 
 [[tool.unasync.rules]]

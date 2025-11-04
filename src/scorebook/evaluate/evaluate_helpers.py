@@ -407,34 +407,31 @@ def make_trismik_inference(
     return sync_trismik_inference_function
 
 
-async def resolve_split_async(
+def resolve_adaptive_split(
     test_id: str,
     user_specified_split: Optional[str],
-    trismik_client: TrismikAsyncClient,
+    available_splits: List[str],
 ) -> str:
     """Resolve the dataset split to use for adaptive evaluation.
 
     Resolution order:
     1. If user specified a split, validate it exists and use it
-    2. If not specified, try 'validation' split
-    3. If 'validation' doesn't exist, try 'test' split
-    4. If neither exists, raise an error
+    2. If not specified and exactly one split is available, use it
+    3. If not specified and multiple splits are available, raise an error
+    4. If no splits are available, raise an error
 
     Args:
         test_id: The test dataset ID (without ":adaptive" suffix)
         user_specified_split: Optional split name specified by the user
-        trismik_client: Trismik client instance for querying dataset info
+        available_splits: List of available split names for this dataset
 
     Returns:
         The resolved split name to use
 
     Raises:
-        ScoreBookError: If the specified split doesn't exist or no valid splits are found
+        ScoreBookError: If the specified split doesn't exist, multiple splits exist without
+            user specification, or no splits are available
     """
-    # Query dataset info to get available splits
-    dataset_info = await trismik_client.get_dataset_info(test_id)
-    available_splits = dataset_info.splits if hasattr(dataset_info, "splits") else []
-
     logger.debug(f"Available splits for {test_id}: {available_splits}")
 
     # If user specified a split, validate and use it
@@ -448,76 +445,17 @@ async def resolve_split_async(
                 f"Available splits: {available_splits}"
             )
 
-    # Try validation split first
-    if "validation" in available_splits:
-        logger.info(f"Using 'validation' split for {test_id}")
-        return "validation"
-
-    # Try test split next
-    if "test" in available_splits:
-        logger.info(f"Using 'test' split for {test_id}")
-        return "test"
-
-    # No valid split found
-    raise ScoreBookError(
-        f"No suitable split found for dataset '{test_id}'. "
-        f"Expected 'validation' or 'test' split. Available splits: {available_splits}"
-    )
-
-
-def resolve_split_sync(
-    test_id: str,
-    user_specified_split: Optional[str],
-    trismik_client: TrismikClient,
-) -> str:
-    """Resolve the dataset split to use for adaptive evaluation (synchronous version).
-
-    Resolution order:
-    1. If user specified a split, validate it exists and use it
-    2. If not specified, try 'validation' split
-    3. If 'validation' doesn't exist, try 'test' split
-    4. If neither exists, raise an error
-
-    Args:
-        test_id: The test dataset ID (without ":adaptive" suffix)
-        user_specified_split: Optional split name specified by the user
-        trismik_client: Trismik client instance for querying dataset info
-
-    Returns:
-        The resolved split name to use
-
-    Raises:
-        ScoreBookError: If the specified split doesn't exist or no valid splits are found
-    """
-    # Query dataset info to get available splits
-    dataset_info = trismik_client.get_dataset_info(test_id)
-    available_splits = dataset_info.splits if hasattr(dataset_info, "splits") else []
-
-    logger.debug(f"Available splits for {test_id}: {available_splits}")
-
-    # If user specified a split, validate and use it
-    if user_specified_split is not None:
-        if user_specified_split in available_splits:
-            logger.info(f"Using user-specified split '{user_specified_split}' for {test_id}")
-            return user_specified_split
-        else:
-            raise ScoreBookError(
-                f"Specified split '{user_specified_split}' not found for dataset '{test_id}'. "
-                f"Available splits: {available_splits}"
-            )
-
-    # Try validation split first
-    if "validation" in available_splits:
-        logger.info(f"Using 'validation' split for {test_id}")
-        return "validation"
-
-    # Try test split next
-    if "test" in available_splits:
-        logger.info(f"Using 'test' split for {test_id}")
-        return "test"
-
-    # No valid split found
-    raise ScoreBookError(
-        f"No suitable split found for dataset '{test_id}'. "
-        f"Expected 'validation' or 'test' split. Available splits: {available_splits}"
-    )
+    # No split specified - check available splits
+    if len(available_splits) == 0:
+        raise ScoreBookError(f"No splits available for dataset '{test_id}'. ")
+    elif len(available_splits) == 1:
+        # Exactly one split - auto-select it
+        selected_split = available_splits[0]
+        logger.info(f"Auto-selecting only available split '{selected_split}' for {test_id}")
+        return selected_split
+    else:
+        # Multiple splits available - user must specify
+        raise ScoreBookError(
+            f"Multiple splits available for dataset '{test_id}': {available_splits}. "
+            f"Please specify which split to use via evaluate's 'split' parameter."
+        )
