@@ -137,6 +137,24 @@ class EvalDataset:
             raise DatasetNotInitializedError("Dataset is not initialized")
         return list(map(str, self._hf_dataset.column_names))
 
+    @property
+    def split(self) -> Optional[str]:
+        """Return the split name of the underlying HuggingFace dataset, if available.
+
+        Returns:
+            The split name (e.g., "train", "test", "validation") if the dataset was loaded
+            from HuggingFace with a specific split. Returns None if the dataset was created
+            from a list, CSV, JSON, or loaded without a split specification.
+
+        Raises:
+            DatasetNotInitializedError: If the dataset is not initialized.
+        """
+        if self._hf_dataset is None:
+            raise DatasetNotInitializedError("Dataset is not initialized")
+
+        split = self._hf_dataset.split
+        return str(split) if split is not None else None
+
     def shuffle(self) -> None:
         """Randomly shuffle the dataset items."""
         if self._hf_dataset is None:

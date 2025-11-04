@@ -15,6 +15,7 @@ from scorebook.evaluate.evaluate_helpers import (
     make_trismik_inference,
     prepare_datasets,
     prepare_hyperparameter_configs,
+    resolve_adaptive_split,
     validate_parameters,
 )
 from scorebook.exceptions import InferenceError, ScoreBookError
@@ -40,6 +41,7 @@ logger = logging.getLogger(__name__)
 async def evaluate_async(
     inference: Union[Callable, InferencePipeline],
     datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
+    split: Optional[str] = None,
     hyperparameters: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
     metadata: Optional[Dict[str, Any]] = None,
     experiment_id: Optional[str] = None,
@@ -58,6 +60,7 @@ async def evaluate_async(
     Args:
         inference: The inference callable to evaluate
         datasets: Dataset(s) to evaluate on
+        split: Split to use for evaluation (default: "validation")
         hyperparameters: Hyperparameter configuration(s) to evaluate with
         metadata: Optional metadata to attach to the evaluation
         experiment_id: Optional experiment identifier
@@ -82,7 +85,7 @@ async def evaluate_async(
     validate_parameters(locals(), evaluate_async)
 
     # Prepare datasets, hyperparameters, and eval run specs
-    datasets = prepare_datasets(datasets, sample_size)
+    datasets = prepare_datasets(datasets, split, sample_size)
     hyperparameter_configs = prepare_hyperparameter_configs(hyperparameters)
     eval_run_specs = sorted(
         build_eval_run_specs(datasets, hyperparameter_configs, experiment_id, project_id, metadata),
@@ -378,8 +381,20 @@ async def run_adaptive_evaluation(
     Returns:
         Results from the adaptive evaluation
     """
+    # Fetch available splits from Trismik
+    dataset_info = await trismik_client.get_dataset_info(adaptive_run_spec.dataset)
+    available_splits = dataset_info.splits if hasattr(dataset_info, "splits") else []
+
+    # Resolve the split to use (with fallback: user-specified -> validation -> test)
+    resolved_split = resolve_adaptive_split(
+        test_id=adaptive_run_spec.dataset,
+        user_specified_split=adaptive_run_spec.split,
+        available_splits=available_splits,
+    )
+
     trismik_results = await trismik_client.run(
         test_id=adaptive_run_spec.dataset,
+        split=resolved_split,
         project_id=project_id,
         experiment=experiment_id,
         run_metadata=TrismikRunMetadata(

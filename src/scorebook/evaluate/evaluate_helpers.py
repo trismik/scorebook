@@ -91,6 +91,7 @@ def validate_parameters(params: Dict[str, Any], caller: Callable[..., Any]) -> N
 
 def prepare_datasets(
     datasets: Union[str, EvalDataset, List[Union[str, EvalDataset]]],
+    split: Optional[str] = None,
     sample_size: Optional[int] = None,
 ) -> List[Union[EvalDataset, AdaptiveEvalDataset]]:
     """Prepare and separate input datasets into classic and adaptive evaluation datasets."""
@@ -104,6 +105,12 @@ def prepare_datasets(
 
         # Prepare classic datasets
         if isinstance(dataset, EvalDataset):
+            # Warn if dataset split differs from provided split parameter
+            if split is not None and dataset.split is not None and dataset.split != split:
+                logger.warning(
+                    f"Dataset '{dataset.name}' has split '{dataset.split}' but evaluate split "
+                    f"parameter is '{split}'. The dataset split will be used."
+                )
 
             if sample_size is not None:
                 dataset = dataset.sample(sample_size)
@@ -111,8 +118,17 @@ def prepare_datasets(
             datasets_out.append(dataset)
 
         # Prepare adaptive datasets
-        elif isinstance(dataset, str) and dataset.endswith(":adaptive"):
-            datasets_out.append(AdaptiveEvalDataset(dataset))
+        elif isinstance(dataset, str) and ":adaptive" in dataset:
+            # Parse adaptive dataset
+            parts = dataset.split(":")
+            if len(parts) != 2 or parts[1] != "adaptive":
+                raise ParameterValidationError(
+                    f"Invalid adaptive dataset format: '{dataset}'. "
+                    f"Use 'test_id:adaptive' format and specify split via the split parameter."
+                )
+
+            # Use the split parameter for all adaptive datasets
+            datasets_out.append(AdaptiveEvalDataset(name=dataset, split=split))
 
         # TODO: dataset name string registry
         elif isinstance(dataset, str):
@@ -174,6 +190,7 @@ def build_eval_run_specs(
                         hyperparameters_index,
                         experiment_id,
                         project_id,
+                        dataset.split,
                         metadata,
                     )
                 )
@@ -220,6 +237,7 @@ def build_adaptive_eval_run_spec(
     hyperparameter_config_index: int,
     experiment_id: str,
     project_id: str,
+    split: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
 ) -> AdaptiveEvalRunSpec:
     """Build AdaptiveEvalRunSpec objects for a dataset/hyperparameter combination."""
@@ -231,6 +249,7 @@ def build_adaptive_eval_run_spec(
         hyperparameter_config_index,
         experiment_id,
         project_id,
+        split,
         metadata,
     )
     logger.debug("Built AdaptiveEvalRunSpec: %s", adaptive_eval_run_spec)
@@ -386,3 +405,57 @@ def make_trismik_inference(
         )
 
     return sync_trismik_inference_function
+
+
+def resolve_adaptive_split(
+    test_id: str,
+    user_specified_split: Optional[str],
+    available_splits: List[str],
+) -> str:
+    """Resolve the dataset split to use for adaptive evaluation.
+
+    Resolution order:
+    1. If user specified a split, validate it exists and use it
+    2. If not specified and exactly one split is available, use it
+    3. If not specified and multiple splits are available, raise an error
+    4. If no splits are available, raise an error
+
+    Args:
+        test_id: The test dataset ID (without ":adaptive" suffix)
+        user_specified_split: Optional split name specified by the user
+        available_splits: List of available split names for this dataset
+
+    Returns:
+        The resolved split name to use
+
+    Raises:
+        ScoreBookError: If the specified split doesn't exist, multiple splits exist without
+            user specification, or no splits are available
+    """
+    logger.debug(f"Available splits for {test_id}: {available_splits}")
+
+    # If user specified a split, validate and use it
+    if user_specified_split is not None:
+        if user_specified_split in available_splits:
+            logger.info(f"Using user-specified split '{user_specified_split}' for {test_id}")
+            return user_specified_split
+        else:
+            raise ScoreBookError(
+                f"Specified split '{user_specified_split}' not found for dataset '{test_id}'. "
+                f"Available splits: {available_splits}"
+            )
+
+    # No split specified - check available splits
+    if len(available_splits) == 0:
+        raise ScoreBookError(f"No splits available for dataset '{test_id}'. ")
+    elif len(available_splits) == 1:
+        # Exactly one split - auto-select it
+        selected_split = available_splits[0]
+        logger.info(f"Auto-selecting only available split '{selected_split}' for {test_id}")
+        return selected_split
+    else:
+        # Multiple splits available - user must specify
+        raise ScoreBookError(
+            f"Multiple splits available for dataset '{test_id}': {available_splits}. "
+            f"Please specify which split to use via evaluate's 'split' parameter."
+        )

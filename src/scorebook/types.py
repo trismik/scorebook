@@ -17,6 +17,7 @@ class AdaptiveEvalDataset:
     """Represents a dataset configured for adaptive evaluation."""
 
     name: str
+    split: Optional[str] = None
 
 
 @dataclass
@@ -50,6 +51,7 @@ class AdaptiveEvalRunSpec:
     hyperparameters_index: int
     experiment_id: str
     project_id: str
+    split: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
 
 
