@@ -105,7 +105,7 @@ Once the results are collected, they are then scored via the evaluation dataset'
 
 Evaluate functions can accept hyperparameters, which are passed to the inference function as kwargs.
 A single hyperparameter configuration, a list of configurations, or a grid of configurations to be expanded, can be provided, to evaluate a model across multiple hyperparameter configurations in a single evaluation call.
-To view an example of this, see [hyperparameter sweeps]().
+To view an example of this, see [hyperparameter sweeps](https://github.com/trismik/scorebook/blob/main/tutorials/examples/2-evaluate/5-hyperparameter_sweeps.py).
 
 **Classical Evaluation example**:
 ```python
