@@ -260,13 +260,27 @@ results = scorebook.score(evaluation_items, ["accuracy", "precision"])
 #### Custom Metrics
 Create custom metrics by extending `MetricBase` and defining a `score` function.
 
+The metric's score function can use any calculation to generate scores, the only constraints when defining a metric are that its signature must match the following:
+
+**Metric Score Method Arguments**:
+
+- `outputs: List[Any]`
+- `labels: List[Any`
+
+**Metric Score Method Returns**:
+
+- `scores: Dict[str: Any]`
+
+The dict scores returned by a metric's score method, should contain two keys, "aggregate_scores" and "item_scores" with a dict of aggrgate scores, and list of item scores respectively.
+See how the [accuracy](https://github.com/trismik/scorebook/blob/main/src/scorebook/metrics/accuracy.py) metric is implemented for guidance.
+
 The example below shows the creation and registration of a spell checking metric, which generates a scores for the percentage of correctly spelt words.
 
 ```python
 from spellchecker import SpellChecker # pip install pyspellchecker
 from scorebook.metrics import MetricBase, MetricRegistry
 
-@MetricRegistry.register(name="spellcheck")
+@MetricRegistry.register()
 class SpellCheck(MetricBase):
     """
     Spell-check accuracy over text outputs.
@@ -277,7 +291,7 @@ class SpellCheck(MetricBase):
     _sp = SpellChecker("en")
 
     @staticmethod
-    def score(outputs, labels=None):
+    def score(outputs, labels):
 
         items = []
         for s in outputs:
