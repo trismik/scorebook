@@ -17,16 +17,22 @@ class ROUGE(MetricBase):
     Returns ROUGE-1 and ROUGE-L F1 scores.
     """
 
-    def __init__(self, scorer: Optional[rouge_scorer.RougeScorer] = None) -> None:
+    def __init__(self, rouge_types: Optional[List[str]] = None, **kwargs: Any) -> None:
         """Initialize the ROUGE metric.
 
         Args:
-            scorer: Optional custom RougeScorer instance. If not provided,
-                   creates a default scorer with rouge1 and rougeL metrics.
+            rouge_types: List of ROUGE types to calculate (e.g., ["rouge1", "rouge2", "rougeL"]).
+                        Defaults to ["rouge1", "rougeL"].
+            **kwargs: Additional keyword arguments to pass to RougeScorer
+                     (e.g., use_stemmer, split_summaries, tokenizer).
+                     Defaults to use_stemmer=True if not provided.
         """
-        self.scorer = (
-            scorer if scorer else rouge_scorer.RougeScorer(["rouge1", "rougeL"], use_stemmer=True)
-        )
+        if rouge_types is None:
+            rouge_types = ["rouge1", "rougeL"]
+        if "use_stemmer" not in kwargs:
+            kwargs["use_stemmer"] = True
+        self.rouge_types = rouge_types
+        self.scorer = rouge_scorer.RougeScorer(rouge_types, **kwargs)
 
     def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
         """Calculate ROUGE scores between predictions and references.
@@ -37,14 +43,14 @@ class ROUGE(MetricBase):
 
         Returns:
             A tuple containing:
-            - aggregate_scores: Dict with average rouge1 and rougeL F1 scores
-            - item_scores: List of dicts with rouge1 and rougeL F1 scores for each pair
+            - aggregate_scores: Dict with average F1 scores for each configured ROUGE type
+            - item_scores: List of dicts with F1 scores for each configured ROUGE type
         """
         if len(outputs) != len(labels):
             raise ValueError("Number of outputs must match number of labels")
 
         if not outputs:  # Handle empty lists
-            return {"rouge1": 0.0, "rougeL": 0.0}, []
+            return {rouge_type: 0.0 for rouge_type in self.rouge_types}, []
 
         # Calculate item scores
         item_scores = []
@@ -56,15 +62,16 @@ class ROUGE(MetricBase):
             # Calculate ROUGE scores
             scores = self.scorer.score(output_str, label_str)
 
-            # Extract F1 scores (fmeasure)
-            item_scores.append(
-                {"rouge1": scores["rouge1"].fmeasure, "rougeL": scores["rougeL"].fmeasure}
-            )
+            # Extract F1 scores (fmeasure) for all configured rouge types
+            item_score = {
+                rouge_type: scores[rouge_type].fmeasure for rouge_type in self.rouge_types
+            }
+            item_scores.append(item_score)
 
-        # Calculate aggregate scores (average of all items)
-        avg_rouge1 = sum(item["rouge1"] for item in item_scores) / len(item_scores)
-        avg_rougeL = sum(item["rougeL"] for item in item_scores) / len(item_scores)
-
-        aggregate_scores = {"rouge1": avg_rouge1, "rougeL": avg_rougeL}
+        # Calculate aggregate scores (average of all items for each rouge type)
+        aggregate_scores = {
+            rouge_type: sum(item[rouge_type] for item in item_scores) / len(item_scores)
+            for rouge_type in self.rouge_types
+        }
 
         return aggregate_scores, item_scores
