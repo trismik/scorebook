@@ -1,0 +1,78 @@
+"""Tutorials - Score - Example 3 - F1 Metric Scoring."""
+
+import sys
+from pathlib import Path
+from pprint import pprint
+from typing import Any
+
+from dotenv import load_dotenv
+
+sys.path.insert(0, str(Path(__file__).parent.parent / ".example_utils"))
+
+from output import save_results_to_json
+from setup import setup_logging
+
+from scorebook import score
+from scorebook.metrics import F1
+
+
+def main() -> Any:
+    """Score pre-computed model predictions using F1 metric.
+
+    This example demonstrates how to score NER (Named Entity Recognition)
+    predictions using the F1 metric with different averaging methods.
+    """
+
+    # Sample NER predictions (in CoNLL format with BIO tags)
+    model_predictions = [
+        {"output": "O", "label": "O"},
+        {"output": "B-PER", "label": "B-PER"},
+        {"output": "I-PER", "label": "I-PER"},
+        {"output": "O", "label": "O"},
+        {"output": "B-LOC", "label": "B-LOC"},
+        {"output": "O", "label": "O"},
+        {"output": "B-ORG", "label": "B-LOC"},  # Misclassification
+        {"output": "O", "label": "B-MISC"},     # Missed entity
+        {"output": "B-PER", "label": "B-PER"},
+        {"output": "O", "label": "O"},
+    ]
+
+    print(f"Scoring {len(model_predictions)} NER predictions\n")
+
+    # Score with macro averaging (default)
+    print("Macro averaging:")
+    results_macro = score(
+        items=model_predictions,
+        metrics=F1(),
+        upload_results=False,
+    )
+    pprint(results_macro["aggregate_results"])
+
+    # Score with micro averaging
+    print("\nMicro averaging:")
+    results_micro = score(
+        items=model_predictions,
+        metrics=F1(average="micro"),
+        upload_results=False,
+    )
+    pprint(results_micro["aggregate_results"])
+
+    # Score with weighted averaging
+    print("\nWeighted averaging:")
+    results_weighted = score(
+        items=model_predictions,
+        metrics=F1(average="weighted"),
+        upload_results=False,
+    )
+    pprint(results_weighted["aggregate_results"])
+
+    return results_macro
+
+
+if __name__ == "__main__":
+    load_dotenv()
+    log_file = setup_logging(experiment_id="2-scoring_f1_metric", base_dir=Path(__file__).parent)
+    output_dir = Path(__file__).parent / "results"
+    output_dir.mkdir(exist_ok=True)
+    results_dict = main()
+    save_results_to_json(results_dict, output_dir, "2-scoring_f1_metric_output.json")
