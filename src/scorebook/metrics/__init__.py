@@ -14,5 +14,6 @@ from scorebook.metrics.accuracy import Accuracy
 from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.metric_registry import MetricRegistry
 from scorebook.metrics.precision import Precision
+from scorebook.metrics.rouge import ROUGE
 
-__all__ = ["MetricBase", "Precision", "Accuracy", "MetricRegistry"]
+__all__ = ["MetricBase", "Precision", "Accuracy", "MetricRegistry", "ROUGE"]
