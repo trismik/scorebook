@@ -6243,4 +6243,4 @@ vertex = ["fsspec", "google-cloud-storage", "google-genai", "pandas", "python-do
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.14"
-content-hash = "04b07f39fc68c100c8edbe96f56f7f607e42f4b922713234a55d4edf730c364f"
+content-hash = "a50ecfba5b2637857b1d60ae6e43631015c6c51e67f30c55af01f4690a25edb0"
