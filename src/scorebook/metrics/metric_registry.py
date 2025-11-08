@@ -6,6 +6,7 @@ that can be used to assess model performance. It provides a single access point
 to retrieve all implemented metric classes.
 """
 
+import importlib
 from typing import Any, Callable, Dict, List, Type, Union
 
 from scorebook.metrics.metric_base import MetricBase
@@ -85,14 +86,42 @@ class MetricRegistry:
         # If input is a string, look up the class in the registry
         if isinstance(name_or_class, str):
             key = name_or_class.lower()
+
+            # If not registered, try to import the module (lazy loading)
+            if key not in cls._registry:
+                cls._try_import_metric(key)
+
+            # Check again after import attempt
             if key not in cls._registry:
                 raise ValueError(f"Metric '{name_or_class}' not registered.")
+
             return cls._registry[key](**kwargs)
 
         raise ValueError(
             f"Invalid metric type: {type(name_or_class)}."
             f"Must be string name or BaseMetric subclass"
         )
+
+    @classmethod
+    def _try_import_metric(cls, metric_name: str) -> None:
+        """
+        Attempt to import a metric module by name (lazy loading).
+
+        This allows metrics to be loaded on-demand when requested by string name,
+        rather than forcing all metrics to be imported upfront.
+
+        Args:
+            metric_name: The lowercase metric name (e.g., "accuracy", "rouge")
+        """
+
+        try:
+            # Try to import the metric module
+            # This will run the @MetricRegistry.register() decorator if the module exists
+            importlib.import_module(f"scorebook.metrics.{metric_name}")
+        except ImportError:
+            # Module doesn't exist or has import errors
+            # Let the caller handle the "not registered" error
+            pass
 
     @classmethod
     def list_metrics(cls) -> List[str]:
