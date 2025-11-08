@@ -10,7 +10,8 @@ from scorebook.score.score_helpers import (
 )
 from scorebook.trismik.upload_results import upload_result
 from scorebook.types import Metrics
-from scorebook.utils import resolve_show_progress, resolve_upload_results, scoring_progress_context
+from scorebook.utils.common_helpers import resolve_show_progress, resolve_upload_results
+from scorebook.utils.progress_bars import scoring_progress_context
 
 logger = logging.getLogger(__name__)
 

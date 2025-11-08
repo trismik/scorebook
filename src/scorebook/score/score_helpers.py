@@ -7,7 +7,7 @@ from scorebook.exceptions import DataMismatchError, ParameterValidationError
 from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.metric_registry import MetricRegistry
 from scorebook.types import MetricScore
-from scorebook.utils import is_awaitable
+from scorebook.utils.async_utils import is_awaitable
 
 logger = logging.getLogger(__name__)
 

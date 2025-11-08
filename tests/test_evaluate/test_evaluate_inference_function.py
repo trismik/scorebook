@@ -2,9 +2,8 @@ import asyncio
 from pathlib import Path
 from typing import List
 
-from scorebook.eval_datasets import EvalDataset
-from scorebook.evaluate import evaluate, evaluate_async
-from scorebook.metrics import Accuracy
+from scorebook import EvalDataset, evaluate, evaluate_async
+from scorebook.metrics.accuracy import Accuracy
 
 
 def simple_inference_function(inputs: List, **hyperparameters) -> List[str]:
