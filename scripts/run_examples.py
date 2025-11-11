@@ -36,6 +36,7 @@ EXAMPLE_FLAGS = {
     "3-evaluation_datasets/3-evaluation_datasets_from_huggingface_with_yaml_configs.py": False,
     # 4-adaptive_evaluations: Adaptive evaluation examples
     "4-adaptive_evaluations/1-adaptive_evaluation.py": False,  # Requires Trismik + OpenAI
+    "4-adaptive_evaluations/2-adaptive_dataset_splits.py": False,  # Requires Trismik + OpenAI
     # 5-upload_results: Result upload examples
     "5-upload_results/1-uploading_score_results.py": False,  # Requires Trismik API key
     "5-upload_results/2-uploading_evaluate_results.py": False,  # Requires Trismik API key
