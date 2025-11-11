@@ -9,7 +9,7 @@ configurable way.
 import asyncio
 from typing import Any, Callable, Dict, List, Optional, cast
 
-from scorebook.utils import is_awaitable
+from scorebook.utils.async_utils import is_awaitable
 
 
 class InferencePipeline:

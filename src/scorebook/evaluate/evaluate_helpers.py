@@ -19,7 +19,8 @@ from scorebook.exceptions import (
 from scorebook.settings import TRISMIK_SERVICE_URL
 from scorebook.trismik.credentials import get_token
 from scorebook.types import AdaptiveEvalDataset, AdaptiveEvalRunSpec, EvalResult, EvalRunSpec
-from scorebook.utils import expand_dict, is_awaitable
+from scorebook.utils.async_utils import is_awaitable
+from scorebook.utils.transform_helpers import expand_dict
 
 logger = logging.getLogger(__name__)
 

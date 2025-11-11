@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Type, Union
 
-from scorebook.eval_datasets import EvalDataset
+from scorebook.eval_datasets.eval_dataset import EvalDataset
 from scorebook.metrics.metric_base import MetricBase
 
 # Type alias for metrics parameter

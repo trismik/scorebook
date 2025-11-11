@@ -6,7 +6,7 @@ from trismik import TrismikAsyncClient, TrismikClient
 from trismik.settings import evaluation_settings
 from trismik.types import TrismikRunMetadata
 
-from scorebook.eval_datasets import EvalDataset
+from scorebook.eval_datasets.eval_dataset import EvalDataset
 from scorebook.evaluate.evaluate_helpers import (
     build_eval_run_specs,
     create_trismik_async_client,
@@ -28,12 +28,9 @@ from scorebook.types import (
     EvalResult,
     EvalRunSpec,
 )
-from scorebook.utils import (
-    async_nullcontext,
-    evaluation_progress_context,
-    resolve_show_progress,
-    resolve_upload_results,
-)
+from scorebook.utils.async_utils import async_nullcontext
+from scorebook.utils.common_helpers import resolve_show_progress, resolve_upload_results
+from scorebook.utils.progress_bars import evaluation_progress_context
 
 logger = logging.getLogger(__name__)
 

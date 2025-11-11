@@ -4,7 +4,7 @@ import pytest
 
 from scorebook import score_async
 from scorebook.exceptions import ParameterValidationError
-from scorebook.metrics import Accuracy
+from scorebook.metrics.accuracy import Accuracy
 
 
 @pytest.mark.asyncio

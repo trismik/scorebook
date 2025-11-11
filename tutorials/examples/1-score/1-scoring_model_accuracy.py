@@ -13,7 +13,7 @@ from output import save_results_to_json
 from setup import setup_logging
 
 from scorebook import score
-from scorebook.metrics import Accuracy
+from scorebook.metrics.accuracy import Accuracy
 
 
 def main() -> Any:

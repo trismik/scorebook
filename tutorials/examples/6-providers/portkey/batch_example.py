@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 
 from scorebook import EvalDataset, InferencePipeline, evaluate
 from scorebook.inference.clients.portkey import batch
-from scorebook.metrics import Accuracy
+from scorebook.metrics.accuracy import Accuracy
 
 
 def main() -> None:

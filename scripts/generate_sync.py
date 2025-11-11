@@ -85,7 +85,13 @@ def main() -> None:
                 # Post-process: fix imports that need contextlib.nullcontext
                 content = new_path.read_text()
 
-                # Fix nullcontext import
+                # Fix nullcontext import (new pattern after removing __all__)
+                content = content.replace(
+                    "from scorebook.utils.async_utils import nullcontext",
+                    "from contextlib import nullcontext",
+                )
+
+                # Fix nullcontext import (old pattern for backward compatibility)
                 content = content.replace(
                     "from scorebook.utils import nullcontext, evaluation_progress",
                     "from contextlib import nullcontext\n"

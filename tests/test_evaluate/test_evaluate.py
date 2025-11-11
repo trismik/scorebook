@@ -6,11 +6,10 @@ from typing import Dict, List
 import pandas as pd
 import pytest
 
-from scorebook.eval_datasets import EvalDataset
-from scorebook.evaluate import evaluate
+from scorebook import EvalDataset, evaluate
 from scorebook.exceptions import ParameterValidationError
 from scorebook.inference.inference_pipeline import InferencePipeline
-from scorebook.metrics import Accuracy
+from scorebook.metrics.accuracy import Accuracy
 from scorebook.types import ClassicEvalRunResult, EvalResult
 
 

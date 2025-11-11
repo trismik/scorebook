@@ -85,8 +85,10 @@ class MetricRegistry:
         # If input is a string, look up the class in the registry
         if isinstance(name_or_class, str):
             key = name_or_class.lower()
+
             if key not in cls._registry:
                 raise ValueError(f"Metric '{name_or_class}' not registered.")
+
             return cls._registry[key](**kwargs)
 
         raise ValueError(

@@ -4,7 +4,7 @@ import pytest
 
 from scorebook import score
 from scorebook.exceptions import ParameterValidationError
-from scorebook.metrics import Accuracy
+from scorebook.metrics.accuracy import Accuracy
 
 
 def test_score_basic():

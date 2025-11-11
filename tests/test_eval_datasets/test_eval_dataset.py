@@ -5,7 +5,7 @@ import pytest
 
 from scorebook import EvalDataset
 from scorebook.exceptions import DatasetConfigurationError, DatasetParseError
-from scorebook.metrics import Precision
+from scorebook.metrics.precision import Precision
 
 
 def test_load_flat_dataset():
