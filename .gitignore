@@ -222,3 +222,6 @@ logs/
 # Temporary files
 .tmp/
 /tmp/
+
+# Planning/design documents
+plan.md
