@@ -7,7 +7,7 @@ import transformers
 from dotenv import load_dotenv
 from pathlib import Path
 
-from scorebook.utils.tutorial_utils import save_results_to_json, setup_logging
+from tutorials.utils import save_results_to_json, setup_logging
 
 from scorebook import EvalDataset, InferencePipeline, evaluate
 
