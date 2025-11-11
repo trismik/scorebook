@@ -39,40 +39,31 @@ def main() -> Any:
 
     print(f"Scoring {len(model_predictions)} NER predictions\n")
 
-    # Score with macro averaging (default)
-    print("Macro averaging:")
-    results_macro = score(
+    # Score with all averaging methods at once
+    print("All averaging methods:")
+    results_all = score(
         items=model_predictions,
-        metrics=F1(),
+        metrics=F1(average="all"),
         upload_results=False,
     )
-    pprint(results_macro["aggregate_results"])
+    pprint(results_all["aggregate_results"])
 
-    # Score with micro averaging
-    print("\nMicro averaging:")
-    results_micro = score(
+    # Score with specific combination of methods
+    print("\nMicro and weighted averaging:")
+    results_combo = score(
         items=model_predictions,
-        metrics=F1(average="micro"),
+        metrics=F1(average=["micro", "weighted"]),
         upload_results=False,
     )
-    pprint(results_micro["aggregate_results"])
+    pprint(results_combo["aggregate_results"])
 
-    # Score with weighted averaging
-    print("\nWeighted averaging:")
-    results_weighted = score(
-        items=model_predictions,
-        metrics=F1(average="weighted"),
-        upload_results=False,
-    )
-    pprint(results_weighted["aggregate_results"])
-
-    return results_macro
+    return results_all
 
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="2-scoring_f1_metric", base_dir=Path(__file__).parent)
+    log_file = setup_logging(experiment_id="3-scoring_f1_metric", base_dir=Path(__file__).parent)
     output_dir = Path(__file__).parent / "results"
     output_dir.mkdir(exist_ok=True)
     results_dict = main()
-    save_results_to_json(results_dict, output_dir, "2-scoring_f1_metric_output.json")
+    save_results_to_json(results_dict, output_dir, "3-scoring_f1_metric_output.json")
