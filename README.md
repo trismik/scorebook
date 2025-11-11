@@ -1,346 +1,249 @@
-# Scorebook
+<h1 align="center">Scorebook</h1>
 
-**A Python library for LLM evaluation**
+<p align="center"><strong>A Python library for Model evaluation</strong></p>
 
 <p align="center">
   <img alt="Dynamic TOML Badge" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Ftrismik%2Fscorebook%2Frefs%2Fheads%2Fmain%2Fpyproject.toml&query=tool.poetry.version&style=flat&label=version">
   <img alt="Python Version" src="https://img.shields.io/badge/python-3.9%2B-blue">
+  <a href="https://docs.trismik.com/scorebook/introduction-to-scorebook/" target="_blank" rel="noopener">
+    <img alt="Documentation" src="https://img.shields.io/badge/docs-Scorebook-blue?style=flat">
+  </a>
   <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
 </p>
 
-Scorebook is a flexible and extensible framework for evaluating Large Language Models (LLMs). It provides clear contracts for data loading, model inference, and metrics computation, making it easy to run comprehensive evaluations across different datasets, models, and metrics.
+Scorebook provides a flexible and extensible framework for evaluating models such as large language models (LLMs). Easily evaluate any model using evaluation datasets from Hugging Face such as MMLU-Pro, HellaSwag, and CommonSenseQA, or with data from any other source. Evaluations calculate scores for any number of specified metrics such as accuracy, precision, and recall, as well as any custom defined metrics, including LLM as a judge (LLMaJ).
 
-## ✨ Key Features
+## Use Cases
 
-- **🔌 Flexible Data Loading**: Support for Hugging Face datasets, CSV, JSON, and Python lists
-- **🚀 Model Agnostic**: Works with any model or inference provider
-- **📊 Extensible Metric Engine**: Use the metrics we provide or implement your own
-- **🔄 Automated Sweeping**: Test multiple model configurations automatically
-- **📈 Rich Results**: Export results to JSON, CSV, or structured formats like pandas DataFrames
+Scorebook's evaluations can be used for:
 
-## 🚀 Quick Start
+- **Model Benchmarking**: Compare different models on standard datasets.
+- **Model Optimization**: Find optimal model configurations.
+- **Iterative Experimentation**: Reproducible evaluation workflows.
 
-### Installation
+## Key Features
+
+- **Model Agnostic**: Evaluate any model, running locally or deployed on the cloud.
+- **Dataset Agnostic**: Create evaluation datasets from Hugging Face datasets or any other source.
+- **Extensible Metric Engine**: Use the Scorebook's built-in or implement your own.
+- **Hyperparameter Sweeping**: Evaluate over multiple model hyperparameter configurations.
+- **Adaptive Evaluations**: Run Trismik's ultra-fast [adaptive evaluations](https://docs.trismik.com/adaptiveTesting/adaptive-testing-introduction/).
+- **Trismik Integration**: Upload evaluations to [Trismik's platform](https://www.trismik.com/).
+
+## Installation
 
 ```bash
 pip install scorebook
 ```
 
-For OpenAI integration:
-```bash
-pip install scorebook[openai]
-```
+## Scoring Models Output
 
-For local model examples:
-```bash
-pip install scorebook[examples]
-```
+Scorebooks score function can be used to evaluate pre-generated model outputs.
 
-### Basic Usage
-
+### Score Example
 ```python
-from scorebook import EvalDataset, evaluate
+from scorebook import score
+from scorebook.metrics import Accuracy
+
+# 1. Prepare a list of generated model outputs and labels
+model_predictions = [
+    {"input": "What is 2 + 2?", "output": "4", "label": "4"},
+    {"input": "What is the capital of France?", "output": "London", "label": "Paris"},
+    {"input": "Who wrote Romeo and Juliette?", "output": "William Shakespeare", "label": "William Shakespeare"},
+    {"input": "What is the chemical symbol for gold?", "output": "Au", "label": "Au"},
+]
+
+# 2. Score the model's predictions against labels using metrics
+results = score(
+    items = model_predictions,
+    metrics = Accuracy,
+)
+```
+
+### Score Results:
+```json
+{
+    "aggregate_results": [
+        {
+            "dataset": "scored_items",
+            "accuracy": 0.75
+        }
+    ],
+    "item_results": [
+        {
+            "id": 0,
+            "dataset": "scored_items",
+            "input": "What is 2 + 2?",
+            "output": "4",
+            "label": "4",
+            "accuracy": true
+        }
+        // ... additional items
+    ]
+}
+```
+
+## _Classical_ Evaluations
+
+Running a classical evaluation in Scorebook executes model inference on every item in the dataset, then scores the generated outputs using the dataset’s specified metrics to quantify model performance.
+
+### Classical Evaluation example:
+```python
+from scorebook import evaluate, EvalDataset
 from scorebook.metrics import Accuracy
 
 # 1. Create an evaluation dataset
-data = [
+evaluation_items = [
     {"question": "What is 2 + 2?", "answer": "4"},
     {"question": "What is the capital of France?", "answer": "Paris"},
     {"question": "Who wrote Romeo and Juliet?", "answer": "William Shakespeare"}
 ]
 
-dataset = EvalDataset.from_list(
-    name="basic_qa",
-    label="answer",
-    metrics=[Accuracy],
-    data=data
+evaluation_dataset = EvalDataset.from_list(
+    name = "basic_questions",
+    items = evaluation_items,
+    input = "question",
+    label = "answer",
+    metrics = Accuracy,
 )
 
-# 2. Define your inference function
-def my_inference_function(items, **hyperparameters):
-    # Your model logic here
-    predictions = []
-    for item in items:
-        # Process each item and generate prediction
-        prediction = your_model.predict(item["question"])
-        predictions.append(prediction)
-    return predictions
+# 2. Define an inference function - This is a pseudocode example
+def inference_function(inputs: List[Any], **hyperparameters):
+
+    # Create or call a model
+    model = Model()
+    model.temperature = hyperparameters.get("temperature")
+
+    # Call model inference
+    model_outputs = model(inputs)
+
+    # Return outputs
+    return model_outputs
 
 # 3. Run evaluation
-results = evaluate(my_inference_function, dataset)
-print(results)
-```
-
-## 📊 Core Components
-
-### 1. Evaluation Datasets
-
-Scorebook supports multiple data sources through the `EvalDataset` class:
-
-#### From Hugging Face
-```python
-dataset = EvalDataset.from_huggingface(
-    "TIGER-Lab/MMLU-Pro",
-    label="answer",
-    metrics=[Accuracy],
-    split="validation"
+evaluation_results = evaluate(
+    inference_function,
+    evaluation_dataset,
+    hyperparameters = {"temperature": 0.7}
 )
 ```
 
-#### From CSV
-```python
-dataset = EvalDataset.from_csv(
-    "dataset.csv",
-    label="answer",
-    metrics=[Accuracy]
-)
-```
-
-#### From JSON
-```python
-dataset = EvalDataset.from_json(
-    "dataset.json",
-    label="answer",
-    metrics=[Accuracy]
-)
-```
-
-#### From Python List
-```python
-dataset = EvalDataset.from_list(
-    name="custom_dataset",
-    label="answer",
-    metrics=[Accuracy],
-    data=[{"question": "...", "answer": "..."}]
-)
-```
-
-### 2. Model Integration
-
-Scorebook offers two approaches for model integration:
-
-#### Inference Functions
-A single function that handles the complete pipeline:
-
-```python
-def inference_function(eval_items, **hyperparameters):
-    results = []
-    for item in eval_items:
-        # 1. Preprocessing
-        prompt = format_prompt(item)
-
-        # 2. Inference
-        output = model.generate(prompt)
-
-        # 3. Postprocessing
-        prediction = extract_answer(output)
-        results.append(prediction)
-
-    return results
-```
-
-#### Inference Pipelines
-Modular approach with separate stages:
-
-```python
-from scorebook.types.inference_pipeline import InferencePipeline
-
-def preprocessor(item):
-    return {"messages": [{"role": "user", "content": item["question"]}]}
-
-def inference_function(processed_items, **hyperparameters):
-    return [model.generate(item) for item in processed_items]
-
-def postprocessor(output):
-    return output.strip()
-
-pipeline = InferencePipeline(
-    model="my-model",
-    preprocessor=preprocessor,
-    inference_function=inference_function,
-    postprocessor=postprocessor
-)
-
-results = evaluate(pipeline, dataset)
-```
-
-### 3. Metrics System
-
-#### Built-in Metrics
-- **Accuracy**: Percentage of correct predictions
-- **Precision**: Accuracy of positive predictions
-
-```python
-from scorebook.metrics import Accuracy, Precision
-
-dataset = EvalDataset.from_list(
-    name="test",
-    label="answer",
-    metrics=[Accuracy, Precision],  # Multiple metrics
-    data=data
-)
-```
-
-#### Custom Metrics
-Create custom metrics by extending `MetricBase`:
-
-```python
-from scorebook.metrics import MetricBase, MetricRegistry
-
-@MetricRegistry.register()
-class F1Score(MetricBase):
-    @staticmethod
-    def score(outputs, labels):
-        # Calculate F1 score
-        item_scores = [calculate_f1_item(o, l) for o, l in zip(outputs, labels)]
-        aggregate_score = {"f1": sum(item_scores) / len(item_scores)}
-        return aggregate_score, item_scores
-
-# Use by string name or class
-dataset = EvalDataset.from_list(..., metrics=["f1score"])
-# or
-dataset = EvalDataset.from_list(..., metrics=[F1Score])
-```
-
-### 4. Hyperparameter Sweeping
-
-Test multiple configurations automatically:
-
-```python
-hyperparameters = {
-    "temperature": [0.7, 0.9, 1.0],
-    "max_tokens": [50, 100, 150],
-    "top_p": [0.8, 0.9]
+### Evaluation Results:
+```json
+{
+    "aggregate_results": [
+        {
+            "dataset": "basic_questions",
+            "temperature": 0.7,
+            "accuracy": 1.0,
+            "run_completed": true
+        }
+    ],
+    "item_results": [
+        {
+            "id": 0,
+            "dataset": "basic_questions",
+            "input": "What is 2 + 2?",
+            "output": "4",
+            "label": "4",
+            "temperature": 0.7,
+            "accuracy": true
+        }
+        // ... additional items
+    ]
 }
+```
 
+### _Adaptive_ Evaluations with `evaluate`
+
+To run an adaptive evaluation, use a Trismik adaptive dataset
+The CAT algorithm dynamically selects items to estimate the model’s ability (θ) with minimal standard error and fewest questions.
+
+### Adaptive Evaluation Example
+```python
+from scorebook import evaluate, login
+
+# 1. Log in with your Trismik API key
+login("TRISMIK_API_KEY")
+
+# 2. Define an inference function
+def inference_function(inputs: List[Any], **hyperparameters):
+
+    # Create or call a model
+    model = Model()
+
+    # Call model inference
+    outputs = model(inputs)
+
+    # Return outputs
+    return outputs
+
+# 3. Run an adaptive evaluation
 results = evaluate(
     inference_function,
-    dataset,
-    hyperparameters=hyperparameters,
-    score_type="all"
-)
-
-# Results include all combinations: 3 × 3 × 2 = 18 configurations
-```
-
-### 5. Results and Export
-
-Control result format with `score_type`:
-
-```python
-# Only aggregate scores (default)
-results = evaluate(model, dataset, score_type="aggregate")
-
-# Only per-item scores
-results = evaluate(model, dataset, score_type="item")
-
-# Both aggregate and per-item
-results = evaluate(model, dataset, score_type="all")
-```
-
-Export results:
-
-```python
-# Get EvalResult objects for advanced usage
-results = evaluate(model, dataset, return_type="object")
-
-# Export to files
-for result in results:
-    result.to_json("results.json")
-    result.to_csv("results.csv")
-```
-
-## 🔧 OpenAI Integration
-
-Scorebook includes built-in OpenAI support for both single requests and batch processing:
-
-```python
-from scorebook.inference.openai import responses, batch
-from scorebook.types.inference_pipeline import InferencePipeline
-
-# For single requests
-pipeline = InferencePipeline(
-    model="gpt-4o-mini",
-    preprocessor=format_for_openai,
-    inference_function=responses,
-    postprocessor=extract_response
-)
-
-# For batch processing (more efficient for large datasets)
-batch_pipeline = InferencePipeline(
-    model="gpt-4o-mini",
-    preprocessor=format_for_openai,
-    inference_function=batch,
-    postprocessor=extract_response
+    datasets = "trismik/headQA:adaptive",    # Adaptive datasets have the ":adaptive" suffix
+    project_id = "TRISMIK_PROJECT_ID",       # Required: Create a project on your Trismik dashboard
+    experiment_id = "TRISMIK_EXPERIMENT_ID", # Optional: An identifier to upload this run under
 )
 ```
 
-## 📋 Examples
+### Adaptive Evaluation Results
+```json
+{
+    "aggregate_results": [
+        {
+            "dataset": "trismik/headQA:adaptive",
+            "experiment_id": "TRISMIK_EXPERIMENT_ID",
+            "project_id": "TRISMIK_PROJECT_ID",
+            "run_id": "RUN_ID",
+            "score": {
+                "theta": 1.2,
+                "std_error": 0.20
+            },
+            "responses": null
+        }
+    ],
+    "item_results": []
+}
+```
 
-The `examples/` directory contains comprehensive examples:
+## Metrics
 
-- **`basic_example.py`**: Local model evaluation with Hugging Face
-- **`openai_responses_api.py`**: OpenAI API integration
-- **`openai_batch_api.py`**: OpenAI Batch API for large-scale evaluation
-- **`hyperparam_sweep.py`**: Hyperparameter optimization
-- **`scorebook_showcase.ipynb`**: Interactive Jupyter notebook tutorial
+| Metric     | Sync/Async | Aggregate Scores                                 | Item Scores                             |
+|------------|------------|--------------------------------------------------|-----------------------------------------|
+| `Accuracy` | Sync       | `Float`: Percentage of correct outputs           | `Boolean`: Exact match between output and label |
 
-Run an example:
 
+## Tutorials
+
+For local more detailed and runnable examples:
 ```bash
-cd examples/
-python basic_example.py --output-dir ./my_results
+pip install scorebook[examples]
 ```
 
-## 🏗️ Architecture
+The `tutorials/` directory contains comprehensive tutorials as notebooks and code examples:
 
-Scorebook follows a modular architecture:
+- **`tutorials/notebooks`**: Interactive Jupyter Notebooks showcasing Scorebook's capabilities.
+- **`tutorials/examples`**: Runnable Python examples incrementally implementing Scorebook's features.
 
-```
-┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   EvalDataset   │    │  Inference   │    │     Metrics     │
-│                 │    │   Pipeline   │    │                 │
-│ • Data Loading  │    │              │    │ • Accuracy      │
-│ • HF Integration│    │ • Preprocess │    │ • Precision     │
-│ • CSV/JSON      │    │ • Inference  │    │ • Custom        │
-│ • Validation    │    │ • Postprocess│    │ • Registry      │
-└─────────────────┘    └──────────────┘    └─────────────────┘
-        │                       │                       │
-        └───────────────────────┼───────────────────────┘
-                                │
-                   ┌─────────────────────┐
-                   │     evaluate()      │
-                   │                     │
-                   │ • Orchestration     │
-                   │ • Progress Tracking │
-                   │ • Result Formatting │
-                   │ • Export Options    │
-                   └─────────────────────┘
+**Run a notebook:**
+```bash
+jupyter notebook tutorials/notebooks
 ```
 
-## 🎯 Use Cases
+**Run an example:**
+```bash
+python3 tutorials/examples/1-score/1-scoring_model_accuracy.py
+```
 
-Scorebook is designed for:
-
-- **🏆 Model Benchmarking**: Compare different models on standard datasets
-- **⚙️ Hyperparameter Optimization**: Find optimal model configurations
-- **📊 Dataset Analysis**: Understand model performance across different data types
-- **🔄 A/B Testing**: Compare model versions or approaches
-- **🔬 Research Experiments**: Reproducible evaluation workflows
-- **📈 Production Monitoring**: Track model performance over time
-
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🏢 About
+## About
 
-Scorebook is developed by [Trismik](https://trismik.com) to speed up your LLM evaluation.
-
----
-
-*For more examples and detailed documentation, check out the Jupyter notebook in `examples/scorebook_showcase.ipynb`*
+Scorebook is developed by [Trismik](https://trismik.com) to simplify and speed up your LLM evaluations.
