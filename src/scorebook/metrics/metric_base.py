@@ -12,9 +12,8 @@ class MetricBase(ABC):
         """Return the metric name based on the class name."""
         return self.__class__.__name__.lower()
 
-    @staticmethod
     @abstractmethod
-    def score(outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+    def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
         """Calculate the metric score for a list of outputs and labels.
 
         Args:

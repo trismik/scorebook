@@ -11,8 +11,9 @@ common interface for scoring predictions against references.
 """
 
 from scorebook.metrics.accuracy import Accuracy
+from scorebook.metrics.f1 import F1
 from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.metric_registry import MetricRegistry
 from scorebook.metrics.precision import Precision
 
-__all__ = ["MetricBase", "Precision", "Accuracy", "MetricRegistry"]
+__all__ = ["MetricBase", "Precision", "Accuracy", "F1", "MetricRegistry"]
