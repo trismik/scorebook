@@ -46,11 +46,9 @@ class MetricRegistry:
 
     _registry: Dict[str, Type[MetricBase]] = {}
 
-    # Whitelist of built-in metrics (maps lowercase name to module name)
     _BUILT_IN_METRICS: Dict[str, str] = {
         "accuracy": "accuracy",
         "precision": "precision",
-        # Add new metrics here as they're implemented
     }
 
     @classmethod
@@ -77,41 +75,20 @@ class MetricRegistry:
 
     @classmethod
     def _lazy_load_metric(cls, metric_name: str) -> bool:
-        """
-        Attempt to lazily load a metric module if it's in the built-in metrics list.
+        """Attempt to lazily load a metric module if it's in the built-in metrics list."""
 
-        This method provides safe lazy loading by only importing metrics from a
-        predefined whitelist. It will not import arbitrary modules.
-
-        Args:
-            metric_name: The lowercase metric name (e.g., "accuracy")
-
-        Returns:
-            True if the metric was successfully loaded (or already loaded)
-            False if the metric is not in the built-in metrics list
-
-        Raises:
-            ImportError: If the metric module exists in the whitelist but fails to import
-        """
-        # Check if metric is in our whitelist
         if metric_name not in cls._BUILT_IN_METRICS:
             return False
 
-        # Check if already loaded
         if metric_name in cls._registry:
             return True
 
-        # Get the module name from whitelist
         module_name = cls._BUILT_IN_METRICS[metric_name]
 
-        # Attempt to import the metric module
-        # This will trigger the @register decorator
         try:
             importlib.import_module(f"scorebook.metrics.{module_name}")
             return True
         except ImportError as e:
-            # Metric is in whitelist but module doesn't exist or has import errors
-            # Re-raise with context
             raise ImportError(
                 f"Failed to load metric '{metric_name}' from module "
                 f"'scorebook.metrics.{module_name}': {e}"
@@ -145,18 +122,16 @@ class MetricRegistry:
             if key not in cls._registry:
                 # Attempt to lazy load the metric
                 if not cls._lazy_load_metric(key):
-                    # Not in whitelist - provide helpful error
+                    # Not in whitelist - raise error
                     available_metrics = ", ".join(sorted(cls._BUILT_IN_METRICS.keys()))
                     raise ValueError(
                         f"Metric '{name_or_class}' is not a known metric. "
                         f"Available metrics: {available_metrics}"
                     )
-                # Lazy load succeeded, check registry again
 
             # After lazy loading attempt, check registry
             if key not in cls._registry:
-                # This shouldn't happen if lazy load succeeded
-                # Indicates the module imported but didn't register
+
                 raise ValueError(
                     f"Metric '{name_or_class}' was loaded but failed to register. "
                     f"This is likely a bug in the metric implementation."
