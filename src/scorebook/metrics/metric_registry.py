@@ -123,7 +123,7 @@ class MetricRegistry:
         Get an instance of a registered metric by name or class.
 
         Args:
-            name_or_class: The metric name (string) or class (subclass of BaseMetric).
+            name_or_class: The metric name (string) or class (subclass of MetricBase).
             **kwargs: Additional arguments to pass to the metric's constructor.
 
         Returns:
@@ -133,7 +133,7 @@ class MetricRegistry:
             ValueError: If the metric name is not registered or not in built-in metrics.
             ImportError: If lazy loading fails due to import errors.
         """
-        # If input is a class that's a subclass of BaseMetric, instantiate it directly
+        # If input is a class that's a subclass of MetricBase, instantiate it directly
         if isinstance(name_or_class, type) and issubclass(name_or_class, MetricBase):
             return name_or_class(**kwargs)
 
@@ -166,7 +166,7 @@ class MetricRegistry:
 
         raise ValueError(
             f"Invalid metric type: {type(name_or_class)}. "
-            f"Must be string name or BaseMetric subclass"
+            f"Must be string name or MetricBase subclass"
         )
 
     @classmethod
