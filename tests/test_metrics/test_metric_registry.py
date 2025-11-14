@@ -2,9 +2,10 @@
 
 import pytest
 
+from scorebook import scorebook_metric
+from scorebook.metrics import MetricBase
 from scorebook.metrics.accuracy import Accuracy
-from scorebook.metrics.metric_base import MetricBase
-from scorebook.metrics.metric_registry import MetricRegistry
+from scorebook.metrics.core.metric_registry import MetricRegistry
 from scorebook.metrics.precision import Precision
 
 
@@ -111,15 +112,9 @@ def test_lazy_loading_accuracy():
 
 
 def test_lazy_loading_unknown_metric():
-    """Test that unknown metrics raise helpful error with available metrics list."""
-    with pytest.raises(ValueError) as exc_info:
+    """Test that unknown metrics raise ValueError."""
+    with pytest.raises(ValueError):
         MetricRegistry.get("unknown_metric")
-
-    error_message = str(exc_info.value)
-    assert "not a known metric" in error_message
-    assert "Available metrics:" in error_message
-    assert "accuracy" in error_message
-    assert "precision" in error_message
 
 
 def test_lazy_loading_case_insensitive():
@@ -157,17 +152,6 @@ def test_lazy_loading_no_reimport():
     assert isinstance(metric, Accuracy)
 
 
-def test_lazy_loading_built_in_metrics_list():
-    """Test that _BUILT_IN_METRICS contains expected metrics."""
-    # Verify the whitelist contains our known metrics
-    assert "accuracy" in MetricRegistry._BUILT_IN_METRICS
-    assert "precision" in MetricRegistry._BUILT_IN_METRICS
-
-    # Verify it maps to module names
-    assert MetricRegistry._BUILT_IN_METRICS["accuracy"] == "accuracy"
-    assert MetricRegistry._BUILT_IN_METRICS["precision"] == "precision"
-
-
 def test_lazy_loading_multiple_metrics():
     """Test lazy loading multiple metrics in sequence."""
     # Load multiple metrics by string name
@@ -188,3 +172,24 @@ def test_get_metric_with_kwargs():
     # Note: Current metrics don't accept kwargs, but test the mechanism works
     metric = MetricRegistry.get("accuracy")
     assert isinstance(metric, Accuracy)
+
+
+def test_scorebook_metric_decorator():
+    """Test that the scorebook_metric decorator works for custom metrics."""
+
+    @scorebook_metric
+    class CustomTestMetric(MetricBase):
+        @staticmethod
+        def score(outputs, labels):
+            return {"custom": 1.0}, [True] * len(outputs)
+
+    # Metric should be registered
+    assert "customtestmetric" in MetricRegistry.list_metrics()
+
+    # Can retrieve by name
+    metric = MetricRegistry.get("customtestmetric")
+    assert isinstance(metric, CustomTestMetric)
+
+    # Can retrieve by class
+    metric2 = MetricRegistry.get(CustomTestMetric)
+    assert isinstance(metric2, CustomTestMetric)

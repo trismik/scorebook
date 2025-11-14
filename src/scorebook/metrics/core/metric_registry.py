@@ -9,7 +9,7 @@ to retrieve all implemented metric classes.
 import importlib
 from typing import Any, Callable, Dict, List, Type, Union
 
-from scorebook.metrics.metric_base import MetricBase
+from scorebook.metrics.core.metric_base import MetricBase
 
 
 class MetricRegistry:
@@ -17,12 +17,23 @@ class MetricRegistry:
 
     This class provides a central registry for all evaluation metrics in the system.
     Metrics are lazily loaded on demand - when you request a metric by name, it will
-    be automatically imported and registered if it's in the built-in metrics list.
+    be automatically imported from the metrics directory using a naming convention.
+
+    Naming Convention:
+        Metric names are converted to module names by:
+        - Converting to lowercase
+        - Replacing spaces with underscores
+        - Looking for: scorebook.metrics.{converted_name}
+
+        Examples:
+            "Accuracy" -> scorebook.metrics.accuracy
+            "F1 Score" -> scorebook.metrics.f1_score
+            "MyCustomMetric" -> scorebook.metrics.mycustommetric
 
     The registry supports:
     - Registering new metric classes with the @register decorator
     - Retrieving metric instances by name or class (with lazy loading)
-    - Listing all available metrics
+    - Listing all registered metrics
 
     Usage:
         # Define a metric (auto-registers via decorator)
@@ -32,24 +43,22 @@ class MetricRegistry:
 
         # Get by name (auto-loads if needed)
         metric = MetricRegistry.get("mymetric")
+        metric = MetricRegistry.get("My Metric")  # Also works
 
         # Get by class (no registry needed)
         metric = MetricRegistry.get(MyMetric)
 
-        # List available metrics
+        # List registered metrics
         metrics = MetricRegistry.list_metrics()
 
     Security:
-        Lazy loading only imports metrics from a predefined whitelist to prevent
-        arbitrary code execution. See _BUILT_IN_METRICS for the list of valid metrics.
+        Lazy loading is safe because:
+        - Import path is always prefixed with "scorebook.metrics."
+        - Only modules with @register() decorator can be used
+        - Python's import system validates module names
     """
 
     _registry: Dict[str, Type[MetricBase]] = {}
-
-    _BUILT_IN_METRICS: Dict[str, str] = {
-        "accuracy": "accuracy",
-        "precision": "precision",
-    }
 
     @classmethod
     def register(cls) -> Callable[[Type[MetricBase]], Type[MetricBase]]:
@@ -75,20 +84,33 @@ class MetricRegistry:
 
     @classmethod
     def _lazy_load_metric(cls, metric_name: str) -> bool:
-        """Attempt to lazily load a metric module if it's in the built-in metrics list."""
+        """Attempt to lazily load a metric module using naming convention.
 
-        if metric_name not in cls._BUILT_IN_METRICS:
-            return False
+        Args:
+            metric_name: The metric name (already lowercased with spaces -> underscores)
 
+        Returns:
+            True if the metric was successfully loaded
+            False if the metric module doesn't exist
+
+        Raises:
+            ImportError: If the module exists but has import errors
+        """
+        # Check if already registered
         if metric_name in cls._registry:
             return True
 
-        module_name = cls._BUILT_IN_METRICS[metric_name]
+        # Convert metric name to module name (spaces -> underscores, lowercase)
+        module_name = metric_name.replace(" ", "_").lower()
 
         try:
             importlib.import_module(f"scorebook.metrics.{module_name}")
             return True
+        except ModuleNotFoundError:
+            # Module doesn't exist - this is expected for invalid metric names
+            return False
         except ImportError as e:
+            # Module exists but has import errors - re-raise with context
             raise ImportError(
                 f"Failed to load metric '{metric_name}' from module "
                 f"'scorebook.metrics.{module_name}': {e}"
@@ -107,7 +129,7 @@ class MetricRegistry:
             An instance of the requested metric.
 
         Raises:
-            ValueError: If the metric name is not registered or not in built-in metrics.
+            ValueError: If the metric cannot be found or loaded.
             ImportError: If lazy loading fails due to import errors.
         """
         # If input is a class that's a subclass of MetricBase, instantiate it directly
@@ -116,25 +138,30 @@ class MetricRegistry:
 
         # If input is a string, look up the class in the registry
         if isinstance(name_or_class, str):
-            key = name_or_class.lower()
+            # Normalize: lowercase and replace spaces with underscores
+            key = name_or_class.lower().replace(" ", "_")
 
             # Try lazy loading if not already registered
             if key not in cls._registry:
                 # Attempt to lazy load the metric
                 if not cls._lazy_load_metric(key):
-                    # Not in whitelist - raise error
-                    available_metrics = ", ".join(sorted(cls._BUILT_IN_METRICS.keys()))
-                    raise ValueError(
-                        f"Metric '{name_or_class}' is not a known metric. "
-                        f"Available metrics: {available_metrics}"
+                    # Module doesn't exist - provide helpful error
+                    error_msg = (
+                        f"Metric '{name_or_class}' could not be found. "
+                        f"Attempted to import from 'scorebook.metrics.{key}'."
                     )
+                    if cls._registry:
+                        registered = ", ".join(sorted(cls._registry.keys()))
+                        error_msg += f" Currently registered metrics: {registered}"
+                    else:
+                        error_msg += " No metrics are currently registered."
+                    raise ValueError(error_msg)
 
             # After lazy loading attempt, check registry
             if key not in cls._registry:
-
                 raise ValueError(
-                    f"Metric '{name_or_class}' was loaded but failed to register. "
-                    f"This is likely a bug in the metric implementation."
+                    f"Metric '{name_or_class}' module was loaded but failed to register. "
+                    f"Ensure the metric class has the @MetricRegistry.register() decorator."
                 )
 
             return cls._registry[key](**kwargs)
@@ -153,3 +180,33 @@ class MetricRegistry:
             A list of metric names.
         """
         return list(cls._registry.keys())
+
+
+def scorebook_metric(cls: Type[MetricBase]) -> Type[MetricBase]:
+    """Register a custom metric with Scorebook.
+
+    The metric will be registered using the lowercase version of the class name.
+    For example, a class named "MyCustomMetric" will be registered as "mycustommetric"
+    and can be accessed via MetricRegistry.get("mycustommetric") or score(metrics="mycustommetric").
+
+    Args:
+        cls: A metric class that inherits from MetricBase
+
+    Returns:
+        The same class, now registered with Scorebook
+
+    Example:
+        ```python
+        from scorebook import scorebook_metric
+        from scorebook.metrics import MetricBase
+
+        @scorebook_metric
+        class MyCustomMetric(MetricBase):
+            def score(self, outputs, labels):
+                # Your metric implementation
+                return aggregate_scores, item_scores
+        ```
+    Raises:
+        ValueError: If a metric with the same name is already registered
+    """
+    return MetricRegistry.register()(cls)

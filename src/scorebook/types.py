@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Type, Union
 
 from scorebook.eval_datasets.eval_dataset import EvalDataset
-from scorebook.metrics.metric_base import MetricBase
+from scorebook.metrics.core.metric_base import MetricBase
 
 # Type alias for metrics parameter
 Metrics = Union[
-    str, "MetricBase", Type["MetricBase"], Sequence[Union[str, "MetricBase", Type["MetricBase"]]]
+    str, MetricBase, Type[MetricBase], Sequence[Union[str, MetricBase, Type[MetricBase]]]
 ]
 
 

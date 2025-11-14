@@ -18,8 +18,8 @@ from scorebook.exceptions import (
     DatasetSampleError,
     MissingFieldError,
 )
-from scorebook.metrics.metric_base import MetricBase
-from scorebook.metrics.metric_registry import MetricRegistry
+from scorebook.metrics.core.metric_base import MetricBase
+from scorebook.metrics.core.metric_registry import MetricRegistry
 from scorebook.utils.io_helpers import validate_path
 from scorebook.utils.render_template import render_template
 
