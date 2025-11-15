@@ -37,7 +37,7 @@ class MetricRegistry:
 
     Usage:
         # Define a metric (auto-registers via decorator)
-        @MetricRegistry.register()
+        @scorebook_metric
         class MyMetric(MetricBase):
             ...
 
