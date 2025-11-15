@@ -2,11 +2,10 @@
 
 from typing import Any, Dict, List, Tuple
 
-from scorebook.metrics.metric_base import MetricBase
-from scorebook.metrics.metric_registry import MetricRegistry
+from scorebook.metrics import MetricBase, scorebook_metric
 
 
-@MetricRegistry.register()
+@scorebook_metric
 class Precision(MetricBase):
     """Precision metric for binary classification.
 

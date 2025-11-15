@@ -4,8 +4,8 @@ import logging
 from typing import Any, Dict, List, Mapping, Optional, Type, Union
 
 from scorebook.exceptions import DataMismatchError, ParameterValidationError
-from scorebook.metrics.metric_base import MetricBase
-from scorebook.metrics.metric_registry import MetricRegistry
+from scorebook.metrics.core.metric_base import MetricBase
+from scorebook.metrics.core.metric_registry import MetricRegistry
 from scorebook.types import MetricScore
 from scorebook.utils.async_utils import is_awaitable
 
