@@ -52,10 +52,10 @@ class MetricRegistry:
         metrics = MetricRegistry.list_metrics()
 
     Security:
-        Lazy loading is safe because:
-        - Import path is always prefixed with "scorebook.metrics."
-        - Only modules with @register() decorator can be used
-        - Python's import system validates module names
+        Lazy loading is restricted to modules in the "scorebook.metrics." namespace.
+        Any module matching the naming convention may be imported, but only metrics
+        registered via the @register() decorator are accessible via the registry.
+        Python's import system validates module names.
     """
 
     _registry: Dict[str, Type[MetricBase]] = {}
