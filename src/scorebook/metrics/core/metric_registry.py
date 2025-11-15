@@ -161,7 +161,7 @@ class MetricRegistry:
             if key not in cls._registry:
                 raise ValueError(
                     f"Metric '{name_or_class}' module was loaded but failed to register. "
-                    f"Ensure the metric class has the @MetricRegistry.register() decorator."
+                    f"Ensure the metric class has the @scorebook_metric decorator."
                 )
 
             return cls._registry[key](**kwargs)
