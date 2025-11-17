@@ -5,20 +5,8 @@ from typing import Any, List
 
 
 def mock_llm(inputs: List[Any], **hyperparameters: Any) -> List[str]:
-    """
-    Mock LLM that returns answers based on pre-recorded accuracy data.
+    """Mock LLM that returns answers based on pre-recorded accuracy data."""
 
-    Uses temp_0.7 results from mock_llm_data.json:
-    - If accuracy was true for that item: return the correct answer
-    - If accuracy was false for that item: return a random incorrect answer
-
-    Args:
-        inputs: List of items, each containing an "id" field
-        **hyperparameters: Additional parameters (currently unused)
-
-    Returns:
-        List of answer letters (A, B, C, D, or E)
-    """
     # Load the mock data
     data_path = Path(__file__).parent / "mock_llm_data" / "mock_llm_data.json"
     with open(data_path, 'r', encoding='utf-8') as f:
@@ -38,7 +26,7 @@ def mock_llm(inputs: List[Any], **hyperparameters: Any) -> List[str]:
 
         item_data = mock_data[item_id]
         correct_answer = item_data["answer"]
-        was_accurate = item_data["temp_0.7"]
+        was_accurate = item_data["accuracy"]
 
         if was_accurate:
             # Return the correct answer
