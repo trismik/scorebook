@@ -388,6 +388,10 @@ def run_adaptive_evaluation(
         available_splits=available_splits,
     )
 
+    # Create inference function with bound hyperparameters
+    def inference_with_hyperparams(items: Any) -> Any:
+        return inference(items, **adaptive_run_spec.hyperparameter_config)
+
     trismik_results = trismik_client.run(
         test_id=adaptive_run_spec.dataset,
         split=resolved_split,
@@ -398,7 +402,7 @@ def run_adaptive_evaluation(
             test_configuration={},
             inference_setup={},
         ),
-        item_processor=make_trismik_inference(inference),
+        item_processor=make_trismik_inference(inference_with_hyperparams),
         return_dict=False,
     )
 

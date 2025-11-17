@@ -5,6 +5,10 @@ import os
 import pathlib
 from typing import Optional
 
+from trismik import TrismikClient
+
+from scorebook.settings import TRISMIK_SERVICE_URL
+
 logger = logging.getLogger(__name__)
 
 
@@ -66,15 +70,26 @@ def get_token() -> Optional[str]:
 
 
 def validate_token(token: str) -> bool:
-    """Validate the token by making a test API call to trismik."""
-    # TODO: Implement actual API validation once you have an endpoint
-    # This would typically make a request to something like:
-    # response = requests.get("https://api.trismik.com/whoami",
-    #                        headers={"Authorization": f"Bearer {token}"})
-    # return response.status_code == 200
+    """Validate the token by making a test API call to trismik.
 
-    # For now, just check it's not empty
-    return bool(token and token.strip())
+    Args:
+        token: The API token to validate.
+
+    Returns:
+        bool: True if the token is valid, False otherwise.
+    """
+    if not token or not token.strip():
+        return False
+
+    try:
+        # Create a client with the token and verify it works
+        client = TrismikClient(service_url=TRISMIK_SERVICE_URL, api_key=token)
+        client.me()
+        client.close()
+        return True
+    except Exception as e:
+        logger.debug(f"Token validation failed: {e}")
+        return False
 
 
 def login(trismik_api_key: str) -> None:
