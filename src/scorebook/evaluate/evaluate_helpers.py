@@ -9,7 +9,8 @@ from trismik._async.client import TrismikAsyncClient
 from trismik._sync.client import TrismikClient
 from trismik.types import TrismikMultipleChoiceTextItem
 
-from scorebook import EvalDataset
+from scorebook.dashboard.credentials import get_token
+from scorebook.eval_datasets.eval_dataset import EvalDataset
 from scorebook.exceptions import (
     DataMismatchError,
     MetricComputationError,
@@ -17,7 +18,6 @@ from scorebook.exceptions import (
     ScoreBookError,
 )
 from scorebook.settings import TRISMIK_SERVICE_URL
-from scorebook.trismik.credentials import get_token
 from scorebook.types import AdaptiveEvalDataset, AdaptiveEvalRunSpec, EvalResult, EvalRunSpec
 from scorebook.utils.async_utils import is_awaitable
 from scorebook.utils.transform_helpers import expand_dict

@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 
 # Import functions from the module
-from scorebook.trismik.credentials import (
+from scorebook.dashboard.credentials import (
     get_scorebook_config_dir,
     get_stored_token,
     get_token,
@@ -22,7 +22,7 @@ from scorebook.trismik.credentials import (
     whoami,
 )
 
-login_module = importlib.import_module("scorebook.trismik.credentials")
+login_module = importlib.import_module("scorebook.dashboard.credentials")
 
 
 @pytest.fixture
@@ -142,7 +142,7 @@ class TestValidateToken:
     def test_validate_token_valid(self):
         """Test validation of valid token."""
         # Mock the TrismikClient to simulate successful validation
-        with patch("scorebook.trismik.credentials.TrismikClient") as mock_client:
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
             mock_instance = mock_client.return_value
             mock_instance.me.return_value = {"user": "test"}
 
@@ -154,7 +154,7 @@ class TestValidateToken:
     def test_validate_token_api_error(self):
         """Test validation when API call fails."""
         # Mock the TrismikClient to simulate API error
-        with patch("scorebook.trismik.credentials.TrismikClient") as mock_client:
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
             mock_instance = mock_client.return_value
             mock_instance.me.side_effect = Exception("API Error")
 
@@ -178,7 +178,7 @@ class TestLogin:
         test_token = "test-login-token"
 
         # Mock the TrismikClient to simulate successful validation
-        with patch("scorebook.trismik.credentials.TrismikClient") as mock_client:
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
             mock_instance = mock_client.return_value
             mock_instance.me.return_value = {"user": "test"}
 
@@ -194,7 +194,7 @@ class TestLogin:
 
     def test_login_invalid_token_raises_error(self):
         """Test that invalid token raises ValueError."""
-        with patch("scorebook.trismik.credentials.TrismikClient") as mock_client:
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
             mock_instance = mock_client.return_value
             mock_instance.me.side_effect = Exception("API Error")
 
@@ -251,7 +251,7 @@ class TestIntegration:
         test_token = "integration-test-token"
 
         # Mock the TrismikClient for login validation
-        with patch("scorebook.trismik.credentials.TrismikClient") as mock_client:
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
             mock_instance = mock_client.return_value
             mock_instance.me.return_value = {"user": "test"}
 
