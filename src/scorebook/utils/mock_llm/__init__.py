@@ -5,14 +5,14 @@ import random
 from pathlib import Path
 from typing import Any, List
 
+# Load the mock data once at module initialization
+_DATA_PATH = Path(__file__).parent / "data" / "mock_llm_data.json"
+with open(_DATA_PATH, "r", encoding="utf-8") as f:
+    _MOCK_DATA = json.load(f)
+
 
 def mock_llm(inputs: List[Any], **hyperparameters: Any) -> List[str]:
     """Mock LLM that returns answers based on pre-recorded accuracy data."""
-
-    # Load the mock data
-    data_path = Path(__file__).parent / "data" / "mock_llm_data.json"
-    with open(data_path, "r", encoding="utf-8") as f:
-        mock_data = json.load(f)
 
     results = []
     all_choices = ["A", "B", "C", "D", "E"]
@@ -21,12 +21,12 @@ def mock_llm(inputs: List[Any], **hyperparameters: Any) -> List[str]:
         item_id = item["id"]
 
         # Look up the item in our mock data
-        if item_id not in mock_data:
+        if item_id not in _MOCK_DATA:
             # If item not found, return random answer
             results.append(random.choice(all_choices))
             continue
 
-        item_data = mock_data[item_id]
+        item_data = _MOCK_DATA[item_id]
         correct_answer = item_data["answer"]
         was_accurate = item_data["accuracy"]
 
