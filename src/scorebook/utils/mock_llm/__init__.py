@@ -1,3 +1,5 @@
+"""Mock LLM utilities for testing and demonstrations."""
+
 import json
 import random
 from pathlib import Path
@@ -8,12 +10,12 @@ def mock_llm(inputs: List[Any], **hyperparameters: Any) -> List[str]:
     """Mock LLM that returns answers based on pre-recorded accuracy data."""
 
     # Load the mock data
-    data_path = Path(__file__).parent / "mock_llm_data" / "mock_llm_data.json"
-    with open(data_path, 'r', encoding='utf-8') as f:
+    data_path = Path(__file__).parent / "data" / "mock_llm_data.json"
+    with open(data_path, "r", encoding="utf-8") as f:
         mock_data = json.load(f)
 
     results = []
-    all_choices = ['A', 'B', 'C', 'D', 'E']
+    all_choices = ["A", "B", "C", "D", "E"]
 
     for item in inputs:
         item_id = item["id"]
