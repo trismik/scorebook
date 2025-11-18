@@ -29,6 +29,8 @@ regexes = [
     '''(?i)your.{0,3}(key|token|secret|password)''',  # Placeholder text like "YOUR_API_KEY"
     '''(?i)insert.{0,3}(key|token|secret|password)''',
     '''(?i)enter.{0,3}(key|token|secret|password)''',
+    '''https?://colab\.research\.google\.com/github/.*''',  # Google Colab GitHub links
+    '''github\.com/[^/]+/[^/]+/blob/[^/]+/.*''',  # GitHub blob URLs
 ]
 
 # Stopwords that indicate false positives in Trismik SDK usage
