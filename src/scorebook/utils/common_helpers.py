@@ -17,7 +17,7 @@ def resolve_upload_results(upload_results: Union[Literal["auto"], bool]) -> bool
         bool: Whether to upload results to Trismik
     """
     if upload_results == "auto":
-        from scorebook.trismik.credentials import get_token
+        from scorebook.dashboard.credentials import get_token
 
         upload_results = get_token() is not None
         logger.debug("Auto upload results resolved to: %s", upload_results)

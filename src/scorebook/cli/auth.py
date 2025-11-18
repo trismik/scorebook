@@ -4,7 +4,7 @@ import argparse
 import getpass
 import sys
 
-from scorebook.trismik.credentials import get_stored_token, get_token_path, login, logout, whoami
+from scorebook.dashboard.credentials import get_stored_token, get_token_path, login, logout, whoami
 
 
 def auth_command(args: argparse.Namespace) -> int:

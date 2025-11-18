@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Known fields that are not metrics or hyperparameters
 KNOWN_AGGREGATE_FIELDS = {"dataset", "run_id", "run_completed"}
-KNOWN_ITEM_FIELDS = {"id", "dataset_name", "input", "output", "label", "run_id"}
+KNOWN_ITEM_FIELDS = {"id", "dataset", "input", "output", "label", "run_id"}
 
 
 def upload_result(

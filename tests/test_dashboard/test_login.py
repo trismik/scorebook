@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 
 # Import functions from the module
-from scorebook.trismik.credentials import (
+from scorebook.dashboard.credentials import (
     get_scorebook_config_dir,
     get_stored_token,
     get_token,
@@ -22,7 +22,7 @@ from scorebook.trismik.credentials import (
     whoami,
 )
 
-login_module = importlib.import_module("scorebook.trismik.credentials")
+login_module = importlib.import_module("scorebook.dashboard.credentials")
 
 
 @pytest.fixture
@@ -141,7 +141,24 @@ class TestValidateToken:
 
     def test_validate_token_valid(self):
         """Test validation of valid token."""
-        assert validate_token("valid-token") is True
+        # Mock the TrismikClient to simulate successful validation
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
+            mock_instance = mock_client.return_value
+            mock_instance.me.return_value = {"user": "test"}
+
+            assert validate_token("valid-token") is True
+            mock_client.assert_called_once()
+            mock_instance.me.assert_called_once()
+            mock_instance.close.assert_called_once()
+
+    def test_validate_token_api_error(self):
+        """Test validation when API call fails."""
+        # Mock the TrismikClient to simulate API error
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
+            mock_instance = mock_client.return_value
+            mock_instance.me.side_effect = Exception("API Error")
+
+            assert validate_token("invalid-token") is False
 
     def test_validate_token_empty(self):
         """Test validation of empty token."""
@@ -160,10 +177,15 @@ class TestLogin:
         """Test login with token provided as parameter."""
         test_token = "test-login-token"
 
-        login(test_token)
+        # Mock the TrismikClient to simulate successful validation
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
+            mock_instance = mock_client.return_value
+            mock_instance.me.return_value = {"user": "test"}
 
-        # Verify token was saved
-        assert get_stored_token() == test_token
+            login(test_token)
+
+            # Verify token was saved
+            assert get_stored_token() == test_token
 
     def test_login_empty_token_raises_error(self):
         """Test that empty token raises ValueError."""
@@ -172,7 +194,10 @@ class TestLogin:
 
     def test_login_invalid_token_raises_error(self):
         """Test that invalid token raises ValueError."""
-        with patch.object(login_module, "validate_token", return_value=False):
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
+            mock_instance = mock_client.return_value
+            mock_instance.me.side_effect = Exception("API Error")
+
             with pytest.raises(ValueError, match="Invalid API key provided"):
                 login("invalid-token")
 
@@ -225,17 +250,22 @@ class TestIntegration:
         """Test complete login/logout cycle."""
         test_token = "integration-test-token"
 
-        # Login
-        login(test_token)
+        # Mock the TrismikClient for login validation
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
+            mock_instance = mock_client.return_value
+            mock_instance.me.return_value = {"user": "test"}
 
-        # Verify token is available
-        assert get_token() == test_token
+            # Login
+            login(test_token)
 
-        # Logout
-        logout()
+            # Verify token is available
+            assert get_token() == test_token
 
-        # Verify token is gone
-        assert get_token() is None
+            # Logout
+            logout()
+
+            # Verify token is gone
+            assert get_token() is None
 
     def test_token_priority_env_over_stored(self, temp_config_dir, clean_env):
         """Test that environment variable takes priority over stored token."""

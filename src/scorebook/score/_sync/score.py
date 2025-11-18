@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
+from scorebook.dashboard.upload_results import upload_result
 from scorebook.exceptions import DataMismatchError, ParameterValidationError
 from scorebook.score.score_helpers import (
     calculate_metric_scores,
@@ -8,7 +9,6 @@ from scorebook.score.score_helpers import (
     resolve_metrics,
     validate_items,
 )
-from scorebook.trismik.upload_results import upload_result
 from scorebook.types import Metrics
 from scorebook.utils.common_helpers import resolve_show_progress, resolve_upload_results
 from scorebook.utils.progress_bars import scoring_progress_context
