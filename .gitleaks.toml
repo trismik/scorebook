@@ -46,6 +46,7 @@ stopwords = [
     'trismik_items',
     'trismik_metrics',
     'trismik_client',
+    'github'
 ]
 
 # =============================================================================
