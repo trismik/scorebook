@@ -45,6 +45,11 @@ class MetricRegistry:
 
     _registry: Dict[str, Type[MetricBase]] = {}
 
+    @staticmethod
+    def _normalize_name(name: str) -> str:
+        """Normalize a metric name to a registry key."""
+        return name.lower().replace("_", "").replace(" ", "")
+
     @classmethod
     def register(cls) -> Callable[[Type[MetricBase]], Type[MetricBase]]:
         """Register a metric class in the registry.
@@ -58,8 +63,8 @@ class MetricRegistry:
 
         def decorator(metric_cls: Type[MetricBase]) -> Type[MetricBase]:
 
-            # Normalize: lowercase and strip underscores and spaces
-            key = metric_cls.__name__.lower().replace("_", "").replace(" ", "")
+            # Normalize the class name to a registry key
+            key = cls._normalize_name(metric_cls.__name__)
             if key in cls._registry:
                 raise ValueError(
                     f"Metric '{key}' is already registered. "
@@ -132,8 +137,8 @@ class MetricRegistry:
 
         # If input is a string, look up the class in the registry
         if isinstance(name_or_class, str):
-            # Normalize: lowercase and strip all underscores and spaces
-            normalized_key = name_or_class.lower().replace("_", "").replace(" ", "")
+            # Normalize the input to a registry key
+            normalized_key = cls._normalize_name(name_or_class)
 
             # Try lazy loading if not already registered
             if normalized_key not in cls._registry:
