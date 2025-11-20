@@ -315,3 +315,64 @@ def test_class_name_collision_case_variations():
         error_msg = str(exc_info.value)
         assert "mymetric" in error_msg.lower()
         assert "already registered" in error_msg.lower()
+
+
+def test_metric_name_variations():
+    """Test that MetricName can be retrieved using various naming conventions.
+
+    Based on the normalization rules, all these variations should retrieve
+    the same metric: MetricName, metric_name, METRICNAME, Metric_Name, etc.
+    """
+
+    @MetricRegistry.register()
+    class MetricName(MetricBase):
+        @staticmethod
+        def score(outputs, labels):
+            return {"metric": 1.0}, [True]
+
+    # All these variations should retrieve the same metric
+    variations = [
+        "MetricName",
+        "metricname",
+        "METRICNAME",
+        "metric_name",
+        "Metric_Name",
+        "METRIC_NAME",
+        "metric name",
+        "Metric Name",
+        "METRIC NAME",
+    ]
+
+    # Get the metric using all variations
+    metrics = [MetricRegistry.get(variation) for variation in variations]
+
+    # All should be instances of MetricName
+    for metric in metrics:
+        assert isinstance(metric, MetricName)
+        assert metric.name == "metricname"
+
+    # All should be the same type
+    for i in range(len(metrics) - 1):
+        assert type(metrics[i]) is type(metrics[i + 1])
+
+    # Verify that attempting to register Metric_Name would clash
+    with pytest.raises(ValueError) as exc_info:
+
+        @MetricRegistry.register()
+        class Metric_Name(MetricBase):  # Same normalized name as MetricName
+            @staticmethod
+            def score(outputs, labels):
+                return {"metric": 2.0}, [True]
+
+    error_msg = str(exc_info.value)
+    assert "metricname" in error_msg.lower()
+    assert "already registered" in error_msg.lower()
+
+    # Verify that attempting to register METRICNAME would also clash
+    with pytest.raises(ValueError):
+
+        @MetricRegistry.register()
+        class METRICNAME(MetricBase):  # Same normalized name as MetricName
+            @staticmethod
+            def score(outputs, labels):
+                return {"metric": 3.0}, [True]
