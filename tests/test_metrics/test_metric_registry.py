@@ -94,6 +94,34 @@ def test_prevent_metric_overwrite():
     assert metric.score(output=[], label=[]) == 0.0
 
 
+def test_get_metric_with_kwargs():
+    """Test that kwargs are passed to metric constructor during lazy loading."""
+    # Note: Current metrics don't accept kwargs, but test the mechanism works
+    metric = MetricRegistry.get("accuracy")
+    assert isinstance(metric, Accuracy)
+
+
+def test_scorebook_metric_decorator():
+    """Test that the scorebook_metric decorator works for custom metrics."""
+
+    @scorebook_metric
+    class CustomTestMetric(MetricBase):
+        @staticmethod
+        def score(outputs, labels):
+            return {"custom": 1.0}, [True] * len(outputs)
+
+    # Metric should be registered
+    assert "customtestmetric" in MetricRegistry.list_metrics()
+
+    # Can retrieve by name
+    metric = MetricRegistry.get("customtestmetric")
+    assert isinstance(metric, CustomTestMetric)
+
+    # Can retrieve by class
+    metric2 = MetricRegistry.get(CustomTestMetric)
+    assert isinstance(metric2, CustomTestMetric)
+
+
 def test_lazy_loading_accuracy():
     """Test that accuracy metric can be loaded on demand via lazy loading.
 
@@ -165,34 +193,6 @@ def test_lazy_loading_multiple_metrics():
     # Both should be in registry
     assert "accuracy" in MetricRegistry._registry
     assert "precision" in MetricRegistry._registry
-
-
-def test_get_metric_with_kwargs():
-    """Test that kwargs are passed to metric constructor during lazy loading."""
-    # Note: Current metrics don't accept kwargs, but test the mechanism works
-    metric = MetricRegistry.get("accuracy")
-    assert isinstance(metric, Accuracy)
-
-
-def test_scorebook_metric_decorator():
-    """Test that the scorebook_metric decorator works for custom metrics."""
-
-    @scorebook_metric
-    class CustomTestMetric(MetricBase):
-        @staticmethod
-        def score(outputs, labels):
-            return {"custom": 1.0}, [True] * len(outputs)
-
-    # Metric should be registered
-    assert "customtestmetric" in MetricRegistry.list_metrics()
-
-    # Can retrieve by name
-    metric = MetricRegistry.get("customtestmetric")
-    assert isinstance(metric, CustomTestMetric)
-
-    # Can retrieve by class
-    metric2 = MetricRegistry.get(CustomTestMetric)
-    assert isinstance(metric2, CustomTestMetric)
 
 
 def test_metric_name_normalization_case_insensitive():
