@@ -193,3 +193,125 @@ def test_scorebook_metric_decorator():
     # Can retrieve by class
     metric2 = MetricRegistry.get(CustomTestMetric)
     assert isinstance(metric2, CustomTestMetric)
+
+
+def test_metric_name_normalization_case_insensitive():
+    """Test that metric names are normalized to be case-insensitive."""
+
+    @MetricRegistry.register()
+    class CaseTestMetric(MetricBase):
+        @staticmethod
+        def score(outputs, labels):
+            return {"test": 1.0}, [True]
+
+    # All these variations should retrieve the same metric
+    variations = [
+        "casetestmetric",
+        "CaseTestMetric",
+        "CASETESTMETRIC",
+        "cAsEtEsTmEtRiC",
+    ]
+
+    for variation in variations:
+        metric = MetricRegistry.get(variation)
+        assert isinstance(metric, CaseTestMetric)
+
+
+def test_metric_name_normalization_underscores_stripped():
+    """Test that underscores are stripped from metric names during normalization."""
+
+    @MetricRegistry.register()
+    class UnderscoreTest(MetricBase):
+        @staticmethod
+        def score(outputs, labels):
+            return {"test": 1.0}, [True]
+
+    # All these variations should retrieve the same metric
+    variations = [
+        "underscoretest",
+        "underscore_test",
+        "Underscore_Test",
+        "UNDERSCORE_TEST",
+        "_underscore_test_",  # Leading/trailing underscores
+        "under_score_test",  # Multiple underscores
+    ]
+
+    for variation in variations:
+        metric = MetricRegistry.get(variation)
+        assert isinstance(metric, UnderscoreTest)
+
+
+def test_metric_name_normalization_spaces_to_underscores():
+    """Test that spaces are converted to underscores, then stripped during normalization."""
+
+    @MetricRegistry.register()
+    class SpaceTestMetric(MetricBase):
+        @staticmethod
+        def score(outputs, labels):
+            return {"test": 1.0}, [True]
+
+    # All these variations should retrieve the same metric
+    variations = [
+        "spacetestmetric",
+        "space test metric",
+        "Space Test Metric",
+        "SPACE TEST METRIC",
+        "space_test_metric",  # Underscores and spaces both work
+    ]
+
+    for variation in variations:
+        metric = MetricRegistry.get(variation)
+        assert isinstance(metric, SpaceTestMetric)
+
+
+def test_class_name_collision_detection():
+    """Test that class names with different underscores but same normalized name raise an error."""
+
+    # Register first metric
+    @MetricRegistry.register()
+    class CollisionMetric(MetricBase):
+        @staticmethod
+        def score(outputs, labels):
+            return {"test": 1.0}, [True]
+
+    # Try to register a second metric with underscores that normalizes to the same name
+    with pytest.raises(ValueError) as exc_info:
+
+        @MetricRegistry.register()
+        class Collision_Metric(MetricBase):  # Same normalized name as CollisionMetric
+            @staticmethod
+            def score(outputs, labels):
+                return {"test": 2.0}, [True]
+
+    # Verify error message is informative
+    error_msg = str(exc_info.value)
+    assert "collisionmetric" in error_msg.lower()
+    assert "already registered" in error_msg.lower()
+    assert "CollisionMetric" in error_msg or "Collision_Metric" in error_msg
+
+
+def test_class_name_collision_case_variations():
+    """Test that different case variations of the same name cause collisions."""
+
+    @MetricRegistry.register()
+    class MyMetric(MetricBase):
+        @staticmethod
+        def score(outputs, labels):
+            return {"test": 1.0}, [True]
+
+    # Try variations that should all collide
+    collision_names = ["MYMETRIC", "mymetric", "MyMetric", "my_metric", "MY_METRIC"]
+
+    for collision_name in collision_names:
+        with pytest.raises(ValueError) as exc_info:
+            # Dynamically create a class with the collision name
+            metric_cls = type(
+                collision_name,
+                (MetricBase,),
+                {"score": staticmethod(lambda outputs, labels: ({"test": 2.0}, [True]))},
+            )
+            MetricRegistry.register()(metric_cls)
+
+        error_msg = str(exc_info.value)
+        assert "mymetric" in error_msg.lower()
+        assert "already registered" in error_msg.lower()

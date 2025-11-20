@@ -20,41 +20,26 @@ class MetricRegistry:
     be automatically imported from the metrics directory using a naming convention.
 
     Naming Convention:
-        Metric names are converted to module names by:
+        All metric names are normalized by:
         - Converting to lowercase
-        - Replacing spaces with underscores
-        - Looking for: scorebook.metrics.{converted_name}
+        - Removing all underscores and spaces
 
-        Examples:
-            "Accuracy" -> scorebook.metrics.accuracy
-            "F1 Score" -> scorebook.metrics.f1_score
-            "MyCustomMetric" -> scorebook.metrics.mycustommetric
+        Module files must follow this normalized naming (lowercase, no underscores/spaces):
+            Examples:
+                Class "Accuracy" → module "accuracy.py"
+                Class "F1Score" → module "f1score.py"
+                Class "MeanSquaredError" → module "meansquarederror.py"
 
-    The registry supports:
-    - Registering new metric classes with the @register decorator
-    - Retrieving metric instances by name or class (with lazy loading)
-    - Listing all registered metrics
+        User input is also normalized, so all variations work:
+            "f1_score", "F1Score", "f1 score" → all resolve to "f1score"
 
-    Usage:
-        # Define a metric (auto-registers via decorator)
-        @scorebook_metric
-        class MyMetric(MetricBase):
-            ...
-
-        # Get by name (auto-loads if needed)
-        metric = MetricRegistry.get("mymetric")
-        metric = MetricRegistry.get("My Metric")  # Also works
-
-        # Get by class (no registry needed)
-        metric = MetricRegistry.get(MyMetric)
-
-        # List registered metrics
-        metrics = MetricRegistry.list_metrics()
+    Collision Detection:
+        Class names that normalize to the same key will raise an error:
+            "F1Score" and "F1_Score" both → "f1score" (COLLISION)
+            "MetricName" and "Metric_Name" both → "metricname" (COLLISION)
 
     Security:
         Lazy loading is restricted to modules in the "scorebook.metrics." namespace.
-        Any module matching the naming convention may be imported, but only metrics
-        registered via the @register() decorator are accessible via the registry.
         Python's import system validates module names.
     """
 
@@ -62,8 +47,7 @@ class MetricRegistry:
 
     @classmethod
     def register(cls) -> Callable[[Type[MetricBase]], Type[MetricBase]]:
-        """
-        Register a metric class in the registry.
+        """Register a metric class in the registry.
 
         Returns:
             A decorator that registers the class and returns it.
@@ -74,46 +58,56 @@ class MetricRegistry:
 
         def decorator(metric_cls: Type[MetricBase]) -> Type[MetricBase]:
 
-            key = metric_cls.__name__.lower()
+            # Normalize: lowercase and strip underscores and spaces
+            key = metric_cls.__name__.lower().replace("_", "").replace(" ", "")
             if key in cls._registry:
-                raise ValueError(f"Metric '{key}' is already registered")
+                raise ValueError(
+                    f"Metric '{key}' is already registered. "
+                    f"Class names '{metric_cls.__name__}' and "
+                    f"'{cls._registry[key].__name__}' both normalize to '{key}'."
+                )
             cls._registry[key] = metric_cls
             return metric_cls
 
         return decorator
 
     @classmethod
-    def _lazy_load_metric(cls, metric_name: str) -> bool:
+    def _lazy_load_metric(cls, normalized_key: str) -> None:
         """Attempt to lazily load a metric module using naming convention.
 
-        Args:
-            metric_name: The metric name (already lowercased with spaces -> underscores)
+        Module files must be named using the normalized key (lowercase, no underscores/spaces).
 
-        Returns:
-            True if the metric was successfully loaded
-            False if the metric module doesn't exist
+        Args:
+            normalized_key: The normalized metric name (lowercase, no underscores/spaces): "f1score"
 
         Raises:
+            ValueError: If the module doesn't exist or fails to register
             ImportError: If the module exists but has import errors
         """
         # Check if already registered
-        if metric_name in cls._registry:
-            return True
+        if normalized_key in cls._registry:
+            return
 
-        # Convert metric name to module name (spaces -> underscores, lowercase)
-        module_name = metric_name.replace(" ", "_").lower()
-
+        # Try to import the module using the normalized key
         try:
-            importlib.import_module(f"scorebook.metrics.{module_name}")
-            return True
+            importlib.import_module(f"scorebook.metrics.{normalized_key}")
         except ModuleNotFoundError:
-            # Module doesn't exist - this is expected for invalid metric names
-            return False
+            # Module doesn't exist - provide helpful error
+            error_msg = (
+                f"Metric '{normalized_key}' could not be found. "
+                f"Attempted to import from 'scorebook.metrics.{normalized_key}'."
+            )
+            if cls._registry:
+                registered = ", ".join(sorted(cls._registry.keys()))
+                error_msg += f" Currently registered metrics: {registered}"
+            else:
+                error_msg += " No metrics are currently registered."
+            raise ValueError(error_msg)
         except ImportError as e:
             # Module exists but has import errors - re-raise with context
             raise ImportError(
-                f"Failed to load metric '{metric_name}' from module "
-                f"'scorebook.metrics.{module_name}': {e}"
+                f"Failed to load metric '{normalized_key}' from module "
+                f"'scorebook.metrics.{normalized_key}': {e}"
             ) from e
 
     @classmethod
@@ -138,33 +132,21 @@ class MetricRegistry:
 
         # If input is a string, look up the class in the registry
         if isinstance(name_or_class, str):
-            # Normalize: lowercase and replace spaces with underscores
-            key = name_or_class.lower().replace(" ", "_")
+            # Normalize: lowercase and strip all underscores and spaces
+            normalized_key = name_or_class.lower().replace("_", "").replace(" ", "")
 
             # Try lazy loading if not already registered
-            if key not in cls._registry:
-                # Attempt to lazy load the metric
-                if not cls._lazy_load_metric(key):
-                    # Module doesn't exist - provide helpful error
-                    error_msg = (
-                        f"Metric '{name_or_class}' could not be found. "
-                        f"Attempted to import from 'scorebook.metrics.{key}'."
-                    )
-                    if cls._registry:
-                        registered = ", ".join(sorted(cls._registry.keys()))
-                        error_msg += f" Currently registered metrics: {registered}"
-                    else:
-                        error_msg += " No metrics are currently registered."
-                    raise ValueError(error_msg)
+            if normalized_key not in cls._registry:
+                cls._lazy_load_metric(normalized_key)
 
             # After lazy loading attempt, check registry
-            if key not in cls._registry:
+            if normalized_key not in cls._registry:
                 raise ValueError(
                     f"Metric '{name_or_class}' module was loaded but failed to register. "
                     f"Ensure the metric class has the @scorebook_metric decorator."
                 )
 
-            return cls._registry[key](**kwargs)
+            return cls._registry[normalized_key](**kwargs)
 
         raise ValueError(
             f"Invalid metric type: {type(name_or_class)}. "
@@ -185,10 +167,6 @@ class MetricRegistry:
 def scorebook_metric(cls: Type[MetricBase]) -> Type[MetricBase]:
     """Register a custom metric with Scorebook.
 
-    The metric will be registered using the lowercase version of the class name.
-    For example, a class named "MyCustomMetric" will be registered as "mycustommetric"
-    and can be accessed via MetricRegistry.get("mycustommetric") or score(metrics="mycustommetric").
-
     Args:
         cls: A metric class that inherits from MetricBase
 
@@ -207,6 +185,6 @@ def scorebook_metric(cls: Type[MetricBase]) -> Type[MetricBase]:
                 return aggregate_scores, item_scores
         ```
     Raises:
-        ValueError: If a metric with the same name is already registered
+        ValueError: If a metric with the same normalized name is already registered
     """
     return MetricRegistry.register()(cls)
