@@ -4,11 +4,10 @@ from typing import Any, Dict, List, Tuple
 
 import sacrebleu
 
-from scorebook.metrics.metric_base import MetricBase
-from scorebook.metrics.metric_registry import MetricRegistry
+from scorebook.metrics import MetricBase, scorebook_metric
 
 
-@MetricRegistry.register()
+@scorebook_metric
 class BLEU(MetricBase):
     """BLEU metric implementation for Scorebook, based on sacrebleu."""
 
