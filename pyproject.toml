@@ -53,6 +53,7 @@ portkey = ["portkey-ai", "python-dotenv"]
 bedrock = ["boto3==1.40.0", "python-dotenv"]
 vertex = ["google-genai", "pandas", "google-cloud-storage", "fsspec[gcs]", "python-dotenv"]
 examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook"]
+metrics = ["sacrebleu", "rouge-score"]
 
 
 [build-system]
