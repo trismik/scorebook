@@ -4,11 +4,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from rouge_score import rouge_scorer
 
-from scorebook.metrics.metric_base import MetricBase
-from scorebook.metrics.metric_registry import MetricRegistry
+from scorebook.metrics import MetricBase, scorebook_metric
 
 
-@MetricRegistry.register()
+@scorebook_metric
 class ROUGE(MetricBase):
     """ROUGE metric for evaluating text generation quality.
 
@@ -46,8 +45,6 @@ class ROUGE(MetricBase):
             - aggregate_scores: Dict with average F1 scores for each configured ROUGE type
             - item_scores: List of dicts with F1 scores for each configured ROUGE type
         """
-        if len(outputs) != len(labels):
-            raise ValueError("Number of outputs must match number of labels")
 
         if not outputs:  # Handle empty lists
             return {rouge_type: 0.0 for rouge_type in self.rouge_types}, []

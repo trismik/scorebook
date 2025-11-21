@@ -108,16 +108,17 @@ def test_rouge_with_none_values() -> None:
 
 
 def test_rouge_mismatched_lengths() -> None:
-    """Test ROUGE raises error with mismatched input lengths."""
+    """Test ROUGE handles mismatched input lengths by truncating to shorter length."""
     rouge = ROUGE()
     outputs = ["text1", "text2"]
     labels = ["text1"]
 
-    try:
-        rouge.score(outputs, labels)
-        assert False, "Expected ValueError to be raised"
-    except ValueError as e:
-        assert "Number of outputs must match number of labels" in str(e)
+    agg, items = rouge.score(outputs, labels)
+
+    # Should only score the first pair (truncates to shorter length)
+    assert len(items) == 1
+    assert items[0]["rouge1"] == 1.0
+    assert items[0]["rougeL"] == 1.0
 
 
 def test_rouge_custom_kwargs() -> None:
