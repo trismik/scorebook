@@ -2,27 +2,20 @@
 
 from typing import Any, Dict, List, Tuple
 
-from flake8p.hook import aggregate_options
+import bert_score
 
 from scorebook.metrics.metric_base import MetricBase
 from scorebook.metrics.metric_registry import MetricRegistry
-import bert_score
 
 
 @MetricRegistry.register()
 class BertScore(MetricBase):
-    """
-    Bert score metric for evaluating model predictions against reference text.
-    """
+    """Bert score metric for evaluating model predictions against reference text."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         """Initialize Bert score metric."""
-        defaults = {
-            'lang': 'en',
-            'verbose': False
-        }
+        defaults = {"lang": "en", "verbose": False}
         self.kwargs = {**defaults, **kwargs}  # User kwargs override defaults
-
 
     def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
         """Calculate bert score between predictions and references.
@@ -44,11 +37,14 @@ class BertScore(MetricBase):
         # Calculate item scores
         p_scores, r_scores, f1_scores = bert_score.score(outputs, labels, **self.kwargs)
 
-        item_scores = [{'precision': p, 'recall': r, 'F1': f1} for p, r, f1 in zip(p_scores.tolist(),
-                                                                                   r_scores.tolist(),
-                                                                                   f1_scores.tolist())]
-        aggregate_scores = {'precision': p_scores.mean().item(),
-                            'recall': r_scores.mean().item(),
-                            'F1': f1_scores.mean().item()}
+        item_scores = [
+            {"precision": p, "recall": r, "F1": f1}
+            for p, r, f1 in zip(p_scores.tolist(), r_scores.tolist(), f1_scores.tolist())
+        ]
+        aggregate_scores = {
+            "precision": p_scores.mean().item(),
+            "recall": r_scores.mean().item(),
+            "F1": f1_scores.mean().item(),
+        }
 
         return aggregate_scores, item_scores
