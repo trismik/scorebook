@@ -65,7 +65,7 @@ Look into `.pre-commit-config.yaml` to check how each tool is configured.
 The project is organized into three test directories under `tests/`:
 
 - **`tests/unit/`**: Fast unit tests that use mocks and don't require external dependencies. These tests run by default and are included in pre-commit hooks.
-- **`tests/optional/`**: Optional tests that may take longer or test specific functionality (e.g., metric implementations). These are not run by default.
+- **`tests/extended/`**: Extended tests that may take longer or test specific functionality (e.g., metric implementations). These are not run by default.
 - **`tests/integration/`**: Integration tests that may require network access or external services. These are not run by default.
 
 #### Running Different Test Suites
@@ -75,22 +75,22 @@ The project is organized into three test directories under `tests/`:
 poetry run pytest
 ```
 
-**Run optional tests:**
+**Run extended tests:**
 ```bash
-poetry run pytest tests/optional
+poetry run pytest tests/extended
 ```
 
 **Run integration tests:**
 ```bash
 poetry run pytest tests/integration
 ```
+Integration tests require a valid `TRISMIK_API_KEY` environment variable.
 
 **Run all tests:**
 ```bash
 poetry run pytest tests/
 ```
 
-By default, only unit tests run to keep the development feedback loop fast. Run optional and integration tests when working on specific features or before submitting pull requests.
 
 ## Submitting Changes
 

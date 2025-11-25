@@ -1,0 +1,1 @@
+"""Extended tests for scorebook."""

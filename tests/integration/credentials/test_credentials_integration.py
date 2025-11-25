@@ -22,14 +22,6 @@ def test_api_key() -> str:
 
 
 @pytest.fixture
-def clean_token_file():
-    """Ensure clean state before and after tests."""
-    logout()
-    yield
-    logout()
-
-
-@pytest.fixture
 def temp_token_path(monkeypatch, tmp_path):
     """Use a temporary directory for token storage."""
     token_path = tmp_path / "test_token"
@@ -39,7 +31,7 @@ def temp_token_path(monkeypatch, tmp_path):
         token_path.unlink()
 
 
-def test_login_with_valid_key(test_api_key, temp_token_path, clean_token_file, monkeypatch):
+def test_login_with_valid_key(test_api_key, temp_token_path, monkeypatch):
     """Test that login stores a valid API key."""
     # Remove env var so we only check file
     monkeypatch.delenv("TRISMIK_API_KEY", raising=False)
@@ -54,7 +46,7 @@ def test_login_with_valid_key(test_api_key, temp_token_path, clean_token_file, m
     assert get_token() == test_api_key
 
 
-def test_login_with_invalid_key(temp_token_path, clean_token_file):
+def test_login_with_invalid_key(temp_token_path):
     """Test that login fails with an invalid API key."""
     with pytest.raises(ValueError, match="Invalid API key"):
         login("invalid_key_12345")
@@ -63,7 +55,7 @@ def test_login_with_invalid_key(temp_token_path, clean_token_file):
     assert not temp_token_path.exists()
 
 
-def test_logout_removes_token(test_api_key, temp_token_path, clean_token_file, monkeypatch):
+def test_logout_removes_token(test_api_key, temp_token_path, monkeypatch):
     """Test that logout removes the stored token."""
     # Remove env var so we only check file
     monkeypatch.delenv("TRISMIK_API_KEY", raising=False)
@@ -77,13 +69,13 @@ def test_logout_removes_token(test_api_key, temp_token_path, clean_token_file, m
     assert get_token() is None
 
 
-def test_logout_when_not_logged_in(clean_token_file):
+def test_logout_when_not_logged_in(temp_token_path):
     """Test that logout returns False when no token exists."""
     result = logout()
     assert result is False
 
 
-def test_get_token_from_env_variable(test_api_key, monkeypatch, clean_token_file):
+def test_get_token_from_env_variable(test_api_key, temp_token_path, monkeypatch):
     """Test that TRISMIK_API_KEY environment variable is used."""
     monkeypatch.setenv("TRISMIK_API_KEY", test_api_key)
 
@@ -91,7 +83,7 @@ def test_get_token_from_env_variable(test_api_key, monkeypatch, clean_token_file
     assert token == test_api_key
 
 
-def test_get_token_from_file(test_api_key, temp_token_path, clean_token_file, monkeypatch):
+def test_get_token_from_file(test_api_key, temp_token_path, monkeypatch):
     """Test retrieving token from stored file."""
     # Remove env var so we only check file
     monkeypatch.delenv("TRISMIK_API_KEY", raising=False)
@@ -102,9 +94,7 @@ def test_get_token_from_file(test_api_key, temp_token_path, clean_token_file, mo
     assert token == test_api_key
 
 
-def test_get_token_env_priority_over_file(
-    test_api_key, temp_token_path, monkeypatch, clean_token_file
-):
+def test_get_token_env_priority_over_file(test_api_key, temp_token_path, monkeypatch):
     """Test that environment variable takes priority over stored file."""
     # Remove env var first to login to file
     monkeypatch.delenv("TRISMIK_API_KEY", raising=False)
@@ -119,7 +109,7 @@ def test_get_token_env_priority_over_file(
     assert get_token() == env_key
 
 
-def test_get_token_returns_none_when_no_token(clean_token_file, monkeypatch):
+def test_get_token_returns_none_when_no_token(temp_token_path, monkeypatch):
     """Test that get_token returns None when no token is available."""
     # Remove env var so get_token returns None
     monkeypatch.delenv("TRISMIK_API_KEY", raising=False)
@@ -137,7 +127,7 @@ def test_validate_token_with_invalid_key():
     assert validate_token("invalid_key_12345") is False
 
 
-def test_whoami_when_logged_in(test_api_key, temp_token_path, clean_token_file, monkeypatch):
+def test_whoami_when_logged_in(test_api_key, temp_token_path, monkeypatch):
     """Test whoami returns token when logged in."""
     # Remove env var so we only check file
     monkeypatch.delenv("TRISMIK_API_KEY", raising=False)
@@ -147,7 +137,7 @@ def test_whoami_when_logged_in(test_api_key, temp_token_path, clean_token_file, 
     assert whoami() == test_api_key
 
 
-def test_whoami_when_not_logged_in(clean_token_file, monkeypatch):
+def test_whoami_when_not_logged_in(temp_token_path, monkeypatch):
     """Test whoami returns None when not logged in."""
     # Remove env var so whoami returns None
     monkeypatch.delenv("TRISMIK_API_KEY", raising=False)
@@ -155,7 +145,7 @@ def test_whoami_when_not_logged_in(clean_token_file, monkeypatch):
     assert whoami() is None
 
 
-def test_full_login_logout_cycle(test_api_key, temp_token_path, clean_token_file, monkeypatch):
+def test_full_login_logout_cycle(test_api_key, temp_token_path, monkeypatch):
     """Test a complete login/logout cycle."""
     # Remove env var so we only check file
     monkeypatch.delenv("TRISMIK_API_KEY", raising=False)

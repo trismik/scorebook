@@ -1,1 +1,0 @@
-"""Optional tests for scorebook."""

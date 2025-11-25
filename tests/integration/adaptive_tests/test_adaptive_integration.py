@@ -39,16 +39,6 @@ def test_project():
     return project
 
 
-@pytest.fixture
-def test_project_sync():
-    """Create a test project synchronously for async tests."""
-    project_name = f"test-adaptive-project-async-{uuid.uuid4().hex[:8]}"
-    project = create_project(
-        name=project_name, description="Async adaptive testing integration tests"
-    )
-    return project
-
-
 def random_letter_inference(
     items: Union[Dict[str, Any], List[Dict[str, Any]]]
 ) -> Union[str, List[str]]:
@@ -151,9 +141,8 @@ def test_evaluate_adaptive_with_hyperparameters(test_project):
 
 
 @pytest.mark.asyncio
-async def test_evaluate_async_adaptive(test_project_sync):
+async def test_evaluate_async_adaptive(test_project):
     """Test asynchronous adaptive evaluation."""
-    project = test_project_sync
     experiment_id = f"test-adaptive-async-{uuid.uuid4().hex[:8]}"
 
     try:
@@ -162,7 +151,7 @@ async def test_evaluate_async_adaptive(test_project_sync):
             datasets="trismik/headQA:adaptive",
             split="test",
             experiment_id=experiment_id,
-            project_id=project.id,
+            project_id=test_project.id,
         )
 
         assert results is not None
@@ -176,9 +165,8 @@ async def test_evaluate_async_adaptive(test_project_sync):
 
 
 @pytest.mark.asyncio
-async def test_evaluate_async_adaptive_with_split(test_project_sync):
+async def test_evaluate_async_adaptive_with_split(test_project):
     """Test async adaptive evaluation with split."""
-    project = test_project_sync
     experiment_id = f"test-adaptive-async-split-{uuid.uuid4().hex[:8]}"
 
     try:
@@ -187,7 +175,7 @@ async def test_evaluate_async_adaptive_with_split(test_project_sync):
             datasets="trismik/headQA:adaptive",
             split="test",
             experiment_id=experiment_id,
-            project_id=project.id,
+            project_id=test_project.id,
         )
 
         assert results is not None
