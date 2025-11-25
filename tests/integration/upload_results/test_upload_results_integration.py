@@ -19,7 +19,7 @@ def test_api_key() -> str:
     """Get test API key from environment."""
     api_key = os.environ.get("TRISMIK_API_KEY")
     if not api_key:
-        pytest.skip("TRISMIK_API_KEY environment variable not set")
+        pytest.fail("TRISMIK_API_KEY environment variable not set")
     return api_key
 
 
