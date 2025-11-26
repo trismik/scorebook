@@ -13,7 +13,6 @@ dependencies = [
     "notebook (>=7.4.5,<8.0.0)",
     "trismik==1.0.2",
     "ipywidgets>=8.0.0",
-    "rouge-score>=0.1.2",
 ]
 
 [project.scripts]
@@ -53,6 +52,7 @@ portkey = ["portkey-ai", "python-dotenv"]
 bedrock = ["boto3==1.40.0", "python-dotenv"]
 vertex = ["google-genai", "pandas", "google-cloud-storage", "fsspec[gcs]", "python-dotenv"]
 examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook"]
+metrics = ["sacrebleu", "rouge-score"]
 
 
 [build-system]

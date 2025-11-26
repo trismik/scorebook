@@ -212,6 +212,7 @@ results = evaluate(
 | Metric     | Sync/Async | Aggregate Scores                                 | Item Scores                             |
 |------------|------------|--------------------------------------------------|-----------------------------------------|
 | `Accuracy` | Sync       | `Float`: Percentage of correct outputs           | `Boolean`: Exact match between output and label |
+| `BLEU`     | Sync       | `Float`: Corpus-level BLEU score                 | `Float`: Sentence-level BLEU score |
 | `ROUGE`    | Sync       | `Dict[str, Float]`: Average F1 scores per ROUGE type | `Dict[str, Float]`: F1 scores per ROUGE type |
 
 
