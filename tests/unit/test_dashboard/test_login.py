@@ -244,6 +244,21 @@ class TestLogin:
             with pytest.raises(ValueError, match="API key cannot be empty"):
                 login()
 
+    def test_login_warns_when_env_var_and_explicit_key(self, temp_config_dir, clean_env):
+        """Test login warns when env var is set but explicit key is passed."""
+        explicit_token = "explicit-token"
+        os.environ["TRISMIK_API_KEY"] = "env-token"  # pragma: allowlist secret
+
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
+            mock_instance = mock_client.return_value
+            mock_instance.me.return_value = {"user": "test"}
+
+            with pytest.warns(UserWarning, match="TRISMIK_API_KEY environment variable"):
+                login(explicit_token)
+
+            # Token should still be saved
+            assert get_stored_token() == explicit_token
+
 
 class TestLogout:
     """Test logout functionality."""

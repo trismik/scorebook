@@ -123,7 +123,7 @@ def login(trismik_api_key: Optional[str] = None) -> None:
         )
 
     if trismik_api_key is None:
-        # Try to load from .env file first (this will not override existing env vars)
+        # Load from .env file if TRISMIK_API_KEY is not already set in environment
         load_dotenv()
         trismik_api_key = os.environ.get("TRISMIK_API_KEY")
 
