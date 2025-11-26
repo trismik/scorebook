@@ -173,7 +173,7 @@ class TestValidateToken:
 class TestLogin:
     """Test login functionality."""
 
-    def test_login_with_token_parameter(self, temp_config_dir):
+    def test_login_with_token_parameter(self, temp_config_dir, clean_env):
         """Test login with token provided as parameter."""
         test_token = "test-login-token"
 
@@ -187,12 +187,12 @@ class TestLogin:
             # Verify token was saved
             assert get_stored_token() == test_token
 
-    def test_login_empty_token_raises_error(self):
+    def test_login_empty_token_raises_error(self, clean_env):
         """Test that empty token raises ValueError."""
         with pytest.raises(ValueError, match="API key cannot be empty"):
             login("")
 
-    def test_login_invalid_token_raises_error(self):
+    def test_login_invalid_token_raises_error(self, clean_env):
         """Test that invalid token raises ValueError."""
         with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
             mock_instance = mock_client.return_value

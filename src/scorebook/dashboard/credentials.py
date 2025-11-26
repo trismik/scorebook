@@ -3,6 +3,7 @@
 import logging
 import os
 import pathlib
+import warnings
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -105,7 +106,22 @@ def login(trismik_api_key: Optional[str] = None) -> None:
             environment or .env file.
     Raises:
         ValueError: If API key is empty, not found, or invalid.
+
+    Warns:
+        UserWarning: If an explicit API key is passed but TRISMIK_API_KEY
+            environment variable is also set.
     """
+    # Warn if user passes explicit key but env var is also set
+    if trismik_api_key is not None and os.environ.get("TRISMIK_API_KEY"):
+        warnings.warn(
+            "TRISMIK_API_KEY environment variable is set. The environment variable "
+            "takes precedence over the stored token when calling evaluate(). "
+            "To use the explicitly provided key, unset the TRISMIK_API_KEY "
+            "environment variable.",
+            UserWarning,
+            stacklevel=2,
+        )
+
     if trismik_api_key is None:
         # Try to load from .env file first (this will not override existing env vars)
         load_dotenv()
