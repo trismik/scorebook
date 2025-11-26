@@ -8,7 +8,7 @@ This file is automatically loaded by pytest and provides:
 
 import pytest
 
-from tests.fixtures.mock_hf_datasets import MockHFDatasets
+from tests.unit.fixtures.mock_hf_datasets import MockHFDatasets
 
 
 @pytest.fixture(autouse=True)

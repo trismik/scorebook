@@ -60,6 +60,38 @@ poetry run pytest
 
 Look into `.pre-commit-config.yaml` to check how each tool is configured.
 
+### Test Structure
+
+The project is organized into three test directories under `tests/`:
+
+- **`tests/unit/`**: Fast unit tests that use mocks and don't require external dependencies. These tests run by default and are included in pre-commit hooks.
+- **`tests/extended/`**: Extended tests that may take longer or test specific functionality (e.g., metric implementations). These are not run by default.
+- **`tests/integration/`**: Integration tests that may require network access or external services. These are not run by default.
+
+#### Running Different Test Suites
+
+**Run unit tests (default):**
+```bash
+poetry run pytest
+```
+
+**Run extended tests:**
+```bash
+poetry run pytest tests/extended
+```
+
+**Run integration tests:**
+```bash
+poetry run pytest tests/integration
+```
+Integration tests require a valid `TRISMIK_API_KEY` environment variable.
+
+**Run all tests:**
+```bash
+poetry run pytest tests/
+```
+
+
 ## Submitting Changes
 
 We follow [GitHub flow](https://docs.github.com/en/get-started/using-github/github-flow), a lightweight, branch-based workflow that supports teams and projects where deployments are made regularly. The main branch should always be deployable, and new features are developed in feature branches.
@@ -110,7 +142,7 @@ When you create a pull request, GitHub Actions will automatically run the same c
 
    **Note**: Make sure you have installed pre-commit hooks (`poetry run pre-commit install`) before committing. The hooks will run automatically and prevent the commit if any checks fail. Remember that pull requests with failing tests will not be reviewed until issues are resolved.
 
-5. **Push and create a pull request**
+4. **Push and create a pull request**
    ```bash
    git push origin feature/your-feature-name
    ```
