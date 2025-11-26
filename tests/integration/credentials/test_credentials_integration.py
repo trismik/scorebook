@@ -2,22 +2,28 @@
 Integration tests for trismik credentials and authentication.
 
 These tests make real API calls to the trismik service and do not use mocks.
-They require a valid TRISMIK_API_KEY environment variable to run.
+They require a valid TRISMIK_API_KEY environment variable or .env file to run.
 """
 
 import os
 
 import pytest
+from dotenv import load_dotenv
 
 from scorebook.dashboard.credentials import get_token, login, logout, validate_token, whoami
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 @pytest.fixture
 def test_api_key() -> str:
-    """Get test API key from environment."""
+    """Get test API key from environment or .env file."""
     api_key = os.environ.get("TRISMIK_API_KEY")
     if not api_key:
-        pytest.fail("TRISMIK_API_KEY environment variable not set")
+        pytest.fail(
+            "TRISMIK_API_KEY not found. Set it as an environment variable or in a .env file."
+        )
     return api_key
 
 

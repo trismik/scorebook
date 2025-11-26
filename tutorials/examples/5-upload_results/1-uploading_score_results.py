@@ -59,7 +59,8 @@ def main() -> Any:
     ]
 
     # Step 1: Log in with your Trismik API key
-    login("TRISMIK_API_KEY") # TODO: ADD YOUR TRISMIK API KEY
+    # login() reads TRISMIK_API_KEY from environment variables or .env file
+    login()
 
     # Step 2: Score the outputs and upload results
     # When you provide experiment_id and project_id, results are automatically uploaded

@@ -5,6 +5,7 @@ import os
 import pathlib
 from typing import Optional
 
+from dotenv import load_dotenv
 from trismik import TrismikClient
 
 from scorebook.settings import TRISMIK_SERVICE_URL
@@ -92,16 +93,29 @@ def validate_token(token: str) -> bool:
         return False
 
 
-def login(trismik_api_key: str) -> None:
+def login(trismik_api_key: Optional[str] = None) -> None:
     """Login to trismik by saving API key locally.
 
+    If no API key is provided, the function will attempt to read it from:
+    1. TRISMIK_API_KEY environment variable
+    2. TRISMIK_API_KEY in a .env file (using python-dotenv)
+
     Args:
-        trismik_api_key: The API key to use.
+        trismik_api_key: The API key to use. If not provided, reads from
+            environment or .env file.
     Raises:
-        ValueError: If API key is empty or invalid.
+        ValueError: If API key is empty, not found, or invalid.
     """
+    if trismik_api_key is None:
+        # Try to load from .env file first (this will not override existing env vars)
+        load_dotenv()
+        trismik_api_key = os.environ.get("TRISMIK_API_KEY")
+
     if not trismik_api_key:
-        raise ValueError("API key cannot be empty")
+        raise ValueError(
+            "API key cannot be empty. Either pass it as a parameter or "
+            "set the TRISMIK_API_KEY environment variable or .env file."
+        )
 
     # Validate token
     if not validate_token(trismik_api_key):

@@ -77,7 +77,8 @@ async def main() -> Any:
         return outputs
 
     # Step 1: Log in with your Trismik API key
-    login("TRISMIK_API_KEY")
+    # login() reads TRISMIK_API_KEY from environment variables or .env file
+    login()
 
     # Step 2: Run adaptive evaluation
     results = await evaluate_async(
