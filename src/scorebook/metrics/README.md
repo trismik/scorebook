@@ -33,15 +33,24 @@ Your metric must:
 The `score()` method returns a tuple of `(aggregate_scores, item_scores)`:
 
 - **aggregate_scores**: A `Dict[str, float]` with overall metric values (e.g., `{"accuracy": 0.85}`)
-- **item_scores**: A `List` of per-item scores. Supported types: `int`, `float`, `bool`, `str`, or `Dict` containing these types.
+- **item_scores**: A `List` of per-item scores. For metrics that produce a single value per item, use `int`, `float`, `bool`, or `str`. For metrics that produce multiple values per item, use a `Dict[str, Union[int, float, bool, str]]` where keys are metric names.
 
 ---
 
 ## File Naming
 
-Metric files use normalized names (lowercase, no underscores/spaces):
-- Class: `F1Score` → File: `f1score.py`
-- Class: `MeanSquaredError` → File: `meansquarederror.py`
+Metric files must use normalized names (lowercase, no underscores/spaces). This naming convention is required for the registry's lazy loading system to work.
+
+1. User requests a metric by name (e.g., `"f1_score"`, `"F1Score"`, or `"f1 score"`)
+2. The registry normalizes the input → `"f1score"`
+3. The registry imports `scorebook.metrics.f1score`
+4. The `@scorebook_metric` decorator registers the class
+
+**Examples:**
+- Class: `F1Score` → File: `f1score.py` → User can request: `"f1score"`, `"F1Score"`, `"f1_score"`, `"f1 score"`
+- Class: `MeanSquaredError` → File: `meansquarederror.py` → User can request: `"MeanSquaredError"`, `"mean_squared_error"`, etc.
+
+**Collision detection:** Class names that normalize to the same key will raise an error at registration time. For example, `F1Score` and `F1_Score` both normalize to `"f1score"` and cannot coexist.
 
 ---
 
