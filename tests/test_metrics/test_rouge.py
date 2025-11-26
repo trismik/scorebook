@@ -5,7 +5,7 @@ from scorebook.metrics.rouge import ROUGE
 
 def test_rouge_perfect_match() -> None:
     """Test ROUGE with identical outputs and labels."""
-    rouge = ROUGE()
+    rouge = ROUGE(rouge_types=["rouge1", "rougeL"], use_stemmer=True)
     outputs = ["The quick brown fox jumps over the lazy dog"]
     labels = ["The quick brown fox jumps over the lazy dog"]
 
@@ -21,7 +21,7 @@ def test_rouge_perfect_match() -> None:
 
 def test_rouge_no_match() -> None:
     """Test ROUGE with completely different texts."""
-    rouge = ROUGE()
+    rouge = ROUGE(rouge_types=["rouge1", "rougeL"], use_stemmer=True)
     outputs = ["apple orange banana"]
     labels = ["car truck motorcycle"]
 
@@ -37,7 +37,7 @@ def test_rouge_no_match() -> None:
 
 def test_rouge_partial_match() -> None:
     """Test ROUGE with partial overlap."""
-    rouge = ROUGE()
+    rouge = ROUGE(rouge_types=["rouge1", "rougeL"], use_stemmer=True)
     outputs = ["The quick brown dog"]
     labels = ["The quick brown fox"]
 
@@ -53,7 +53,7 @@ def test_rouge_partial_match() -> None:
 
 def test_rouge_empty_lists() -> None:
     """Test ROUGE with empty inputs."""
-    rouge = ROUGE()
+    rouge = ROUGE(rouge_types=["rouge1", "rougeL"], use_stemmer=True)
     outputs = []
     labels = []
 
@@ -65,7 +65,7 @@ def test_rouge_empty_lists() -> None:
 
 def test_rouge_multiple_items() -> None:
     """Test ROUGE with multiple output-label pairs."""
-    rouge = ROUGE()
+    rouge = ROUGE(rouge_types=["rouge1", "rougeL"], use_stemmer=True)
     outputs = [
         "A woman donated her kidney to a stranger.",
         "Scientists discovered a new frog species.",
@@ -93,7 +93,7 @@ def test_rouge_multiple_items() -> None:
 
 def test_rouge_with_none_values() -> None:
     """Test ROUGE handles None values correctly."""
-    rouge = ROUGE()
+    rouge = ROUGE(rouge_types=["rouge1", "rougeL"], use_stemmer=True)
     outputs = [None, "Some text"]
     labels = ["Some text", None]
 
@@ -109,7 +109,7 @@ def test_rouge_with_none_values() -> None:
 
 def test_rouge_mismatched_lengths() -> None:
     """Test ROUGE handles mismatched input lengths by truncating to shorter length."""
-    rouge = ROUGE()
+    rouge = ROUGE(rouge_types=["rouge1", "rougeL"], use_stemmer=True)
     outputs = ["text1", "text2"]
     labels = ["text1"]
 
@@ -124,7 +124,7 @@ def test_rouge_mismatched_lengths() -> None:
 def test_rouge_custom_kwargs() -> None:
     """Test ROUGE accepts custom rouge_types and kwargs."""
     # Test with custom rouge_types
-    rouge = ROUGE(rouge_types=["rouge1", "rouge2", "rougeL"])
+    rouge = ROUGE(rouge_types=["rouge1", "rouge2", "rougeL"], use_stemmer=True)
     outputs = ["The quick brown fox"]
     labels = ["The quick brown fox"]
 
@@ -139,7 +139,7 @@ def test_rouge_custom_kwargs() -> None:
     assert agg["rougeL"] == 1.0
 
     # Test with use_stemmer=False
-    rouge_no_stem = ROUGE(use_stemmer=False)
+    rouge_no_stem = ROUGE(rouge_types=["rouge1", "rougeL"], use_stemmer=False)
     outputs2 = ["running quickly"]
     labels2 = ["run quick"]
 

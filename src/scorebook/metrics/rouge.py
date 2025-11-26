@@ -1,5 +1,6 @@
 """ROUGE metric implementation for Scorebook."""
 
+import warnings
 from typing import Any, Dict, List, Optional, Tuple
 
 from rouge_score import rouge_scorer
@@ -27,8 +28,18 @@ class ROUGE(MetricBase):
                      Defaults to use_stemmer=True if not provided.
         """
         if rouge_types is None:
+            warnings.warn(
+                "No rouge_types specified, defaulting to ['rouge1', 'rougeL']",
+                UserWarning,
+                stacklevel=2,
+            )
             rouge_types = ["rouge1", "rougeL"]
         if "use_stemmer" not in kwargs:
+            warnings.warn(
+                "use_stemmer not specified, defaulting to True",
+                UserWarning,
+                stacklevel=2,
+            )
             kwargs["use_stemmer"] = True
         self.rouge_types = rouge_types
         self.scorer = rouge_scorer.RougeScorer(rouge_types, **kwargs)
