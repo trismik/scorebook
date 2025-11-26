@@ -96,9 +96,9 @@ def validate_token(token: str) -> bool:
 def login(trismik_api_key: Optional[str] = None) -> None:
     """Login to trismik by saving API key locally.
 
-    If no API key is provided, the function will attempt to read it from:
-    1. TRISMIK_API_KEY environment variable
-    2. TRISMIK_API_KEY in a .env file (using python-dotenv)
+    If no API key is provided, the function will attempt to read it from the
+    TRISMIK_API_KEY environment variable or .env file (using python-dotenv).
+    Environment variables take precedence over .env file values.
 
     Args:
         trismik_api_key: The API key to use. If not provided, reads from
