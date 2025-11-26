@@ -65,6 +65,7 @@ markers = [
     "unit: Unit tests that use mocks and don't require external dependencies",
     "extended: Extended tests that may take longer or test specific functionality",
     "integration: Integration tests that may require network access or external services",
+    "extended: Extended tests that may take longer or test specific functionality",
 ]
 
 [tool.black]

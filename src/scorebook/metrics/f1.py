@@ -4,11 +4,10 @@ from typing import Any, Dict, List, Tuple, Union
 
 from sklearn.metrics import f1_score
 
-from scorebook.metrics.metric_base import MetricBase
-from scorebook.metrics.metric_registry import MetricRegistry
+from scorebook.metrics import MetricBase, scorebook_metric
 
 
-@MetricRegistry.register()
+@scorebook_metric
 class F1(MetricBase):
     """F1 score metric for evaluating model predictions using scikit-learn.
 
