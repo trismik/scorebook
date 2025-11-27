@@ -173,7 +173,7 @@ class TestValidateToken:
 class TestLogin:
     """Test login functionality."""
 
-    def test_login_with_token_parameter(self, temp_config_dir):
+    def test_login_with_token_parameter(self, temp_config_dir, clean_env):
         """Test login with token provided as parameter."""
         test_token = "test-login-token"
 
@@ -187,12 +187,12 @@ class TestLogin:
             # Verify token was saved
             assert get_stored_token() == test_token
 
-    def test_login_empty_token_raises_error(self):
+    def test_login_empty_token_raises_error(self, clean_env):
         """Test that empty token raises ValueError."""
         with pytest.raises(ValueError, match="API key cannot be empty"):
             login("")
 
-    def test_login_invalid_token_raises_error(self):
+    def test_login_invalid_token_raises_error(self, clean_env):
         """Test that invalid token raises ValueError."""
         with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
             mock_instance = mock_client.return_value
@@ -200,6 +200,64 @@ class TestLogin:
 
             with pytest.raises(ValueError, match="Invalid API key provided"):
                 login("invalid-token")
+
+    def test_login_without_parameter_uses_env_var(self, temp_config_dir, clean_env):
+        """Test login without parameter reads from environment variable."""
+        test_token = "env-var-token"
+        os.environ["TRISMIK_API_KEY"] = test_token  # pragma: allowlist secret
+
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
+            mock_instance = mock_client.return_value
+            mock_instance.me.return_value = {"user": "test"}
+
+            login()
+
+            # Verify token was saved
+            assert get_stored_token() == test_token
+
+    def test_login_without_parameter_uses_dotenv(self, temp_config_dir, clean_env):
+        """Test login without parameter reads from .env file via dotenv."""
+        test_token = "dotenv-token"
+
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
+            mock_instance = mock_client.return_value
+            mock_instance.me.return_value = {"user": "test"}
+
+            # Mock load_dotenv to set the env var
+            with patch("scorebook.dashboard.credentials.load_dotenv") as mock_load_dotenv:
+
+                def set_env_var() -> bool:
+                    os.environ["TRISMIK_API_KEY"] = test_token  # pragma: allowlist secret
+                    return True
+
+                mock_load_dotenv.side_effect = set_env_var
+
+                login()
+
+                mock_load_dotenv.assert_called_once()
+                # Verify token was saved
+                assert get_stored_token() == test_token
+
+    def test_login_without_parameter_no_key_raises_error(self, clean_env):
+        """Test login without parameter raises error when no key available."""
+        with patch("scorebook.dashboard.credentials.load_dotenv"):
+            with pytest.raises(ValueError, match="API key cannot be empty"):
+                login()
+
+    def test_login_warns_when_env_var_and_explicit_key(self, temp_config_dir, clean_env):
+        """Test login warns when env var is set but explicit key is passed."""
+        explicit_token = "explicit-token"
+        os.environ["TRISMIK_API_KEY"] = "env-token"  # pragma: allowlist secret
+
+        with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
+            mock_instance = mock_client.return_value
+            mock_instance.me.return_value = {"user": "test"}
+
+            with pytest.warns(UserWarning, match="TRISMIK_API_KEY environment variable"):
+                login(explicit_token)
+
+            # Token should still be saved
+            assert get_stored_token() == explicit_token
 
 
 class TestLogout:

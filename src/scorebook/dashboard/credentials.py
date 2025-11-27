@@ -3,8 +3,10 @@
 import logging
 import os
 import pathlib
+import warnings
 from typing import Optional
 
+from dotenv import load_dotenv
 from trismik import TrismikClient
 
 from scorebook.settings import TRISMIK_SERVICE_URL
@@ -92,16 +94,44 @@ def validate_token(token: str) -> bool:
         return False
 
 
-def login(trismik_api_key: str) -> None:
+def login(trismik_api_key: Optional[str] = None) -> None:
     """Login to trismik by saving API key locally.
 
+    If no API key is provided, the function will attempt to read it from the
+    TRISMIK_API_KEY environment variable or .env file (using python-dotenv).
+    Environment variables take precedence over .env file values.
+
     Args:
-        trismik_api_key: The API key to use.
+        trismik_api_key: The API key to use. If not provided, reads from
+            environment or .env file.
     Raises:
-        ValueError: If API key is empty or invalid.
+        ValueError: If API key is empty, not found, or invalid.
+
+    Warns:
+        UserWarning: If an explicit API key is passed but TRISMIK_API_KEY
+            environment variable is also set.
     """
+    # Warn if user passes explicit key but env var is also set
+    if trismik_api_key is not None and os.environ.get("TRISMIK_API_KEY"):
+        warnings.warn(
+            "TRISMIK_API_KEY environment variable is set. The environment variable "
+            "takes precedence over the stored token when calling evaluate(). "
+            "To use the explicitly provided key, unset the TRISMIK_API_KEY "
+            "environment variable.",
+            UserWarning,
+            stacklevel=2,
+        )
+
+    if trismik_api_key is None:
+        # Load from .env file if TRISMIK_API_KEY is not already set in environment
+        load_dotenv()
+        trismik_api_key = os.environ.get("TRISMIK_API_KEY")
+
     if not trismik_api_key:
-        raise ValueError("API key cannot be empty")
+        raise ValueError(
+            "API key cannot be empty. Either pass it as a parameter or "
+            "set the TRISMIK_API_KEY environment variable or .env file."
+        )
 
     # Validate token
     if not validate_token(trismik_api_key):
