@@ -164,18 +164,27 @@ def format_results(
     hyperparameters = hyperparameters or {}
     dataset_name = dataset_name or "scored_items"
 
+    # Detect key collisions across all metrics (for both aggregate and item scores)
+    all_keys: Dict[str, set] = {}
+    for metric_score in metric_scores:
+        for key in metric_score.aggregate_scores.keys():
+            all_keys.setdefault(key, set()).add(metric_score.metric_name)
+        # Also check item_scores keys if they are dicts
+        if metric_score.item_scores and isinstance(metric_score.item_scores[0], dict):
+            for key in metric_score.item_scores[0].keys():
+                all_keys.setdefault(key, set()).add(metric_score.metric_name)
+    colliding_keys = {k for k, metrics in all_keys.items() if len(metrics) > 1}
+
     # Build aggregate results
-    aggregate_result = {
+    aggregate_result: Dict[str, Any] = {
         "dataset": dataset_name,
         **hyperparameters,
     }
 
-    # Add aggregate scores from metrics
+    # Add aggregate scores from metrics (flat, with suffix on collision)
     for metric_score in metric_scores:
         for key, value in metric_score.aggregate_scores.items():
-            score_key = (
-                key if key == metric_score.metric_name else f"{metric_score.metric_name}_{key}"
-            )
+            score_key = f"{key}_{metric_score.metric_name}" if key in colliding_keys else key
             aggregate_result[score_key] = value
 
     # Build item results
@@ -193,10 +202,18 @@ def format_results(
         if inputs is not None and inputs[idx] is not None:
             item_result["input"] = inputs[idx]
 
-        # Add item-level metric scores
+        # Add item-level metric scores (flat, with suffix on collision)
         for metric_score in metric_scores:
             if idx < len(metric_score.item_scores):
-                item_result[metric_score.metric_name] = metric_score.item_scores[idx]
+                item_scores = metric_score.item_scores[idx]
+                if isinstance(item_scores, dict):
+                    for key, value in item_scores.items():
+                        score_key = (
+                            f"{key}_{metric_score.metric_name}" if key in colliding_keys else key
+                        )
+                        item_result[score_key] = value
+                else:
+                    item_result[metric_score.metric_name] = item_scores
 
         item_results.append(item_result)
 
