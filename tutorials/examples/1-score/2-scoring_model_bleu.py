@@ -1,19 +1,14 @@
-"""Tutorials - Score - Example 1 - Scoring Models."""
+"""Tutorials - Score - Example 2 - Scoring Models with BLEU."""
 
-import sys
 from pathlib import Path
 from pprint import pprint
 from typing import Any
 
 from dotenv import load_dotenv
 
-sys.path.insert(0, "./tutorials/examples/.example_utils")
-
-from output import save_results_to_json
-from setup import setup_logging
-
+from tutorials.utils import save_results_to_json, setup_logging
 from scorebook import score
-from scorebook.metrics import BLEU
+from scorebook.metrics.bleu import BLEU
 
 
 def main() -> Any:
@@ -44,8 +39,8 @@ def main() -> Any:
 
 if __name__ == "__main__":
     load_dotenv()
-    log_file = setup_logging(experiment_id="1-scoring_model_accuracy", base_dir=Path(__file__).parent)
+    log_file = setup_logging(experiment_id="2-scoring_model_bleu", base_dir=Path(__file__).parent)
     output_dir = Path(__file__).parent / "results"
     output_dir.mkdir(exist_ok=True)
     results_dict = main()
-    save_results_to_json(results_dict, output_dir, "1-scoring_model_accuracy_output.json")
+    save_results_to_json(results_dict, output_dir, "2-scoring_model_bleu_output.json")

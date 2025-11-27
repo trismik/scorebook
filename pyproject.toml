@@ -53,7 +53,7 @@ portkey = ["portkey-ai"]
 bedrock = ["boto3==1.40.0"]
 vertex = ["google-genai", "pandas", "google-cloud-storage", "fsspec[gcs]"]
 examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook"]
-metrics = ["sacrebleu", "rouge-score"]
+metrics = ["sacrebleu", "rouge-score", "scikit-learn>=1.0.0"]
 
 [build-system]
 requires = ["poetry-core"]

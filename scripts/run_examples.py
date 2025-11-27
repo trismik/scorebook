@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -22,6 +23,9 @@ from typing import Dict
 EXAMPLE_FLAGS = {
     # 1-score: Basic scoring examples
     "1-score/1-scoring_model_accuracy.py": True,
+    "1-score/2-scoring_model_bleu.py": True,
+    "1-score/3-scoring_model_f1.py": True,
+    "1-score/4-scoring_model_rouge.py": True,
     # 2-evaluate: Evaluation examples
     "2-evaluate/1-evaluating_local_models.py": True,
     "2-evaluate/2-evaluating_local_models_with_batching.py": True,
@@ -41,6 +45,12 @@ EXAMPLE_FLAGS = {
     "5-upload_results/1-uploading_score_results.py": False,  # Requires Trismik API key
     "5-upload_results/2-uploading_evaluate_results.py": False,  # Requires Trismik API key
     "5-upload_results/3-uploading_your_results.py": False,  # Requires Trismik API key
+    # 6-providers: Cloud provider examples
+    "6-providers/aws/batch_example.py": False,  # Requires AWS credentials
+    "6-providers/portkey/batch_example.py": False,  # Requires Portkey API key
+    "6-providers/portkey/messages_example.py": False,  # Requires Portkey API key
+    "6-providers/vertex/batch_example.py": False,  # Requires GCP credentials
+    "6-providers/vertex/messages_example.py": False,  # Requires GCP credentials
 }
 
 # =============================================================================
@@ -56,9 +66,14 @@ def run_example(example_path: Path, project_root: Path) -> bool:
     print(f"{'=' * 80}\n")
 
     try:
+        # Set PYTHONPATH to include project root so examples can import tutorials
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(project_root) + os.pathsep + env.get("PYTHONPATH", "")
+
         result = subprocess.run(
             [sys.executable, str(example_path)],
             cwd=project_root,  # Run from project root
+            env=env,
             capture_output=True,
             text=True,
             timeout=300,  # 5 minute timeout per example

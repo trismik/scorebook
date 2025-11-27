@@ -1,19 +1,15 @@
 """Tutorials - Score - Example 4 - Scoring Models with ROUGE."""
 
-import sys
 from pathlib import Path
 from pprint import pprint
 from typing import Any
 
 from dotenv import load_dotenv
 
-sys.path.insert(0, str(Path(__file__).parent.parent / ".example_utils"))
-
-from output import save_results_to_json
-from setup import setup_logging
+from tutorials.utils import save_results_to_json, setup_logging
 
 from scorebook import score
-from scorebook.metrics import ROUGE
+from scorebook.metrics.rouge import ROUGE
 
 
 def main() -> Any:
