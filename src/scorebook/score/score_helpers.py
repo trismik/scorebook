@@ -89,7 +89,7 @@ async def calculate_metric_scores_async(
     for metric in metrics:
 
         if progress_bar is not None:
-            progress_bar.set_current_metric(metric.name)
+            progress_bar.set_postfix(metric=metric.name)
 
         if is_awaitable(metric.score):
             aggregate_scores, item_scores = await metric.score(outputs, labels)
@@ -134,7 +134,7 @@ def calculate_metric_scores(
     for metric in metrics:
 
         if progress_bar is not None:
-            progress_bar.set_current_metric(metric.name)
+            progress_bar.set_postfix(metric=metric.name)
 
         if is_awaitable(metric.score):
             raise ParameterValidationError(
