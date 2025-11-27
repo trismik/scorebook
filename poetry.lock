@@ -5248,10 +5248,9 @@ six = ">=1.5"
 name = "python-dotenv"
 version = "1.2.1"
 description = "Read key-value pairs from a .env file and set them as environment variables"
-optional = true
+optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"openai\" or extra == \"portkey\" or extra == \"bedrock\" or extra == \"vertex\""
 files = [
     {file = "python_dotenv-1.2.1-py3-none-any.whl", hash = "sha256:b81ee9561e9ca4004139c6cbba3a238c32b03e4894671e181b671e8cb8425d61"},
     {file = "python_dotenv-1.2.1.tar.gz", hash = "sha256:42667e897e16ab0d66954af0e60a9caa94f0fd4ecf3aaf6d2d260eec1aa36ad6"},
@@ -7984,14 +7983,14 @@ test = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more_it
 type = ["pytest-mypy"]
 
 [extras]
-bedrock = ["boto3", "python-dotenv"]
+bedrock = ["boto3"]
 examples = ["accelerate", "notebook", "torch", "torchaudio", "torchvision", "transformers"]
 metrics = ["rouge-score", "sacrebleu", "scikit-learn"]
-openai = ["openai", "python-dotenv"]
-portkey = ["portkey-ai", "python-dotenv"]
-vertex = ["fsspec", "google-cloud-storage", "google-genai", "pandas", "python-dotenv"]
+openai = ["openai"]
+portkey = ["portkey-ai"]
+vertex = ["fsspec", "google-cloud-storage", "google-genai", "pandas"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.14"
-content-hash = "4d38be91a3d0c18992227693426c1504bcf7a9276163bb25c6d0d06bee21d432"
+content-hash = "272d2003fe60980c7ab24107a87d2bd3b1bfb8237efcd9a8d5a3141578e9d817"
