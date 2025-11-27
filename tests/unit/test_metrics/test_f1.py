@@ -3,6 +3,11 @@ import pytest
 from scorebook.metrics.f1 import F1
 
 
+def _key(method: str) -> str:
+    """Generate F1 metric key for given averaging method."""
+    return f"F1 ({method})"
+
+
 def test_f1_perfect_score():
     """Test F1 with all correct predictions."""
     outputs = ["A", "B", "C"]
@@ -11,7 +16,7 @@ def test_f1_perfect_score():
     metric = F1()
     agg, items = metric.score(outputs, labels)
 
-    assert agg == {"macro_f1": 1.0}
+    assert agg == {_key("macro"): 1.0}
     assert all(items)
     assert len(items) == len(outputs)
 
@@ -24,7 +29,7 @@ def test_f1_zero_score():
     metric = F1()
     agg, items = metric.score(outputs, labels)
 
-    assert agg["macro_f1"] == 0.0
+    assert agg[_key("macro")] == 0.0
     assert all(not x for x in items)
     assert len(items) == len(outputs)
 
@@ -37,7 +42,7 @@ def test_f1_partial_score():
     metric = F1()
     agg, items = metric.score(outputs, labels)
 
-    assert 0.0 < agg["macro_f1"] < 1.0
+    assert 0.0 < agg[_key("macro")] < 1.0
     assert items == [True, True, False]
 
 
@@ -49,7 +54,7 @@ def test_f1_empty_lists():
     metric = F1()
     agg, items = metric.score(outputs, labels)
 
-    assert agg == {"macro_f1": 0.0}
+    assert agg == {_key("macro"): 0.0}
     assert items == []
 
 
@@ -71,8 +76,8 @@ def test_f1_macro_averaging():
     metric = F1(average="macro")
     agg, items = metric.score(outputs, labels)
 
-    assert "macro_f1" in agg
-    assert 0.0 <= agg["macro_f1"] <= 1.0
+    assert _key("macro") in agg
+    assert 0.0 <= agg[_key("macro")] <= 1.0
     assert items == [True, False, True, False]
 
 
@@ -84,8 +89,8 @@ def test_f1_micro_averaging():
     metric = F1(average="micro")
     agg, items = metric.score(outputs, labels)
 
-    assert "micro_f1" in agg
-    assert agg["micro_f1"] == 0.5  # 2 correct out of 4
+    assert _key("micro") in agg
+    assert agg[_key("micro")] == 0.5  # 2 correct out of 4
 
 
 def test_f1_weighted_averaging():
@@ -96,8 +101,8 @@ def test_f1_weighted_averaging():
     metric = F1(average="weighted")
     agg, items = metric.score(outputs, labels)
 
-    assert "weighted_f1" in agg
-    assert 0.0 <= agg["weighted_f1"] <= 1.0
+    assert _key("weighted") in agg
+    assert 0.0 <= agg[_key("weighted")] <= 1.0
 
 
 def test_f1_all_averaging():
@@ -108,9 +113,9 @@ def test_f1_all_averaging():
     metric = F1(average="all")
     agg, items = metric.score(outputs, labels)
 
-    assert "macro_f1" in agg
-    assert "micro_f1" in agg
-    assert "weighted_f1" in agg
+    assert _key("macro") in agg
+    assert _key("micro") in agg
+    assert _key("weighted") in agg
     assert len(agg) == 3
 
 
@@ -122,9 +127,9 @@ def test_f1_list_of_methods():
     metric = F1(average=["macro", "micro"])
     agg, items = metric.score(outputs, labels)
 
-    assert "macro_f1" in agg
-    assert "micro_f1" in agg
-    assert "weighted_f1" not in agg
+    assert _key("macro") in agg
+    assert _key("micro") in agg
+    assert _key("weighted") not in agg
     assert len(agg) == 2
 
 
@@ -154,7 +159,7 @@ def test_f1_binary_classification():
     metric = F1()
     agg, items = metric.score(outputs, labels)
 
-    assert "macro_f1" in agg
+    assert _key("macro") in agg
     assert items == [True, False, True, False, True]
 
 
@@ -166,9 +171,9 @@ def test_f1_multiclass_classification():
     metric = F1(average="all")
     agg, items = metric.score(outputs, labels)
 
-    assert "macro_f1" in agg
-    assert "micro_f1" in agg
-    assert "weighted_f1" in agg
+    assert _key("macro") in agg
+    assert _key("micro") in agg
+    assert _key("weighted") in agg
     assert items == [True, True, False, False, True]
 
 
@@ -182,4 +187,4 @@ def test_f1_custom_kwargs():
     agg, items = metric.score(outputs, labels)
 
     # Should not raise and should use custom zero_division
-    assert "macro_f1" in agg
+    assert _key("macro") in agg

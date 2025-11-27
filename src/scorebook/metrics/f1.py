@@ -64,8 +64,8 @@ class F1(MetricBase):
         Returns:
             Tuple containing:
                 - aggregate_scores (Dict[str, float]): Dictionary with F1 scores
-                  keyed by averaging method (e.g., {"macro_f1": 0.85} or
-                  {"macro_f1": 0.85, "micro_f1": 0.82}).
+                  keyed by averaging method (e.g., {"F1 (macro)": 0.85} or
+                  {"F1 (macro)": 0.85, "F1 (micro)": 0.82}).
                 - item_scores (List[bool]): True/False list indicating correct
                   predictions.
 
@@ -81,7 +81,7 @@ class F1(MetricBase):
 
         # Handle empty lists
         if not outputs:
-            return {f"{method}_f1": 0.0 for method in methods}, []
+            return {f"F1 ({method})": 0.0 for method in methods}, []
 
         # Calculate F1 score using scikit-learn with configured averaging method
         # Default zero_division=0 unless overridden in kwargs
@@ -92,7 +92,7 @@ class F1(MetricBase):
 
         # Calculate F1 for each method
         aggregate_scores = {
-            f"{method}_f1": f1_score(labels, outputs, average=method, **kwargs)
+            f"F1 ({method})": f1_score(labels, outputs, average=method, **kwargs)
             for method in methods
         }
 
