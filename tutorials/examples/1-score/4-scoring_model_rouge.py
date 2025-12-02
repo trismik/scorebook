@@ -38,7 +38,7 @@ def main() -> Any:
     # Score the predictions against labels using the ROUGE metric
     results = score(
         items=model_predictions,
-        metrics=ROUGE,
+        metrics=ROUGE(rouge_types=["rouge1", "rougeL"], use_stemmer=True),
         upload_results=False,  # Disable uploading for this example
     )
 
@@ -49,8 +49,8 @@ def main() -> Any:
     print("\n\nIndividual ROUGE Scores:")
     for i, item_score in enumerate(results["item_results"]):
         print(f"\nItem {i+1}:")
-        print(f"  ROUGE-1 F1: {item_score['rouge']['rouge1']:.4f}")
-        print(f"  ROUGE-L F1: {item_score['rouge']['rougeL']:.4f}")
+        print(f"  ROUGE-1 F1: {item_score['rouge1']:.4f}")
+        print(f"  ROUGE-L F1: {item_score['rougeL']:.4f}")
 
     return results
 

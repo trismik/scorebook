@@ -1,10 +1,35 @@
 """Unit tests for the score() function."""
 
+from typing import Any, Dict, List, Tuple
+
 import pytest
 
 from scorebook import score
 from scorebook.exceptions import ParameterValidationError
 from scorebook.metrics.accuracy import Accuracy
+from scorebook.metrics.core.metric_base import MetricBase
+
+
+# Mock metrics for collision testing
+class MockMetricA(MetricBase):
+    """Mock metric that returns 'score' key (for collision testing)."""
+
+    def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+        return {"score": 0.8, "unique_a": 0.9}, [{"score": 0.8, "unique_a": 0.9}] * len(outputs)
+
+
+class MockMetricB(MetricBase):
+    """Mock metric that also returns 'score' key (for collision testing)."""
+
+    def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+        return {"score": 0.7, "unique_b": 0.6}, [{"score": 0.7, "unique_b": 0.6}] * len(outputs)
+
+
+class MockMetricC(MetricBase):
+    """Mock metric with unique keys (no collision)."""
+
+    def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+        return {"metric_c_score": 0.5}, [{"metric_c_score": 0.5}] * len(outputs)
 
 
 def test_score_basic():
@@ -265,3 +290,115 @@ def test_score_hyperparameters_must_be_dict():
             hyperparameters=[{"temperature": 0.5}, {"temperature": 0.7}],  # type: ignore
             upload_results=False,
         )
+
+
+# --- Metric key collision tests ---
+
+
+def test_score_multiple_metrics_with_colliding_keys():
+    """Test that colliding keys get suffixed with metric name."""
+    items = [
+        {"output": "a", "label": "a"},
+        {"output": "b", "label": "b"},
+    ]
+
+    results = score(
+        items=items,
+        metrics=[MockMetricA(), MockMetricB()],
+        upload_results=False,
+    )
+
+    aggregate = results["aggregate_results"][0]
+
+    # Colliding 'score' key should be suffixed with metric names
+    assert "score_mockmetrica" in aggregate
+    assert "score_mockmetricb" in aggregate
+    assert aggregate["score_mockmetrica"] == 0.8
+    assert aggregate["score_mockmetricb"] == 0.7
+
+    # Unique keys should NOT have suffix
+    assert "unique_a" in aggregate
+    assert "unique_b" in aggregate
+    assert aggregate["unique_a"] == 0.9
+    assert aggregate["unique_b"] == 0.6
+
+    # Item results should also have suffixed colliding keys
+    item = results["item_results"][0]
+    assert "score_mockmetrica" in item
+    assert "score_mockmetricb" in item
+    assert "unique_a" in item
+    assert "unique_b" in item
+
+
+def test_score_multiple_metrics_no_collision():
+    """Test that unique keys remain unsuffixed when no collision."""
+    items = [
+        {"output": "a", "label": "a"},
+    ]
+
+    results = score(
+        items=items,
+        metrics=[MockMetricA(), MockMetricC()],
+        upload_results=False,
+    )
+
+    aggregate = results["aggregate_results"][0]
+
+    # No collision for these keys, so no suffix
+    assert "score" in aggregate
+    assert "unique_a" in aggregate
+    assert "metric_c_score" in aggregate
+
+    # Should NOT have suffixed versions
+    assert "score_mockmetrica" not in aggregate
+    assert "score_mockmetricc" not in aggregate
+
+
+def test_score_multiple_metrics_item_level_collision():
+    """Test collision handling specifically for item-level dict scores."""
+    items = [
+        {"output": "x", "label": "x"},
+        {"output": "y", "label": "y"},
+    ]
+
+    results = score(
+        items=items,
+        metrics=[MockMetricA(), MockMetricB()],
+        upload_results=False,
+    )
+
+    # Check all items have properly suffixed keys
+    for item in results["item_results"]:
+        assert "score_mockmetrica" in item
+        assert "score_mockmetricb" in item
+        assert item["score_mockmetrica"] == 0.8
+        assert item["score_mockmetricb"] == 0.7
+        # Unique keys remain unsuffixed
+        assert "unique_a" in item
+        assert "unique_b" in item
+
+
+def test_score_three_metrics_partial_collision():
+    """Test with three metrics where only two have colliding keys."""
+    items = [
+        {"output": "test", "label": "test"},
+    ]
+
+    results = score(
+        items=items,
+        metrics=[MockMetricA(), MockMetricB(), MockMetricC()],
+        upload_results=False,
+    )
+
+    aggregate = results["aggregate_results"][0]
+
+    # 'score' collides between A and B, so both get suffixed
+    assert "score_mockmetrica" in aggregate
+    assert "score_mockmetricb" in aggregate
+    # 'score' without suffix should NOT exist (it was a collision)
+    assert "score" not in aggregate
+
+    # Unique keys from all three metrics should NOT have suffix
+    assert "unique_a" in aggregate
+    assert "unique_b" in aggregate
+    assert "metric_c_score" in aggregate
