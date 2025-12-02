@@ -21,7 +21,10 @@ scorebook = "scorebook.cli.main:main"
 
 [tool.poetry]
 version = "0.0.14"  # base version
-packages = [{ include = "scorebook", from = "src" }]
+packages = [
+    { include = "scorebook", from = "src" },
+    { include = "tutorials" }
+]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.14"
