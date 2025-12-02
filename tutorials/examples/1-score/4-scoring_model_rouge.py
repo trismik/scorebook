@@ -38,7 +38,7 @@ def main() -> Any:
     # Score the predictions against labels using the ROUGE metric
     results = score(
         items=model_predictions,
-        metrics=ROUGE,
+        metrics=ROUGE(rouge_types=["rouge1", "rougeL"], use_stemmer=True),
         upload_results=False,  # Disable uploading for this example
     )
 
