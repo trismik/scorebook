@@ -55,7 +55,7 @@ def test_bleu_empty_lists() -> None:
 
     agg, items = bleu.score(outputs, labels)
 
-    assert agg == {"accuracy": 0.0}
+    assert agg == {"BLEU": 0.0}
     assert items == []
 
 
