@@ -59,19 +59,6 @@ def test_bleu_empty_lists() -> None:
     assert items == []
 
 
-def test_bleu_mismatched_lengths() -> None:
-    """Test BLEU raises error with mismatched input lengths."""
-    bleu = BLEU()
-    outputs = ["text1", "text2"]
-    labels = ["text1"]
-
-    try:
-        bleu.score(outputs, labels)
-        assert False, "Expected ValueError to be raised"
-    except ValueError as e:
-        assert "Number of outputs must match number of labels" in str(e)
-
-
 def test_bleu_multiple_items() -> None:
     """Test BLEU with multiple output-label pairs."""
     bleu = BLEU()

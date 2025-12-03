@@ -26,6 +26,7 @@ EXAMPLE_FLAGS = {
     "1-score/2-scoring_model_bleu.py": True,
     "1-score/3-scoring_model_f1.py": True,
     "1-score/4-scoring_model_rouge.py": True,
+    "1-score/5-scoring_model_exact_match.py": True,
     # 2-evaluate: Evaluation examples
     "2-evaluate/1-evaluating_local_models.py": True,
     "2-evaluate/2-evaluating_local_models_with_batching.py": True,
