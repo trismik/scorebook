@@ -157,3 +157,81 @@ def test_exact_match_whitespace_only():
 
     assert agg == {"exact_match": 1.0}
     assert all(items)
+
+
+def test_exact_match_strip_punctuation():
+    """Test ExactMatch with strip_punctuation enabled."""
+    outputs = ["hello!", "?world", "...test..."]
+    labels = ["hello", "world", "test"]
+
+    metric = ExactMatch(strip_punctuation=True)
+    agg, items = metric.score(outputs, labels)
+
+    assert agg == {"exact_match": 1.0}
+    assert all(items)
+
+
+def test_exact_match_strip_punctuation_disabled():
+    """Test ExactMatch with strip_punctuation disabled (default)."""
+    outputs = ["hello!", "world", "test"]
+    labels = ["hello", "world", "test"]
+
+    metric = ExactMatch(strip_punctuation=False)
+    agg, items = metric.score(outputs, labels)
+
+    assert agg == {"exact_match": 2 / 3}
+    assert items == [False, True, True]
+
+
+def test_exact_match_strip_punctuation_only_edges():
+    """Test that strip_punctuation only removes leading/trailing punctuation."""
+    # Internal punctuation should NOT be removed
+    outputs = ["hello, world!", "it's a test", "foo-bar"]
+    labels = ["hello, world", "it's a test", "foo-bar"]
+
+    metric = ExactMatch(strip_punctuation=True)
+    agg, items = metric.score(outputs, labels)
+
+    assert agg == {"exact_match": 1.0}
+    assert all(items)
+
+
+def test_exact_match_strip_punctuation_preserves_internal():
+    """Test that internal punctuation is preserved with strip_punctuation."""
+    outputs = ["hello, world"]
+    labels = ["hello world"]
+
+    metric = ExactMatch(strip_punctuation=True)
+    agg, items = metric.score(outputs, labels)
+
+    # Should NOT match because comma is internal
+    assert agg == {"exact_match": 0.0}
+    assert items == [False]
+
+
+def test_exact_match_strip_punctuation_multiple():
+    """Test strip_punctuation with multiple punctuation marks at edges."""
+    outputs = ["!!!hello???", "...world...", "((test))"]
+    labels = ["hello", "world", "test"]
+
+    metric = ExactMatch(strip_punctuation=True)
+    agg, items = metric.score(outputs, labels)
+
+    assert agg == {"exact_match": 1.0}
+    assert all(items)
+
+
+def test_exact_match_all_preprocessing_options():
+    """Test ExactMatch with all preprocessing options enabled."""
+    outputs = ["  !!!Hello!!!  ", "  ???WORLD???  ", "  ...Test...  "]
+    labels = ["hello", "world", "test"]
+
+    metric = ExactMatch(
+        case_insensitive=True,
+        strip=True,
+        strip_punctuation=True,
+    )
+    agg, items = metric.score(outputs, labels)
+
+    assert agg == {"exact_match": 1.0}
+    assert all(items)

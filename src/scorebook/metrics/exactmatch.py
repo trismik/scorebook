@@ -1,5 +1,6 @@
 """Exact Match metric implementation for Scorebook."""
 
+import string
 from typing import Any, Dict, List, Tuple
 
 from scorebook.metrics import MetricBase, scorebook_metric
@@ -16,6 +17,8 @@ class ExactMatch(MetricBase):
             Defaults to True.
         strip: If True, strip leading and trailing whitespace before comparison.
             Defaults to True.
+        strip_punctuation: If True, strip leading and trailing punctuation before
+            comparison. Defaults to False.
     """
 
     @property
@@ -23,7 +26,12 @@ class ExactMatch(MetricBase):
         """Return the metric name."""
         return "exact_match"
 
-    def __init__(self, case_insensitive: bool = True, strip: bool = True) -> None:
+    def __init__(
+        self,
+        case_insensitive: bool = True,
+        strip: bool = True,
+        strip_punctuation: bool = False,
+    ) -> None:
         """Initialize ExactMatch metric with preprocessing options.
 
         Args:
@@ -31,9 +39,12 @@ class ExactMatch(MetricBase):
                 Defaults to True.
             strip: If True, strip leading and trailing whitespace before comparison.
                 Defaults to True.
+            strip_punctuation: If True, strip leading and trailing punctuation before
+                comparison. Defaults to False.
         """
         self.case_insensitive = case_insensitive
         self.strip = strip
+        self.strip_punctuation = strip_punctuation
 
     def _preprocess(self, value: Any) -> Any:
         """Apply preprocessing to a value if it's a string.
@@ -50,12 +61,14 @@ class ExactMatch(MetricBase):
         result = value
         if self.strip:
             result = result.strip()
+        if self.strip_punctuation:
+            result = result.strip(string.punctuation)
         if self.case_insensitive:
             result = result.lower()
         return result
 
     def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
-        """Calculate exact match score between predictions and references.
+        """Calculate the exact match score between predictions and references.
 
         Args:
             outputs: A list of inference outputs.
