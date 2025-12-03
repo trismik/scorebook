@@ -70,9 +70,6 @@ class F1(MetricBase):
                   predictions.
 
         """
-        if len(outputs) != len(labels):
-            raise ValueError("Number of outputs must match number of labels")
-
         # Normalize to list of methods to calculate
         if isinstance(self.average, str):
             methods = ["macro", "micro", "weighted"] if self.average == "all" else [self.average]

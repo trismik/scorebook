@@ -39,11 +39,8 @@ class BLEU(MetricBase):
             The item scores for each output-label pair (true/false).
         """
 
-        if len(outputs) != len(labels):
-            raise ValueError("Number of outputs must match number of labels")
-
         if not outputs:  # Handle empty lists
-            return {"accuracy": 0.0}, []
+            return {"BLEU": 0.0}, []
 
         item_scores = []
         # Calculate item scores

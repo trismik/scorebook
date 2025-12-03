@@ -58,16 +58,6 @@ def test_f1_empty_lists():
     assert items == []
 
 
-def test_f1_mismatched_lengths():
-    """Test F1 raises error for mismatched list lengths."""
-    outputs = ["A", "B"]
-    labels = ["A", "B", "C"]
-
-    metric = F1()
-    with pytest.raises(ValueError, match="Number of outputs must match number of labels"):
-        metric.score(outputs, labels)
-
-
 def test_f1_macro_averaging():
     """Test F1 with explicit macro averaging."""
     outputs = ["A", "A", "B", "B"]
