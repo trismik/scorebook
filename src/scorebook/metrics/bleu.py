@@ -40,7 +40,7 @@ class BLEU(MetricBase):
         """
 
         if not outputs:  # Handle empty lists
-            return {"accuracy": 0.0}, []
+            return {"BLEU": 0.0}, []
 
         item_scores = []
         # Calculate item scores
