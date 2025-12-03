@@ -28,9 +28,6 @@ class BertScore(MetricBase):
             The aggregate precision, recall F1 for all items.
             The item level precision, recall, F1 scores for each output-label pair.
         """
-        if len(outputs) != len(labels):
-            raise ValueError("Number of outputs must match number of labels")
-
         if not outputs:  # Handle empty lists
             return {"precision": 0.0, "recall": 0.0, "F1": 0.0}, []
 
