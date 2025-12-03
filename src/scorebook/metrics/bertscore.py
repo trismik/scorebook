@@ -25,8 +25,9 @@ class BertScore(MetricBase):
             labels: A list of ground truth labels.
 
         Returns:
-            The aggregate precision, recall F1 for all items.
-            The item level precision, recall, F1 scores for each output-label pair.
+            A tuple containing:
+                - aggregate_scores (Dict[str, float]): Dictionary with average precision, recall, and F1 scores for all items.
+                - item_scores (List[Dict[str, float]]): List of dictionaries with precision, recall, and F1 scores for each output-label pair.
         """
         if not outputs:  # Handle empty lists
             return {"precision": 0.0, "recall": 0.0, "F1": 0.0}, []
