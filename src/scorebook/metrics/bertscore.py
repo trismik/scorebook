@@ -10,7 +10,7 @@ from scorebook.metrics import scorebook_metric
 
 @scorebook_metric
 class BertScore(MetricBase):
-    """Bert score metric for evaluating model predictions against reference text."""
+    """BertScore metric for evaluating model predictions against reference text."""
 
     def __init__(self, **kwargs: Any) -> None:
         """Initialize BertScore metric."""
