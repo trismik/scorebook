@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Tuple
 
 import bert_score
 
-from scorebook.metrics.metric_base import MetricBase
-from scorebook.metrics.metric_registry import MetricRegistry
+from scorebook.metrics.core.metric_base import MetricBase
+from scorebook.metrics.core.metric_registry import MetricRegistry
 
 
 @MetricRegistry.register()
