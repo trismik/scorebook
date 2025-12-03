@@ -1,4 +1,4 @@
-"""Bertscore implementation for Scorebook."""
+"""BertScore implementation for Scorebook."""
 
 from typing import Any, Dict, List, Tuple
 
