@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Tuple
 
 import bert_score
 
-from scorebook.metrics.core.metric_base import MetricBase
 from scorebook.metrics import scorebook_metric
+from scorebook.metrics.core.metric_base import MetricBase
 
 
 @scorebook_metric
@@ -26,8 +26,10 @@ class BertScore(MetricBase):
 
         Returns:
             A tuple containing:
-                - aggregate_scores (Dict[str, float]): Dictionary with average precision, recall, and F1 scores for all items.
-                - item_scores (List[Dict[str, float]]): List of dictionaries with precision, recall, and F1 scores for each output-label pair.
+                - aggregate_scores (Dict[str, float]): Dictionary with average precision,
+                  recall, and F1 scores for all items.
+                - item_scores (List[Dict[str, float]]): List of dictionaries with precision,
+                  recall, and F1 scores for each output-label pair.
         """
         if not outputs:  # Handle empty lists
             return {"precision": 0.0, "recall": 0.0, "F1": 0.0}, []

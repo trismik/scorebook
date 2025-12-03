@@ -1,9 +1,10 @@
-"""Tutorials - Score - Example 2 - Scoring with BertScore."""
+"""Tutorials - Score - Example 6 - Scoring with BertScore."""
 
-import sys
 from pathlib import Path
 from pprint import pprint
 from typing import Any
+
+from dotenv import load_dotenv
 
 from scorebook.metrics.bertscore import BertScore
 
@@ -47,10 +48,10 @@ def main() -> Any:
 
 
 if __name__ == "__main__":
-
-    log_file = setup_logging(experiment_id="2-scoring_model_bertscore", base_dir=Path(__file__).parent)
+    load_dotenv()
+    log_file = setup_logging(experiment_id="6-scoring_model_bertscore", base_dir=Path(__file__).parent)
     output_dir = Path(__file__).parent / "results"
     output_dir.mkdir(exist_ok=True)
     results_dict = main()
-    save_results_to_json(results_dict, output_dir, "2-scoring_model_bertscore_output.json")
+    save_results_to_json(results_dict, output_dir, "6-scoring_model_bertscore_output.json")
 

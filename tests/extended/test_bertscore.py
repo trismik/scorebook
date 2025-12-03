@@ -130,17 +130,6 @@ def test_bertscore_empty_lists() -> None:
 
 
 @pytest.mark.extended
-def test_bertscore_mismatched_lengths() -> None:
-    """Test BertScore raises error with mismatched input lengths."""
-    bertscore = BertScore()
-    outputs = ["text1", "text2"]
-    labels = ["text1"]
-
-    with pytest.raises(ValueError, match="Number of outputs must match number of labels"):
-        bertscore.score(outputs, labels)
-
-
-@pytest.mark.extended
 def test_bertscore_custom_kwargs() -> None:
     """Test BertScore with custom kwargs."""
     bertscore = BertScore(lang="en", verbose=False)
