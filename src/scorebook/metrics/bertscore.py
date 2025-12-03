@@ -5,10 +5,10 @@ from typing import Any, Dict, List, Tuple
 import bert_score
 
 from scorebook.metrics.core.metric_base import MetricBase
-from scorebook.metrics.core.metric_registry import MetricRegistry
+from scorebook.metrics import scorebook_metric
 
 
-@MetricRegistry.register()
+@scorebook_metric
 class BertScore(MetricBase):
     """Bert score metric for evaluating model predictions against reference text."""
 
