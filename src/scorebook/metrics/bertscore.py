@@ -13,7 +13,7 @@ class BertScore(MetricBase):
     """Bert score metric for evaluating model predictions against reference text."""
 
     def __init__(self, **kwargs: Any) -> None:
-        """Initialize Bert score metric."""
+        """Initialize BertScore metric."""
         defaults = {"lang": "en", "verbose": False}
         self.kwargs = {**defaults, **kwargs}  # User kwargs override defaults
 
