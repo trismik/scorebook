@@ -33,7 +33,7 @@ def main() -> Any:
         },
     ]
 
-    # Score the predictions against labels using the accuracy metric
+    # Score the predictions against labels using the BertScore metric
     results = score(
         items=model_predictions,
         metrics=BertScore,
