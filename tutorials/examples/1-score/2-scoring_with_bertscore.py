@@ -1,4 +1,4 @@
-"""Tutorials - Score - Example 2 - Scoring with Bertscore."""
+"""Tutorials - Score - Example 2 - Scoring with BertScore."""
 
 import sys
 from pathlib import Path
