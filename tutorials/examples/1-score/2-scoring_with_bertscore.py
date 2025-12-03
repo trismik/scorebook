@@ -52,5 +52,5 @@ if __name__ == "__main__":
     output_dir = Path(__file__).parent / "results"
     output_dir.mkdir(exist_ok=True)
     results_dict = main()
-    save_results_to_json(results_dict, output_dir, "2-scoring_with_bertscore.json")
+    save_results_to_json(results_dict, output_dir, "2-scoring_model_bertscore_output.json")
 
