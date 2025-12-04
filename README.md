@@ -216,6 +216,7 @@ results = evaluate(
 | `F1`         | Sync       | `Dict[str, Float]`: F1 scores per averaging method (macro, micro, weighted) | `Boolean`: Exact match between output and label |
 | `BLEU`       | Sync       | `Float`: Corpus-level BLEU score                 | `Float`: Sentence-level BLEU score |
 | `ROUGE`      | Sync       | `Dict[str, Float]`: Average F1 scores per ROUGE type | `Dict[str, Float]`: F1 scores per ROUGE type |
+| `BertScore`  | Sync       | `Dict[str, Float]`: Average precision, recall, and F1 scores | `Dict[str, Float]`: Precision, recall, and F1 scores per item |
 
 
 ## Tutorials
