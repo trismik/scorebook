@@ -48,12 +48,9 @@ tomlkit = "^0.13.2"
 detect-secrets = "^1.5.0"
 
 [project.optional-dependencies]
-openai = ["openai"]
-portkey = ["portkey-ai"]
-bedrock = ["boto3==1.40.0"]
-vertex = ["google-genai", "pandas", "google-cloud-storage", "fsspec[gcs]"]
+providers = ["openai", "portkey-ai", "boto3==1.40.0", "google-genai", "pandas", "google-cloud-storage", "fsspec[gcs]"]
 examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook"]
-metrics = ["sacrebleu", "rouge-score", "scikit-learn>=1.0.0"]
+metrics = ["sacrebleu", "rouge-score", "scikit-learn>=1.0.0", "bert-score"]
 
 [build-system]
 requires = ["poetry-core"]
