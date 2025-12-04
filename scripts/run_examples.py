@@ -32,6 +32,7 @@ from typing import Dict, List, Set
 # Example Configuration with Requirements
 # =============================================================================
 
+
 @dataclass
 class Example:
     """Represents an example script with its requirements."""
