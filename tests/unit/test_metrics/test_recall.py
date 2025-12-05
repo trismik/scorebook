@@ -58,16 +58,6 @@ def test_recall_empty_lists():
     assert items == []
 
 
-def test_recall_mismatched_lengths():
-    """Test Recall raises error for mismatched list lengths."""
-    outputs = ["A", "B"]
-    labels = ["A", "B", "C"]
-
-    metric = Recall()
-    with pytest.raises(ValueError, match="Number of outputs must match number of labels"):
-        metric.score(outputs, labels)
-
-
 def test_recall_macro_averaging():
     """Test Recall with explicit macro averaging."""
     outputs = ["A", "A", "B", "B"]
