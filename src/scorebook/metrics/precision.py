@@ -19,7 +19,7 @@ class Precision(MetricBase):
         average: The averaging method(s) for multi-class classification.
             Can be a single string or list of strings:
             - 'macro': Unweighted mean across labels
-            - 'micro': Global calculation counting total TP, FP, FN
+            - 'micro': Global calculation counting total TP, FP
             - 'weighted': Weighted mean by support
             - 'all': All three methods simultaneously
             - List of methods: Calculate multiple methods
