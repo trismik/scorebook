@@ -1,10 +1,22 @@
-# Scorebook Examples
+# Scorebook Tutorials
 
-This directory contains comprehensive examples demonstrating how to use Scorebook for large language model evaluation. The examples are designed to be followed in order, with each building upon concepts from previous examples.
+This directory contains tutorials, examples, and quickstarts for learning Scorebook - a Python framework for evaluating large language models.
 
-## Overview
+## Directory Structure
 
-Scorebook is a Python framework for evaluating large language models across various datasets and metrics. It supports both local and cloud-based inference, batch processing, hyperparameter sweeps, and integration with the Trismik evaluation platform.
+```
+tutorials/
+├── quickstarts/           # Quick start notebooks for getting up and running
+├── notebooks/             # Interactive Jupyter notebooks
+├── examples/              # Python script examples organized by topic
+│   ├── 1-score/           # Scoring pre-computed outputs
+│   ├── 2-evaluate/        # Running evaluations
+│   ├── 3-evaluation_datasets/  # Loading datasets
+│   ├── 4-adaptive_evaluations/ # Trismik adaptive testing
+│   ├── 5-upload_results/  # Uploading to Trismik
+│   └── 6-providers/       # Cloud provider integrations
+└── utils/                 # Helper utilities for examples
+```
 
 ## Getting Started
 
@@ -12,160 +24,124 @@ Scorebook is a Python framework for evaluating large language models across vari
 
 - Python 3.9+
 - Install Scorebook: `pip install scorebook`
-- For local examples: `pip install scorebook[examples]` (includes transformers, torch, etc.)
+- For local model examples: `pip install scorebook[examples]` (includes transformers, torch)
 - For cloud examples: `pip install scorebook[openai]` and set `OPENAI_API_KEY`
-- For Trismik examples: Set `TRISMIK_API_KEY` environment variable
+- For Trismik features: Set `TRISMIK_API_KEY` environment variable
 
-### Basic Workflow
+### Quickstarts
 
-Most Scorebook evaluations follow this pattern:
-1. Create an `EvalDataset` from your evaluation data
-2. Define an inference function or `InferencePipeline`
-3. Run `evaluate()` with your model, dataset, and hyperparameters
-4. Analyze results and optionally upload to Trismik dashboard
+Start here for a rapid introduction:
+
+```bash
+jupyter notebook tutorials/quickstarts/getting_started.ipynb
+```
+
+Available quickstarts:
+- `getting_started.ipynb` - Introduction to Scorebook basics
+- `classical_evaluations/` - Standard evaluation workflows
+- `adaptive_evaluations/` - Trismik's adaptive testing feature
+
+### Notebooks
+
+Interactive tutorials covering core concepts:
+
+```bash
+jupyter notebook tutorials/notebooks/
+```
+
+| Notebook | Description |
+|----------|-------------|
+| `1-scoring.ipynb` | Score pre-computed model outputs |
+| `2-evaluating.ipynb` | Run full evaluation pipelines |
+| `3.1-adaptive_evaluation_phi.ipynb` | Adaptive evaluation with local models |
+| `3.2-adaptive_evaluation_gpt.ipynb` | Adaptive evaluation with OpenAI |
+| `4-uploading_results.ipynb` | Upload results to Trismik dashboard |
 
 ## Examples
 
-### 1. Simple Evaluation: `example_1_simple_evaluation.py`
-**Concepts:** Basic evaluation workflow, EvalDataset creation, inference function
-
-Learn the fundamentals of Scorebook by evaluating a Phi-4 model on basic questions. Shows how to create a dataset from a list, define a simple inference function, and run evaluation with accuracy metrics.
-
-**Key Features:**
-- Creating datasets with `EvalDataset.from_list()`
-- Simple inference function with transformers pipeline
-- Basic hyperparameter configuration
-
-### 2. Evaluation Datasets: `example_2_evaluation_datasets.py`
-**Concepts:** Multiple data formats, HuggingFace integration, dataset sampling
-
-Explore different ways to load evaluation datasets including local files (JSON, CSV) and HuggingFace datasets (MMLU, MMLU-Pro). Demonstrates dataset sampling for quick testing on large datasets.
-
-**Key Features:**
-- `EvalDataset.from_json()`, `from_csv()`, `from_huggingface()`
-- Loading datasets like MMLU and MMLU-Pro
-- Using `sample_size` for quick testing
-- Evaluating multiple datasets simultaneously
-
-### 3. Inference Pipelines: `example_3_inference_pipelines.py`
-**Concepts:** Pipeline architecture, preprocessing, postprocessing
-
-Learn Scorebook's modular pipeline architecture that separates evaluation into three stages: preprocessing (data → model input), inference (model prediction), and postprocessing (model output → final answer).
-
-**Key Features:**
-- `InferencePipeline` with separate preprocessor, inference, and postprocessor functions
-- Reusable and composable evaluation components
-- Structured approach to model evaluation
-
-### 4. Batch Inference: `example_4_batch_inference.py`
-**Concepts:** Local batch processing, performance optimization
-
-Optimize evaluation performance by processing multiple items simultaneously. Shows how to implement batch inference for improved GPU utilization and faster evaluation times.
-
-**Key Features:**
-- Batch processing for improved throughput
-- Performance debugging and monitoring
-- Memory-efficient evaluation of large datasets
-
-### 5. Cloud Inference: `example_5_cloud_inference.py`
-**Concepts:** OpenAI API integration, cloud-hosted models
-
-Evaluate cloud-hosted models using OpenAI's API. Demonstrates how to adapt inference pipelines for cloud providers with proper error handling and response parsing.
-
-**Key Features:**
-- OpenAI API integration with `scorebook.inference.openai.responses`
-- Cloud provider authentication
-- Parallel inference for improved speed
-- Error handling for API responses
-
-### 6. Cloud Batch Inference: `example_6_cloud_batch_inference.py`
-**Concepts:** OpenAI Batch API, cost-effective large-scale evaluation
-
-Use OpenAI's Batch API for cost-effective evaluation of large datasets. Shows how to format requests for batch processing and handle asynchronous batch results.
-
-**Key Features:**
-- OpenAI Batch API integration with `scorebook.inference.openai.batch`
-- Cost-effective evaluation for large datasets
-- Asynchronous batch processing
-- Batch request formatting and result parsing
-
-### 7. Hyperparameter Sweeps: `example_7_hyperparameters.py`
-**Concepts:** Grid search, parameter optimization, systematic evaluation
-
-Systematically evaluate models across multiple hyperparameter configurations. Scorebook automatically generates all combinations (Cartesian product) and runs separate evaluations for each configuration.
-
-**Key Features:**
-- Automatic grid generation from hyperparameter lists
-- Multiple parameter optimization (temperature, top_p, top_k)
-- Systematic configuration comparison
-- Performance analysis across parameter space
-
-### 8. Uploading Results: `example_8_uploading_results.py`
-**Concepts:** Trismik integration, result persistence, experiment tracking
-
-Upload evaluation results to Trismik's dashboard for persistence, sharing, and analysis. Shows how to organize experiments with metadata and project structure.
-
-**Key Features:**
-- Trismik authentication with `login()`
-- Experiment and project organization
-- Result persistence and sharing
-- Metadata attachment for experiment context
-
-### 9. Adaptive Evaluation: `example_9_adaptive_eval.py`
-**Concepts:** Adaptive testing, intelligent dataset sampling, Trismik platform
-
-Use Trismik's adaptive evaluation to intelligently select evaluation items based on model performance. Reduces evaluation time while maintaining statistical significance.
-
-**Key Features:**
-- Adaptive dataset selection with `:adaptive` suffix
-- Intelligent sampling based on model performance
-- Integration with Trismik's adaptive algorithms
-- Efficient evaluation of large benchmark datasets
-
-## Example Datasets
-
-The `example_datasets/` directory contains sample data files:
-- `basic_questions.json/csv`: Simple Q&A pairs for demonstration
-- Used across multiple examples for consistency
-
-## Helper Functions
-
-The `example_helpers/` directory provides utility functions used across examples:
-- Logging setup and output directory management
-- Result saving and experiment organization
-- OpenAI model configuration and parsing
-
-## Running Examples
-
-Each example can be run independently:
+Python scripts demonstrating specific features. Run examples from the project root:
 
 ```bash
-# Run a specific example
-python examples/example_1_simple_evaluation.py
-
-# Examples with dependencies will show helpful error messages if prerequisites are missing
+python tutorials/examples/1-score/1-scoring_model_accuracy.py
 ```
+### 1-score: Scoring Pre-computed Outputs
 
-Results are automatically saved to `examples/example_results/` with experiment-specific subdirectories.
+Score model predictions that have already been generated.
 
-## Next Steps
+| Example | Description |
+|---------|-------------|
+| `1-scoring_model_accuracy.py` | Score outputs using accuracy metric |
+| `2-scoring_model_bleu.py` | Score using BLEU metric |
+| `3-scoring_model_f1.py` | Score using F1 metric |
+| `4-scoring_model_rouge.py` | Score using ROUGE metric |
 
-After working through these examples:
+### 2-evaluate: Running Evaluations
 
-1. **Adapt to your use case**: Modify inference functions for your specific models and tasks
-2. **Create custom datasets**: Use your own evaluation data with `EvalDataset.from_*` methods
-3. **Implement custom metrics**: Define domain-specific evaluation metrics beyond accuracy
-4. **Scale up**: Use cloud inference and batch processing for large-scale evaluations
-5. **Track experiments**: Set up Trismik integration for result persistence and analysis
+End-to-end evaluation workflows with inference.
+
+| Example | Description | Requirements |
+|---------|-------------|--------------|
+| `1-evaluating_local_models.py` | Basic evaluation with local HuggingFace model | - |
+| `2-evaluating_local_models_with_batching.py` | Batch processing for improved throughput | - |
+| `3-evaluating_cloud_models.py` | Evaluate using OpenAI API | OpenAI API key |
+| `4-evaluating_cloud_models_with_batching.py` | OpenAI Batch API for cost savings | OpenAI API key |
+| `5-hyperparameter_sweeps.py` | Test multiple hyperparameter configurations | - |
+| `6-inference_pipelines.py` | Modular preprocessing/inference/postprocessing | - |
+
+### 3-evaluation_datasets: Loading Datasets
+
+Different ways to load evaluation data.
+
+| Example | Description | Requirements |
+|---------|-------------|--------------|
+| `1-evaluation_datasets_from_files.py` | Load from JSON/CSV files | - |
+| `2-evaluation_datasets_from_huggingface.py` | Load from HuggingFace Hub | OpenAI API key |
+| `3-evaluation_datasets_from_huggingface_with_yaml_configs.py` | Use YAML configs for HuggingFace datasets | OpenAI API key |
+
+### 4-adaptive_evaluations: Trismik Adaptive Testing
+
+Efficient evaluation using Item Response Theory (IRT).
+
+| Example | Description | Requirements |
+|---------|-------------|--------------|
+| `1-adaptive_evaluation.py` | Basic adaptive evaluation | Trismik + OpenAI |
+| `2-adaptive_dataset_splits.py` | Adaptive evaluation with dataset splits | Trismik + OpenAI |
+
+### 5-upload_results: Uploading to Trismik
+
+Persist and share results on the Trismik dashboard.
+
+| Example | Description | Requirements |
+|---------|-------------|--------------|
+| `1-uploading_score_results.py` | Upload `score()` results | Trismik API key |
+| `2-uploading_evaluate_results.py` | Upload `evaluate()` results | Trismik API key |
+| `3-uploading_your_results.py` | Upload custom results | Trismik API key |
+
+### 6-providers: Cloud Provider Integrations
+
+Batch processing with different cloud providers.
+
+#### AWS Bedrock (`6-providers/aws/`)
+- `batch_example.py` - Batch inference with Claude models via AWS Bedrock
+
+**Requirements:** AWS CLI configured, S3 bucket, IAM role for Bedrock
+
+#### Google Cloud Vertex AI (`6-providers/vertex/`)
+- `batch_example.py` - Batch inference with Gemini models
+- `messages_example.py` - Real-time inference with Gemini
+
+**Requirements:** Google Cloud SDK, Vertex AI enabled project
+
+#### Portkey (`6-providers/portkey/`)
+- `batch_example.py` - Batch inference via Portkey gateway
+- `messages_example.py` - Real-time inference via Portkey
+
+**Requirements:** Portkey API key, linked provider account
 
 ## Additional Resources
 
 - [Scorebook Documentation](https://docs.trismik.com/)
 - [Trismik Platform](https://trismik.com)
 - [API Reference](https://docs.trismik.com/category/reference/)
-
-## Support
-
-For questions or issues:
-- Check the [GitHub Issues](https://github.com/trismik/scorebook/issues)
+- [GitHub Issues](https://github.com/trismik/scorebook/issues)
 - Contact support at support@trismik.com

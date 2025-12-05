@@ -113,8 +113,6 @@ async def evaluate_async(
         with evaluation_progress_context(
             total_eval_runs=len(eval_run_specs),
             total_items=total_items,
-            dataset_count=len(datasets),
-            hyperparam_count=len(hyperparameter_configs),
             model_display=model_display,
             enabled=show_progress_bars,
         ) as progress_bars:
@@ -151,19 +149,31 @@ async def execute_runs(
     async def worker(
         run: Union[EvalRunSpec, AdaptiveEvalRunSpec]
     ) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
+        # Create progress callback for adaptive evals
+        on_progress: Optional[Callable[[int, int], None]] = None
+        if progress_bars is not None and isinstance(run, AdaptiveEvalRunSpec):
+
+            def _on_progress(current: int, total: int) -> None:
+                progress_bars.on_item_progress(current, total)
+
+            on_progress = _on_progress
+
         # Execute run (score_async handles upload internally for classic evals)
         run_result = await execute_run(
-            inference, run, upload_results, experiment_id, project_id, metadata, trismik_client
+            inference,
+            run,
+            upload_results,
+            experiment_id,
+            project_id,
+            metadata,
+            trismik_client,
+            on_progress,
         )
 
         # Update progress bars with items processed and success status
         if progress_bars is not None:
-            # Classic evals have .items; adaptive evals use max_iterations
-            items_processed = (
-                len(run.dataset.items)
-                if isinstance(run, EvalRunSpec)
-                else evaluation_settings["max_iterations"]
-            )
+            # Classic evals: update items count; Adaptive evals: items already tracked via callback
+            items_processed = len(run.dataset.items) if isinstance(run, EvalRunSpec) else 0
             progress_bars.on_run_completed(items_processed, run_result.run_completed)
 
         # Update upload progress for classic evals
@@ -195,11 +205,12 @@ async def execute_runs(
 async def execute_run(
     inference: Callable,
     run: Union[EvalRunSpec, AdaptiveEvalRunSpec],
-    upload_results: bool,  # NEW PARAMETER
+    upload_results: bool,
     experiment_id: Optional[str] = None,
     project_id: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
     trismik_client: Optional[Union[TrismikClient, TrismikAsyncClient]] = None,
+    on_progress: Optional[Callable[[int, int], None]] = None,
 ) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
     """Execute a single evaluation run."""
 
@@ -218,6 +229,7 @@ async def execute_run(
             resolved_project_id,
             metadata,
             trismik_client,
+            on_progress,
         )
 
     else:
@@ -338,6 +350,7 @@ async def execute_adaptive_eval_run(
     project_id: str,
     metadata: Optional[Dict[str, Any]] = None,
     trismik_client: Optional[Union[TrismikClient, TrismikAsyncClient]] = None,
+    on_progress: Optional[Callable[[int, int], None]] = None,
 ) -> AdaptiveEvalRunResult:
     """Execute an adaptive evaluation run."""
     logger.debug("Executing adaptive run for %s", run)
@@ -347,7 +360,7 @@ async def execute_adaptive_eval_run(
             raise ScoreBookError("Trismik client is required for adaptive evaluation")
 
         adaptive_eval_run_result = await run_adaptive_evaluation(
-            inference, run, experiment_id, project_id, metadata, trismik_client
+            inference, run, experiment_id, project_id, metadata, trismik_client, on_progress
         )
         logger.debug("Adaptive evaluation completed for run %s", adaptive_eval_run_result)
 
@@ -365,6 +378,7 @@ async def run_adaptive_evaluation(
     project_id: str,
     metadata: Any,
     trismik_client: Union[TrismikClient, TrismikAsyncClient],
+    on_progress: Optional[Callable[[int, int], None]] = None,
 ) -> AdaptiveEvalRunResult:
     """Run an adaptive evaluation using the Trismik API.
 
@@ -375,6 +389,7 @@ async def run_adaptive_evaluation(
         project_id: Trismik project ID
         metadata: Additional metadata
         trismik_client: Trismik client instance
+        on_progress: Optional callback for progress updates (current, total)
     Returns:
         Results from the adaptive evaluation
     """
@@ -404,6 +419,7 @@ async def run_adaptive_evaluation(
             inference_setup={},
         ),
         item_processor=make_trismik_inference(inference_with_hyperparams),
+        on_progress=on_progress,
         return_dict=False,
     )
 
