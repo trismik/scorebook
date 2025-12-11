@@ -53,7 +53,7 @@ The following will be verified by GitHub Actions:
 
 ## Release Process
 
-After approval, follow the [Publishing to PyPI cookbook](https://www.notion.so/Publishing-to-PyPi-TestPyPi-23e6e966517180bbac29fb71bf1ec68d):
+After approval, follow the release process documented in [RELEASE.md](../../RELEASE.md) (or your project's release documentation):
 
 1. [ ] Merge this PR to main
 2. [ ] Create a GitHub release with tag `vX.Y.Z`
