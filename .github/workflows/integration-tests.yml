@@ -2,6 +2,15 @@ name: Integration Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to run tests against'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+          - stage
 
 jobs:
   integration-tests:
@@ -37,5 +46,7 @@ jobs:
 
       - name: Run integration tests
         env:
+          USE_TRISMIK_STAGE: ${{ inputs.environment == 'stage' && 'true' || 'false' }}
           TRISMIK_API_KEY: ${{ secrets.TRISMIK_API_KEY }}
+          TRISMIK_API_KEY_STAGE: ${{ secrets.TRISMIK_API_KEY_STAGE }}
         run: poetry run pytest tests/integration -m "integration" -v
