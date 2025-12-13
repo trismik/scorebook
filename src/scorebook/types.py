@@ -101,6 +101,7 @@ class AdaptiveEvalRunResult:
     run_spec: AdaptiveEvalRunSpec
     run_completed: bool
     scores: Dict[str, Any]
+    run_id: Optional[str] = None
 
     @property
     def aggregate_scores(self) -> Dict[str, Any]:

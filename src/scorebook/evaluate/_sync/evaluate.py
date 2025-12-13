@@ -367,7 +367,7 @@ def execute_adaptive_eval_run(
 
     except Exception as e:
         logger.warning("Failed to complete adaptive eval run for %s: %s", run, str(e))
-        return AdaptiveEvalRunResult(run, False, {})
+        return AdaptiveEvalRunResult(run_spec=run, run_completed=False, scores={}, run_id=None)
 
 
 def run_adaptive_evaluation(
@@ -446,4 +446,10 @@ def run_adaptive_evaluation(
     # Make scores JSON serializable
     scores = make_json_serializable(scores)
 
-    return AdaptiveEvalRunResult(run_spec=adaptive_run_spec, run_completed=True, scores=scores)
+    # Extract run_id from the Trismik results
+    # TODO is it run or run_id
+    run_id = getattr(trismik_results, "run_id", None) or getattr(trismik_results, "id", None)
+
+    return AdaptiveEvalRunResult(
+        run_spec=adaptive_run_spec, run_completed=True, scores=scores, run_id=run_id
+    )
