@@ -17,6 +17,8 @@ from scorebook.evaluate._async.evaluate_async import evaluate_async
 from scorebook.evaluate._sync.evaluate import evaluate
 from scorebook.inference.inference_pipeline import InferencePipeline
 from scorebook.metrics.core.metric_registry import scorebook_metric
+from scorebook.replay._async.replay_async import replay_async
+from scorebook.replay._sync.replay import replay
 from scorebook.score._async.score_async import score_async
 from scorebook.score._sync.score import score
 from scorebook.utils.render_template import render_template
@@ -25,6 +27,8 @@ __all__ = [
     "EvalDataset",
     "evaluate",
     "evaluate_async",
+    "replay",
+    "replay_async",
     "score",
     "score_async",
     "render_template",
