@@ -447,8 +447,7 @@ def run_adaptive_evaluation(
     scores = make_json_serializable(scores)
 
     # Extract run_id from the Trismik results
-    # TODO is it run or run_id
-    run_id = getattr(trismik_results, "run_id", None) or getattr(trismik_results, "id", None)
+    run_id = trismik_results.run_id
 
     return AdaptiveEvalRunResult(
         run_spec=adaptive_run_spec, run_completed=True, scores=scores, run_id=run_id
