@@ -46,25 +46,6 @@ async def replay_async(
 
     Returns:
         Replay results containing theta scores and std_error
-
-    Example:
-        >>> # Original run
-        >>> result = await evaluate_async(
-        ...     inference=model_v1,
-        ...     datasets="my_test:adaptive",
-        ...     experiment_id="exp1",
-        ...     project_id="proj1",
-        ...     return_dict=False
-        ... )
-        >>> original_run_id = result.run_results[0].run_id
-        >>>
-        >>> # Replay with new model
-        >>> replay_result = await replay_async(
-        ...     inference=model_v2,
-        ...     previous_run_id=original_run_id,
-        ...     experiment_id="exp1",
-        ...     project_id="proj1",
-        ... )
     """
     # Validate required parameters
     if not experiment_id or not project_id:
@@ -143,9 +124,9 @@ async def execute_replay(
 
         # Extract scores from the results
         scores = {}
-        if hasattr(trismik_results, "score") and trismik_results.score:
+        if hasattr(trismik_results, "score") and trismik_results.score is not None:
             scores = {"score": trismik_results.score}
-        elif hasattr(trismik_results, "scores") and trismik_results.scores:
+        elif hasattr(trismik_results, "scores") and trismik_results.scores is not None:
             scores = trismik_results.scores
 
         # Make scores JSON serializable
