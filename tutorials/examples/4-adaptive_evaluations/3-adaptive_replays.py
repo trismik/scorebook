@@ -68,12 +68,25 @@ async def main() -> Any:
     )
 
     # Extract the run_id from the original evaluation
-    original_run_id = original_results.run_results[0].run_id
+    original_run_result = original_results.run_results[0]
+    original_run_id = original_run_result.run_id
     original_scores = original_results.aggregate_scores[0]
 
     print(f"\nOriginal run completed!")
     print(f"Run ID: {original_run_id}")
     print(f"Model A (gpt-4o-mini) theta: {original_scores.get('score', {}).get('theta', 'N/A')}")
+
+    # Check if the original run succeeded before attempting replay
+    if not original_run_result.run_completed or original_run_id is None:
+        print("\nOriginal evaluation failed - cannot proceed with replay.")
+        print("Please ensure you have:")
+        print("  1. Set TRISMIK_API_KEY in your environment or .env file")
+        print("  2. Replaced 'TRISMIK-PROJECT-ID' with your actual project ID")
+        return {"error": "Original evaluation failed", "original_scores": original_scores}
+
+    # Wait for the run to be indexed before attempting replay
+    print("\nWaiting 30 seconds for run to be indexed...")
+    await asyncio.sleep(30)
 
     # Step 3: Replay the same questions with Model B
     print("\n" + "=" * 60)
@@ -144,10 +157,10 @@ async def run_inference(
         # Handle dict input from adaptive dataset
         if isinstance(input_val, dict):
             prompt = input_val.get("question", "")
-            if "options" in input_val:
+            if "choices" in input_val:
                 prompt += "\nOptions:\n" + "\n".join(
                     f"{letter}: {choice}"
-                    for letter, choice in zip(string.ascii_uppercase, input_val["options"])
+                    for letter, choice in zip(string.ascii_uppercase, input_val["choices"])
                 )
         else:
             prompt = str(input_val)
