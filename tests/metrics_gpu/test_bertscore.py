@@ -1,15 +1,12 @@
-"""Extended tests for BertScore metric.
+"""Tests for BertScore metric (requires bert-score package).
 
 These tests verify BertScore functionality without asserting exact values
 since BertScore is non-deterministic.
 """
 
-import pytest
-
 from scorebook.metrics.bertscore import BertScore
 
 
-@pytest.mark.extended
 def test_bertscore_returns_valid_structure() -> None:
     """Test that BertScore returns the expected structure."""
     bertscore = BertScore()
@@ -30,7 +27,6 @@ def test_bertscore_returns_valid_structure() -> None:
     assert "F1" in items[0]
 
 
-@pytest.mark.extended
 def test_bertscore_scores_in_valid_range() -> None:
     """Test that BertScore returns scores in valid range [0, 1]."""
     bertscore = BertScore()
@@ -52,7 +48,6 @@ def test_bertscore_scores_in_valid_range() -> None:
     assert -eps <= items[0]["F1"] <= 1.0 + eps
 
 
-@pytest.mark.extended
 def test_bertscore_similar_texts_high_score() -> None:
     """Test that similar texts produce relatively high scores."""
     bertscore = BertScore()
@@ -66,7 +61,6 @@ def test_bertscore_similar_texts_high_score() -> None:
     assert items[0]["F1"] > 0.9
 
 
-@pytest.mark.extended
 def test_bertscore_dissimilar_texts_lower_score() -> None:
     """Test that dissimilar texts produce lower scores than similar texts."""
     bertscore = BertScore()
@@ -85,7 +79,6 @@ def test_bertscore_dissimilar_texts_lower_score() -> None:
     assert similar_agg["F1"] > dissimilar_agg["F1"]
 
 
-@pytest.mark.extended
 def test_bertscore_multiple_items() -> None:
     """Test BertScore with multiple output-label pairs."""
     bertscore = BertScore()
@@ -116,7 +109,6 @@ def test_bertscore_multiple_items() -> None:
     assert items[0]["F1"] > items[2]["F1"]
 
 
-@pytest.mark.extended
 def test_bertscore_empty_lists() -> None:
     """Test BertScore with empty inputs."""
     bertscore = BertScore()
@@ -129,7 +121,6 @@ def test_bertscore_empty_lists() -> None:
     assert items == []
 
 
-@pytest.mark.extended
 def test_bertscore_custom_kwargs() -> None:
     """Test BertScore with custom kwargs."""
     bertscore = BertScore(lang="en", verbose=False)

@@ -18,7 +18,7 @@ dependencies = [
 scorebook = "scorebook.cli.main:main"
 
 [tool.poetry]
-version = "0.0.14"  # base version
+version = "0.0.15"  # base version
 packages = [
     { include = "scorebook", from = "src" },
     { include = "tutorials" }
@@ -51,7 +51,9 @@ detect-secrets = "^1.5.0"
 [project.optional-dependencies]
 providers = ["openai", "portkey-ai", "boto3==1.40.0", "google-genai", "pandas", "google-cloud-storage", "fsspec[gcs]"]
 examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook"]
-metrics = ["sacrebleu", "rouge-score", "scikit-learn>=1.0.0", "bert-score"]
+metrics-cpu = ["sacrebleu", "rouge-score", "scikit-learn>=1.0.0"]
+metrics-gpu = ["bert-score"]
+metrics = ["scorebook[metrics-cpu,metrics-gpu]"]
 
 [build-system]
 requires = ["poetry-core"]
@@ -61,8 +63,9 @@ build-backend = "poetry.core.masonry.api"
 asyncio_default_fixture_loop_scope = "class"
 testpaths = ["tests/unit"]
 markers = [
-    "unit: Unit tests that use mocks and don't require external dependencies",
-    "extended: Extended tests that may take longer or test specific functionality",
+    "unit: Unit tests using only core dependencies (no optional packages)",
+    "metrics_cpu: Tests requiring metrics-cpu extras (sklearn, sacrebleu, rouge-score)",
+    "metrics_gpu: Tests requiring metrics-gpu extras (bert-score)",
     "integration: Integration tests that may require network access or external services",
 ]
 

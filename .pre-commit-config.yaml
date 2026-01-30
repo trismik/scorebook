@@ -82,7 +82,7 @@ repos:
         files: ^src/scorebook/(evaluate|score)/_async/.*\.py$
     -   id: pytest
         name: pytest
-        entry: poetry run pytest tests/unit -m "not extended"
+        entry: poetry run pytest tests/unit
         language: system
         pass_filenames: false
         always_run: true

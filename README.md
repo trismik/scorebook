@@ -9,6 +9,9 @@
     <img alt="Documentation" src="https://img.shields.io/badge/docs-Scorebook-blue?style=flat">
   </a>
   <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
+  <a target="_blank" href="https://colab.research.google.com/github/https://colab.research.google.com/github/trismik/scorebook/blob/main/tutorials/quickstarts/getting_started.ipynb">
+    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+  </a>
 </p>
 
 Scorebook provides a flexible and extensible framework for evaluating models such as large language models (LLMs). Easily evaluate any model using evaluation datasets from Hugging Face such as MMLU-Pro, HellaSwag, and CommonSenseQA, or with data from any other source. Evaluations calculate scores for any number of specified metrics such as accuracy, precision, and recall, as well as any custom defined metrics, including LLM as a judge (LLMaJ).

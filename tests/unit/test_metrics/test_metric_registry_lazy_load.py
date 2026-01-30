@@ -1,6 +1,6 @@
 """Tests for lazy loading metrics without explicit imports.
 
-This test module deliberately does NOT import Accuracy or Precision metrics
+This test module deliberately does NOT import Accuracy metric
 to verify that the lazy loading mechanism in MetricRegistry works correctly.
 """
 
@@ -30,23 +30,6 @@ def test_lazy_load_accuracy():
     # Should return perfect accuracy
     assert scores["accuracy"] == 1.0
     assert all(item_results)  # All items should be correct
-
-
-def test_lazy_load_precision():
-    """Test that precision metric can be loaded via lazy loading without explicit import."""
-    # No import of Precision class - should be loaded via lazy loading
-    metric = MetricRegistry.get("precision")
-
-    # Verify it was loaded and is an instance of the correct class
-    assert metric is not None
-    assert metric.name == "precision"
-    assert hasattr(metric, "score")
-
-    # Verify it's actually in the registry now
-    assert "precision" in MetricRegistry._registry
-
-    # Note: Precision metric is not yet implemented, so we just verify it can be loaded
-    # When it's implemented, we can test that it actually scores correctly
 
 
 def test_lazy_load_case_variations():
