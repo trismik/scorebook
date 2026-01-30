@@ -51,9 +51,7 @@ detect-secrets = "^1.5.0"
 [project.optional-dependencies]
 providers = ["openai", "portkey-ai", "boto3==1.40.0", "google-genai", "pandas", "google-cloud-storage", "fsspec[gcs]"]
 examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook"]
-metrics-cpu = ["sacrebleu", "rouge-score", "scikit-learn>=1.0.0"]
-metrics-gpu = ["bert-score"]
-metrics = ["scorebook[metrics-cpu,metrics-gpu]"]
+metrics = ["sacrebleu", "rouge-score", "scikit-learn>=1.0.0", "bert-score"]
 
 [build-system]
 requires = ["poetry-core"]
@@ -64,8 +62,7 @@ asyncio_default_fixture_loop_scope = "class"
 testpaths = ["tests/unit"]
 markers = [
     "unit: Unit tests using only core dependencies (no optional packages)",
-    "metrics_cpu: Tests requiring metrics-cpu extras (sklearn, sacrebleu, rouge-score)",
-    "metrics_gpu: Tests requiring metrics-gpu extras (bert-score)",
+    "metrics: Tests requiring metrics extras (sklearn, sacrebleu, rouge-score, bert-score)",
     "integration: Integration tests that may require network access or external services",
 ]
 
