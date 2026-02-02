@@ -52,7 +52,7 @@ setuptools = "^75.0.0"
 
 [project.optional-dependencies]
 providers = ["openai", "portkey-ai", "boto3==1.40.0", "google-genai", "pandas", "google-cloud-storage", "fsspec[gcs]"]
-examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook"]
+examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook", "ipywidgets"]
 metrics = ["sacrebleu", "rouge-score", "scikit-learn>=1.0.0", "bert-score"]
 
 [build-system]
