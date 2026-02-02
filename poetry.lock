@@ -6445,14 +6445,14 @@ vision = ["Pillow (>=10.0.1,<=15.0)"]
 
 [[package]]
 name = "trismik"
-version = "1.0.2"
+version = "1.0.3"
 description = ""
 optional = false
-python-versions = "<3.14,>=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "trismik-1.0.2-py3-none-any.whl", hash = "sha256:91ee8e68d37405c1695b844f08e84f9d4f256934ad59bd25c7e270f9a749fcc3"},
-    {file = "trismik-1.0.2.tar.gz", hash = "sha256:0641ac94a101f2f6dd5d04777a180db21c7f5a5e6079b3b16be382a1585cf09f"},
+    {file = "trismik-1.0.3-py3-none-any.whl", hash = "sha256:a7347f3e640546d554ecd92deeefac0c9c61173ca87f9e48c5c13c1c8a6ccbdb"},
+    {file = "trismik-1.0.3.tar.gz", hash = "sha256:e629e3bc1d673512352eed84a319b9c7705201f655b3cd8d2e11dd6b695dc768"},
 ]
 
 [package.dependencies]
@@ -6460,7 +6460,7 @@ httpx = ">=0.27.2,<1.0.0"
 nest-asyncio = ">=1.6.0,<2.0.0"
 
 [package.extras]
-examples = ["accelerate (>=1.7.0,<2.0.0)", "jupyterlab (>=4.4.8)", "notebook (>=7.4.4,<8.0.0)", "openai (>=1.81.0,<2.0.0)", "torch (>=2.8.0,<3.0.0)", "torchaudio (>=2.7.0,<3.0.0)", "torchvision (>=0.22.0,<1.0.0)", "tqdm (>=4.67.1,<5.0.0)", "transformers (>=4.51.3,<5.0.0)"]
+examples = ["accelerate (>=1.7.0,<2.0.0)", "jupyterlab (>=4.4.8)", "notebook (>=7.4.4,<8.0.0)", "openai (>=2.16.0,<3.0.0)", "torch (>=2.10.0,<3.0.0) ; python_version < \"3.15\"", "tqdm (>=4.67.1,<5.0.0)", "transformers (>=5.0.0,<6.0.0)"]
 
 [[package]]
 name = "triton"
@@ -7033,4 +7033,4 @@ providers = ["boto3", "fsspec", "google-cloud-storage", "google-genai", "openai"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.14"
-content-hash = "341c5aa0251ad51d753065a8cf03a80e051679f4e73f8b45980d1e75d3669fe8"
+content-hash = "c699a67d64b3ae86dfaef7cfbd4d3f9784c14cf2216c3b58d19cf7870f6eedbd"
