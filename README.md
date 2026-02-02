@@ -9,7 +9,7 @@
     <img alt="Documentation" src="https://img.shields.io/badge/docs-Scorebook-blue?style=flat">
   </a>
   <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
-  <a target="_blank" href="https://colab.research.google.com/github/https://colab.research.google.com/github/trismik/scorebook/blob/main/tutorials/quickstarts/getting_started.ipynb">
+  <a target="_blank" href="https://colab.research.google.com/github/trismik/scorebook/blob/main/tutorials/quickstarts/getting_started.ipynb">
     <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
   </a>
 </p>
