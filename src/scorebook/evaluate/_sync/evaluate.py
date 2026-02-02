@@ -50,6 +50,7 @@ def evaluate(
     upload_results: Union[Literal["auto"], bool] = "auto",
     sample_size: Optional[int] = None,
     show_progress: Optional[bool] = None,
+    seed: Optional[int] = None,
 ) -> Union[Dict, List, EvalResult]:
     """
     Evaluate a model across a collection of hyperparameters and datasets.
@@ -70,6 +71,9 @@ def evaluate(
         sample_size: Optional number of items to sample from each dataset
         show_progress: If None, uses SHOW_PROGRESS_BARS from settings.
             If True/False, explicitly enables/disables progress bars for this evaluation.
+        seed: Random seed for reproducibility in adaptive evaluations. If provided,
+            the same seed with the same response history will produce the same
+            item sequence. Defaults to None (random).
 
     Returns:
         The evaluation results in the format specified by return parameters:
@@ -125,6 +129,7 @@ def evaluate(
                 metadata,
                 upload_results,
                 trismik_client,
+                seed,
             )
             logger.info("Synchronous evaluation complete")
 
@@ -150,6 +155,7 @@ def execute_runs(
     metadata: Optional[Dict[str, Any]] = None,
     upload_results: bool = False,
     trismik_client: Optional[Union[TrismikClient, TrismikAsyncClient]] = None,
+    seed: Optional[int] = None,
 ) -> EvalResult:
     """Run evaluation sequentially."""
 
@@ -179,6 +185,7 @@ def execute_runs(
                 metadata,
                 trismik_client,
                 on_progress,
+                seed,
             )
         except Exception as e:
             if not is_multi_run:
@@ -253,6 +260,7 @@ def execute_run(
     metadata: Optional[Dict[str, Any]] = None,
     trismik_client: Optional[Union[TrismikClient, TrismikAsyncClient]] = None,
     on_progress: Optional[Callable[[int, int], None]] = None,
+    seed: Optional[int] = None,
 ) -> Union[ClassicEvalRunResult, AdaptiveEvalRunResult]:
     """Execute a single evaluation run."""
 
@@ -272,6 +280,7 @@ def execute_run(
             metadata,
             trismik_client,
             on_progress,
+            seed,
         )
 
     else:
@@ -379,6 +388,7 @@ def execute_adaptive_eval_run(
     metadata: Optional[Dict[str, Any]] = None,
     trismik_client: Optional[Union[TrismikClient, TrismikAsyncClient]] = None,
     on_progress: Optional[Callable[[int, int], None]] = None,
+    seed: Optional[int] = None,
 ) -> AdaptiveEvalRunResult:
     """Execute an adaptive evaluation run."""
     logger.debug("Executing adaptive run for %s", run)
@@ -387,7 +397,7 @@ def execute_adaptive_eval_run(
         raise ScoreBookError("Trismik client is required for adaptive evaluation")
 
     adaptive_eval_run_result = run_adaptive_evaluation(
-        inference, run, experiment_id, project_id, metadata, trismik_client, on_progress
+        inference, run, experiment_id, project_id, metadata, trismik_client, on_progress, seed
     )
     logger.debug("Adaptive evaluation completed for run %s", adaptive_eval_run_result)
 
@@ -402,6 +412,7 @@ def run_adaptive_evaluation(
     metadata: Any,
     trismik_client: Union[TrismikClient, TrismikAsyncClient],
     on_progress: Optional[Callable[[int, int], None]] = None,
+    seed: Optional[int] = None,
 ) -> AdaptiveEvalRunResult:
     """Run an adaptive evaluation using the Trismik API.
 
@@ -413,6 +424,7 @@ def run_adaptive_evaluation(
         metadata: Additional metadata
         trismik_client: Trismik client instance
         on_progress: Optional callback for progress updates (current, total)
+        seed: Random seed for reproducibility (None = random)
     Returns:
         Results from the adaptive evaluation
     """
@@ -444,6 +456,7 @@ def run_adaptive_evaluation(
         item_processor=make_trismik_inference(inference_with_hyperparams),
         on_progress=on_progress,
         return_dict=False,
+        seed=seed,
     )
 
     # Convert TrismikRunResults to AdaptiveEvalRunResult
