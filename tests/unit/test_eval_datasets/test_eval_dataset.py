@@ -5,13 +5,13 @@ import pytest
 
 from scorebook import EvalDataset
 from scorebook.exceptions import DatasetConfigurationError, DatasetParseError
-from scorebook.metrics.precision import Precision
+from scorebook.metrics.exactmatch import ExactMatch
 
 
 def test_load_flat_dataset():
     json_dataset_path = Path(__file__).parent.parent / "data" / "Dataset.json"
     data_flat = EvalDataset.from_json(
-        str(json_dataset_path), metrics=Precision, input="input", label="label"
+        str(json_dataset_path), metrics=ExactMatch, input="input", label="label"
     )
     assert isinstance(data_flat, EvalDataset)
     assert len(data_flat) == 5
@@ -22,7 +22,7 @@ def test_load_flat_dataset():
 def test_load_split_dataset():
     json_dataset_dict_path = Path(__file__).parent.parent / "data" / "DatasetDict.json"
     data_split = EvalDataset.from_json(
-        str(json_dataset_dict_path), metrics=Precision, input="input", label="label", split="train"
+        str(json_dataset_dict_path), metrics=ExactMatch, input="input", label="label", split="train"
     )
     assert isinstance(data_split, EvalDataset)
     assert len(data_split) == 5
@@ -33,7 +33,7 @@ def test_load_split_dataset():
 def test_load_csv_dataset():
     csv_dataset_path = Path(__file__).parent.parent / "data" / "Dataset.csv"
     data_csv = EvalDataset.from_csv(
-        str(csv_dataset_path), metrics=Precision, input="input", label="label"
+        str(csv_dataset_path), metrics=ExactMatch, input="input", label="label"
     )
     assert isinstance(data_csv, EvalDataset)
     assert len(data_csv) == 5
@@ -41,7 +41,6 @@ def test_load_csv_dataset():
     assert "label" in data_csv.column_names
 
 
-@pytest.mark.unit
 def test_load_huggingface_dataset():
     """Test loading HuggingFace dataset (uses mock data, no network calls).
 
@@ -49,7 +48,7 @@ def test_load_huggingface_dataset():
     to avoid network dependencies and ensure fast, reliable tests.
     """
     data_hf = EvalDataset.from_huggingface(
-        "imdb", metrics=Precision, input="text", label="label", split="test"
+        "imdb", metrics=ExactMatch, input="text", label="label", split="test"
     )
     assert isinstance(data_hf, EvalDataset)
     assert len(data_hf) > 0
@@ -64,11 +63,11 @@ def test_load_huggingface_dataset():
 def test_nonexistent_files():
     # Test nonexistent CSV file
     with pytest.raises(FileNotFoundError):
-        EvalDataset.from_csv("nonexistent.csv", metrics=Precision, input="input", label="label")
+        EvalDataset.from_csv("nonexistent.csv", metrics=ExactMatch, input="input", label="label")
 
     # Test nonexistent JSON file
     with pytest.raises(FileNotFoundError):
-        EvalDataset.from_json("nonexistent.json", metrics=Precision, input="input", label="label")
+        EvalDataset.from_json("nonexistent.json", metrics=ExactMatch, input="input", label="label")
 
     # Test nonexistent YAML file
     with pytest.raises(FileNotFoundError):
@@ -79,14 +78,18 @@ def test_invalid_split():
     json_dataset_path = Path(__file__).parent.parent / "data" / "DatasetDict.json"
     with pytest.raises(DatasetConfigurationError):
         EvalDataset.from_json(
-            str(json_dataset_path), metrics=Precision, input="input", label="label", split="testing"
+            str(json_dataset_path),
+            metrics=ExactMatch,
+            input="input",
+            label="label",
+            split="testing",
         )
 
 
 def test_metric_types():
     dataset_path = Path(__file__).parent.parent / "data" / "Dataset.csv"
     data_csv = EvalDataset.from_csv(
-        str(dataset_path), metrics=[Precision, "Accuracy"], input="input", label="label"
+        str(dataset_path), metrics=[ExactMatch, "Accuracy"], input="input", label="label"
     )
     assert isinstance(data_csv, EvalDataset)
     assert len(data_csv) == 5
@@ -94,7 +97,6 @@ def test_metric_types():
     assert "label" in data_csv.column_names
 
 
-@pytest.mark.unit
 def test_load_yaml_dataset():
     """Test loading dataset from YAML config (uses mock HuggingFace data).
 
@@ -170,7 +172,7 @@ def test_load_real_huggingface_dataset():
     """
     # Load a small subset to keep it fast
     data_hf = EvalDataset.from_huggingface(
-        "imdb", metrics=Precision, input="text", label="label", split="test[:10]"
+        "imdb", metrics=ExactMatch, input="text", label="label", split="test[:10]"
     )
     assert isinstance(data_hf, EvalDataset)
     assert len(data_hf) == 10  # We only loaded 10 samples

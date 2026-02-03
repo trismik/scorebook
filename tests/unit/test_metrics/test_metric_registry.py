@@ -6,14 +6,12 @@ from scorebook import scorebook_metric
 from scorebook.metrics import MetricBase
 from scorebook.metrics.accuracy import Accuracy
 from scorebook.metrics.core.metric_registry import MetricRegistry
-from scorebook.metrics.precision import Precision
 
 
 def test_registry_registration():
     """Test that metrics can be registered correctly."""
     # Check that pre-registered metrics exist
     assert "accuracy" in MetricRegistry.list_metrics()
-    assert "precision" in MetricRegistry.list_metrics()
 
     # Test registering a new metric
     @MetricRegistry.register()
@@ -30,10 +28,8 @@ def test_get_metric_by_name():
     """Test retrieving metrics by name."""
     # Get existing metrics
     accuracy_metric = MetricRegistry.get("accuracy")
-    precision_metric = MetricRegistry.get("precision")
 
     assert isinstance(accuracy_metric, Accuracy)
-    assert isinstance(precision_metric, Precision)
 
     # Test case-insensitive lookup
     accuracy_upper = MetricRegistry.get("ACCURACY")
@@ -48,9 +44,6 @@ def test_get_metric_by_class():
     """Test retrieving metrics by class."""
     accuracy_metric = MetricRegistry.get(Accuracy)
     assert isinstance(accuracy_metric, Accuracy)
-
-    precision_metric = MetricRegistry.get(Precision)
-    assert isinstance(precision_metric, Precision)
 
 
 def test_invalid_metric_type():
@@ -184,15 +177,16 @@ def test_lazy_loading_multiple_metrics():
     """Test lazy loading multiple metrics in sequence."""
     # Load multiple metrics by string name
     accuracy = MetricRegistry.get("accuracy")
-    precision = MetricRegistry.get("precision")
+    exactmatch = MetricRegistry.get("exactmatch")
 
     # Both should be loaded
     assert isinstance(accuracy, Accuracy)
-    assert isinstance(precision, Precision)
+    assert exactmatch is not None
+    assert exactmatch.name == "exact_match"
 
     # Both should be in registry
     assert "accuracy" in MetricRegistry._registry
-    assert "precision" in MetricRegistry._registry
+    assert "exactmatch" in MetricRegistry._registry
 
 
 def test_metric_name_normalization_case_insensitive():

@@ -7,25 +7,26 @@ authors = [
     { name = "Marco Basaldella", email = "marco@trismik.com" }
 ]
 readme = "README.md"
-requires-python = ">=3.9, <3.14"
+requires-python = ">=3.10, <3.14"
 dependencies = [
     "datasets>=3.6.0",
-    "trismik==1.0.2",
+    "trismik>=1.0.3",
     "python-dotenv>=1.0.0",
+    "jinja2 (>=3.1.6,<4.0.0)",
 ]
 
 [project.scripts]
 scorebook = "scorebook.cli.main:main"
 
 [tool.poetry]
-version = "0.0.14"  # base version
+version = "0.0.15"  # base version
 packages = [
     { include = "scorebook", from = "src" },
     { include = "tutorials" }
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.14"
+python = ">=3.10,<3.14"
 
 [[tool.poetry.source]]
 name = "testpypi"
@@ -44,13 +45,14 @@ mypy = "^1.15.0"
 autoflake = "^2.3.1"
 toml = "^0.10.2"
 types-pyyaml = "^6.0.12.20250822"
-unasync = {version = "^0.5.0", python = ">=3.9,<4"}
+unasync = {version = "^0.5.0", python = ">=3.10,<4"}
 tomlkit = "^0.13.2"
 detect-secrets = "^1.5.0"
+setuptools = "^75.0.0"
 
 [project.optional-dependencies]
 providers = ["openai", "portkey-ai", "boto3==1.40.0", "google-genai", "pandas", "google-cloud-storage", "fsspec[gcs]"]
-examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook"]
+examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook", "ipywidgets"]
 metrics = ["sacrebleu", "rouge-score", "scikit-learn>=1.0.0", "bert-score"]
 
 [build-system]
@@ -61,14 +63,14 @@ build-backend = "poetry.core.masonry.api"
 asyncio_default_fixture_loop_scope = "class"
 testpaths = ["tests/unit"]
 markers = [
-    "unit: Unit tests that use mocks and don't require external dependencies",
-    "extended: Extended tests that may take longer or test specific functionality",
+    "unit: Unit tests using only core dependencies (no optional packages)",
+    "metrics: Tests requiring metrics extras (sklearn, sacrebleu, rouge-score, bert-score)",
     "integration: Integration tests that may require network access or external services",
 ]
 
 [tool.black]
 line-length = 100
-target-version = ['py39']
+target-version = ['py310']
 include = '\.pyi?$'
 
 [tool.isort]
@@ -77,7 +79,7 @@ line_length = 100
 multi_line_output = 3
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
