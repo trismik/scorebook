@@ -19,14 +19,14 @@ dependencies = [
 scorebook = "scorebook.cli.main:main"
 
 [tool.poetry]
-version = "0.0.16"  # base version
+version = "0.0.17"  # base version
 packages = [
     { include = "scorebook", from = "src" },
     { include = "tutorials" }
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.14"
+python = ">=3.10"
 
 [[tool.poetry.source]]
 name = "testpypi"
