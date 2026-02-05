@@ -9,7 +9,7 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "datasets>=3.6.0",
+    "datasets>=4.0.0",
     "trismik>=1.0.3",
     "python-dotenv>=1.0.0",
     "jinja2 (>=3.1.6,<4.0.0)",
@@ -19,14 +19,14 @@ dependencies = [
 scorebook = "scorebook.cli.main:main"
 
 [tool.poetry]
-version = "0.0.16"  # base version
+version = "0.0.17"  # base version
 packages = [
     { include = "scorebook", from = "src" },
     { include = "tutorials" }
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.14"
+python = ">=3.10"
 
 [[tool.poetry.source]]
 name = "testpypi"
