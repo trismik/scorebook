@@ -7548,4 +7548,4 @@ providers = ["boto3", "fsspec", "google-cloud-storage", "google-genai", "openai"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "cda629b11bafb267c40614524b16a0575513cb856d1bbd5673ade3edbfeecc6d"
+content-hash = "4af092bc797487436bda9a34b1a60378af9e3eeee951840a59b21c94f771fe40"
