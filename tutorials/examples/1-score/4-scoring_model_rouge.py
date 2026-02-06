@@ -9,14 +9,15 @@ from dotenv import load_dotenv
 from tutorials.utils import save_results_to_json, setup_logging
 
 from scorebook import score
-from scorebook.metrics.rouge import ROUGE
+from scorebook.metrics.rouge1 import Rouge1
+from scorebook.metrics.rougel import RougeL
 
 
 def main() -> Any:
-    """Score text generation predictions using ROUGE metric.
+    """Score text generation predictions using ROUGE metrics.
 
     This example demonstrates how to score generated summaries
-    against reference summaries using ROUGE scores.
+    against reference summaries using ROUGE-1 and ROUGE-L scores.
     """
 
     # Prepare a list of items with generated summaries and reference summaries
@@ -35,10 +36,11 @@ def main() -> Any:
         },
     ]
 
-    # Score the predictions against labels using the ROUGE metric
+    # Score the predictions using multiple ROUGE metrics
+    # You can evaluate multiple metrics in a single call
     results = score(
         items=model_predictions,
-        metrics=ROUGE(rouge_types=["rouge1", "rougeL"], use_stemmer=True),
+        metrics=[Rouge1(use_stemmer=True), RougeL(use_stemmer=True)],
         upload_results=False,  # Disable uploading for this example
     )
 
