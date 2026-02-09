@@ -19,7 +19,7 @@ dependencies = [
 scorebook = "scorebook.cli.main:main"
 
 [tool.poetry]
-version = "0.0.17"  # base version
+version = "0.0.18"  # base version
 packages = [
     { include = "scorebook", from = "src" },
     { include = "tutorials" }
