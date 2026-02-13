@@ -115,3 +115,12 @@ replacements.score_async = "score"
 replacements."Async scoring complete" = "Scoring complete"
 replacements.calculate_metric_scores_async = "calculate_metric_scores"
 replacements.upload_result_async = "upload_result"
+
+[[tool.unasync.rules]]
+fromdir = "src/scorebook/replay/_async/"
+todir = "src/scorebook/replay/_sync/"
+replacements."scorebook.replay._async.replay_async" = "scorebook.replay._sync.replay"
+replacements."Async replay implementation" = "Sync replay implementation"
+replacements.replay_async = "replay"
+replacements.create_trismik_async_client = "create_trismik_sync_client"
+replacements.TrismikAsyncClient = "TrismikClient"

@@ -101,6 +101,7 @@ class AdaptiveEvalRunResult:
     run_spec: AdaptiveEvalRunSpec
     run_completed: bool
     scores: Dict[str, Any]
+    run_id: Optional[str] = None
 
     @property
     def aggregate_scores(self) -> Dict[str, Any]:
@@ -109,6 +110,53 @@ class AdaptiveEvalRunResult:
             "dataset": self.run_spec.dataset,
             "experiment_id": self.run_spec.experiment_id,
             "project_id": self.run_spec.project_id,
+        }
+
+        # Safely unpack hyperparameter_config if it's not None
+        if self.run_spec.hyperparameter_config:
+            result.update(self.run_spec.hyperparameter_config)
+
+        # Safely unpack metadata if it's not None
+        if self.run_spec.metadata:
+            result.update(self.run_spec.metadata)
+
+        # Safely unpack scores if it's not None
+        if self.scores:
+            result.update(self.scores)
+
+        return result
+
+
+@dataclass
+class AdaptiveReplayRunSpec:
+    """Specification for replaying an adaptive evaluation run."""
+
+    previous_run_id: str
+    hyperparameter_config: Dict[str, Any]
+    hyperparameters_index: int
+    experiment_id: str
+    project_id: str
+    metadata: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class AdaptiveReplayRunResult:
+    """Results from executing an adaptive replay run."""
+
+    run_spec: AdaptiveReplayRunSpec
+    run_completed: bool
+    scores: Dict[str, Any]
+    run_id: Optional[str] = None
+    replay_of_run: Optional[str] = None
+
+    @property
+    def aggregate_scores(self) -> Dict[str, Any]:
+        """Return the aggregated scores for this replay run."""
+        result = {
+            "previous_run_id": self.run_spec.previous_run_id,
+            "experiment_id": self.run_spec.experiment_id,
+            "project_id": self.run_spec.project_id,
+            "replay_of_run": self.replay_of_run,
         }
 
         # Safely unpack hyperparameter_config if it's not None
