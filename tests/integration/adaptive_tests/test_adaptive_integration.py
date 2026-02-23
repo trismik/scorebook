@@ -65,6 +65,28 @@ async def random_letter_inference_async(
     return [random.choice(["A", "B", "C", "D"]) for _ in items]
 
 
+def adaptive_inference(items: Union[Dict[str, Any], List[Dict[str, Any]]]) -> Union[str, List[str]]:
+    """Return appropriate response based on item type (MC or open-ended)."""
+    if isinstance(items, dict):
+        if items.get("choices"):
+            return random.choice(["A", "B", "C", "D"])
+        return "This is a free-text answer."
+
+    return [adaptive_inference(item) for item in items]
+
+
+async def adaptive_inference_async(
+    items: Union[Dict[str, Any], List[Dict[str, Any]]]
+) -> Union[str, List[str]]:
+    """Async version: return appropriate response based on item type."""
+    if isinstance(items, dict):
+        if items.get("choices"):
+            return random.choice(["A", "B", "C", "D"])
+        return "This is a free-text answer."
+
+    return [adaptive_inference(item) for item in items]
+
+
 def test_evaluate_adaptive(test_project):
     """Test synchronous adaptive evaluation."""
     experiment_id = f"test-adaptive-{uuid.uuid4().hex[:8]}"
@@ -190,4 +212,57 @@ async def test_evaluate_async_adaptive_with_split(test_project):
     except Exception as e:
         if "not found" in str(e).lower():
             pytest.skip(f"Adaptive dataset not available: {e}")
+        raise
+
+
+def test_evaluate_adaptive_open_ended(test_project):
+    """Test synchronous adaptive evaluation with open-ended dataset."""
+    experiment_id = f"test-adaptive-oe-{uuid.uuid4().hex[:8]}"
+
+    try:
+        results = evaluate(
+            inference=adaptive_inference,
+            datasets="fingpt_convfinqa_test:adaptive",
+            split="validation",
+            experiment_id=experiment_id,
+            project_id=test_project.id,
+        )
+
+        assert results is not None
+        assert isinstance(results, list)
+        assert len(results) > 0
+
+        result = results[0]
+        assert isinstance(result, dict)
+        assert "dataset" in result
+        assert result["dataset"] == "fingpt_convfinqa_test:adaptive"
+
+    except Exception as e:
+        if "not found" in str(e).lower() or "does not exist" in str(e).lower():
+            pytest.skip(f"Open-ended adaptive dataset not available: {e}")
+        raise
+
+
+@pytest.mark.asyncio
+async def test_evaluate_async_adaptive_open_ended(test_project):
+    """Test asynchronous adaptive evaluation with open-ended dataset."""
+    experiment_id = f"test-adaptive-oe-async-{uuid.uuid4().hex[:8]}"
+
+    try:
+        results = await evaluate_async(
+            inference=adaptive_inference_async,
+            datasets="fingpt_convfinqa_test:adaptive",
+            split="validation",
+            experiment_id=experiment_id,
+            project_id=test_project.id,
+        )
+
+        assert results is not None
+        assert isinstance(results, list)
+        assert len(results) > 0
+        assert isinstance(results[0], dict)
+
+    except Exception as e:
+        if "not found" in str(e).lower() or "does not exist" in str(e).lower():
+            pytest.skip(f"Open-ended adaptive dataset not available: {e}")
         raise
