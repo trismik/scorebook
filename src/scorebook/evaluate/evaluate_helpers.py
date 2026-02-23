@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Union
 
 from trismik._async.client import TrismikAsyncClient
 from trismik._sync.client import TrismikClient
-from trismik.types import TrismikMultipleChoiceTextItem
+from trismik.types import TrismikMultipleChoiceTextItem, TrismikOpenEndedTextItem
 
 from scorebook.dashboard.credentials import get_token
 from scorebook.eval_datasets.eval_dataset import EvalDataset
@@ -363,16 +363,16 @@ def make_trismik_inference(
 ) -> Callable[[Any], Any]:
     """Wrap an inference function for flexible input handling.
 
-    Takes a function expecting list[dict] and makes it accept single dict
-    or TrismikMultipleChoiceTextItem.
+    Takes a function expecting list[dict] and makes it accept single dict,
+    TrismikMultipleChoiceTextItem, or TrismikOpenEndedTextItem.
     """
 
     # Check if the inference function is async
     is_async = is_awaitable(inference_function)
 
     def sync_trismik_inference_function(eval_items: Any, **kwargs: Any) -> Any:
-        # Single TrismikMultipleChoiceTextItem dataclass
-        if isinstance(eval_items, TrismikMultipleChoiceTextItem):
+        # Single Trismik item dataclass (TrismikMultipleChoiceTextItem or TrismikOpenEndedTextItem)
+        if isinstance(eval_items, (TrismikMultipleChoiceTextItem, TrismikOpenEndedTextItem)):
             eval_item_dict = dataclasses.asdict(eval_items)
             results = inference_function([eval_item_dict], **kwargs)
             if is_async:
@@ -388,10 +388,10 @@ def make_trismik_inference(
 
         # Iterable of items (but not a string/bytes)
         if isinstance(eval_items, Iterable) and not isinstance(eval_items, (str, bytes)):
-            # Convert any TrismikMultipleChoiceTextItem instances to dicts
+            # Convert any Trismik item instances to dicts
             converted_items = []
             for item in eval_items:
-                if isinstance(item, TrismikMultipleChoiceTextItem):
+                if isinstance(item, (TrismikMultipleChoiceTextItem, TrismikOpenEndedTextItem)):
                     converted_items.append(dataclasses.asdict(item))
                 else:
                     converted_items.append(item)
@@ -401,8 +401,8 @@ def make_trismik_inference(
             return results
 
         raise TypeError(
-            "Expected a single item (Mapping[str, Any] or TrismikMultipleChoiceTextItem) "
-            "or an iterable of such items."
+            "Expected a single item (Mapping[str, Any], TrismikMultipleChoiceTextItem, "
+            "or TrismikOpenEndedTextItem) or an iterable of such items."
         )
 
     return sync_trismik_inference_function
