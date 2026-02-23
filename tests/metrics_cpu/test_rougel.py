@@ -55,6 +55,25 @@ def test_rougel_multiple_items() -> None:
     assert agg["rougeL"] == 0.5
 
 
+def test_rougel_argument_order() -> None:
+    """Test that scorer passes (reference, prediction) in the correct order.
+
+    When the output is a subset of the label, precision should be high
+    and recall should be low. With swapped arguments, these values
+    would be inverted.
+    """
+    from unittest.mock import patch
+
+    rougel = RougeL(use_stemmer=False)
+    outputs = ["the cat"]
+    labels = ["the cat sat on the mat"]
+
+    with patch.object(rougel.scorer, "score", wraps=rougel.scorer.score) as mock_score:
+        rougel.score(outputs, labels)
+        # rouge_score expects score(target/reference, prediction)
+        mock_score.assert_called_once_with("the cat sat on the mat", "the cat")
+
+
 def test_rougel_empty_lists() -> None:
     """Test RougeL with empty inputs."""
     rougel = RougeL(use_stemmer=True)
