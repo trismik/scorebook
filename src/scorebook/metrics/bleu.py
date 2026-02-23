@@ -30,7 +30,7 @@ class BLEU(MetricBase):
     def score(
         self, outputs: List[Any], labels: List[Any]
     ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
-        """Calculate accuracy score between predictions and references.
+        """Calculate BLEU score between predictions and references.
 
         Args:
             outputs: A list of inference outputs.

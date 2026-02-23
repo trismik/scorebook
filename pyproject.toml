@@ -61,7 +61,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "class"
-testpaths = ["tests/unit"]
+testpaths = ["tests/unit", "tests/metrics_cpu", "tests/metrics_gpu", "tests/integration"]
 markers = [
     "unit: Unit tests using only core dependencies (no optional packages)",
     "metrics: Tests requiring metrics extras (sklearn, sacrebleu, rouge-score, bert-score)",

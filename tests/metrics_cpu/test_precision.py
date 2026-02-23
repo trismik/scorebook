@@ -17,8 +17,7 @@ def test_precision_perfect_score():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {_key("macro"): 1.0}
-    assert all(items)
-    assert len(items) == len(outputs)
+    assert items == []
 
 
 def test_precision_zero_score():
@@ -30,8 +29,7 @@ def test_precision_zero_score():
     agg, items = metric.score(outputs, labels)
 
     assert agg[_key("macro")] == 0.0
-    assert all(not x for x in items)
-    assert len(items) == len(outputs)
+    assert items == []
 
 
 def test_precision_partial_score():
@@ -43,7 +41,7 @@ def test_precision_partial_score():
     agg, items = metric.score(outputs, labels)
 
     assert 0.0 < agg[_key("macro")] < 1.0
-    assert items == [True, True, False]
+    assert items == []
 
 
 def test_precision_empty_lists():
@@ -68,7 +66,7 @@ def test_precision_macro_averaging():
 
     assert _key("macro") in agg
     assert 0.0 <= agg[_key("macro")] <= 1.0
-    assert items == [True, False, True, False]
+    assert items == []
 
 
 def test_precision_micro_averaging():
@@ -150,7 +148,7 @@ def test_precision_binary_classification():
     agg, items = metric.score(outputs, labels)
 
     assert _key("macro") in agg
-    assert items == [True, False, True, False, True]
+    assert items == []
 
 
 def test_precision_multiclass_classification():
@@ -164,7 +162,7 @@ def test_precision_multiclass_classification():
     assert _key("macro") in agg
     assert _key("micro") in agg
     assert _key("weighted") in agg
-    assert items == [True, True, False, False, True]
+    assert items == []
 
 
 def test_precision_custom_kwargs():
