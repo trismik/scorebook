@@ -17,7 +17,9 @@ class BertScore(MetricBase):
         defaults = {"lang": "en", "verbose": False}
         self.kwargs = {**defaults, **kwargs}  # User kwargs override defaults
 
-    def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+    def score(
+        self, outputs: List[Any], labels: List[Any]
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Calculate bert score between predictions and references.
 
         Args:

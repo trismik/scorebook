@@ -51,7 +51,9 @@ class Precision(MetricBase):
         self.average = average
         self.kwargs = kwargs
 
-    def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+    def score(
+        self, outputs: List[Any], labels: List[Any]
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Calculate Precision score between predictions and references using scikit-learn.
 
         Args:
@@ -63,8 +65,8 @@ class Precision(MetricBase):
                 - aggregate_scores (Dict[str, float]): Dictionary with Precision scores
                   keyed by averaging method (e.g., {"Precision (macro)": 0.85} or
                   {"Precision (macro)": 0.85, "Precision (micro)": 0.82}).
-                - item_scores (List[bool]): True/False list indicating correct
-                  predictions.
+                - item_scores (List): Empty list. Precision is an aggregate-only
+                  metric; per-item precision is not defined for classification.
 
         """
 
@@ -82,13 +84,10 @@ class Precision(MetricBase):
         # Default zero_division=0 unless overridden in kwargs
         kwargs = {"zero_division": 0, **self.kwargs}
 
-        # Calculate item scores (correctness of each prediction)
-        item_scores = [output == label for output, label in zip(outputs, labels)]
-
         # Calculate Precision for each method
         aggregate_scores = {
             f"Precision ({method})": precision_score(labels, outputs, average=method, **kwargs)
             for method in methods
         }
 
-        return aggregate_scores, item_scores
+        return aggregate_scores, []

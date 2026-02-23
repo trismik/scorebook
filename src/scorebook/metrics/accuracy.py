@@ -13,7 +13,7 @@ class Accuracy(MetricBase):
     """
 
     @staticmethod
-    def score(outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+    def score(outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Calculate accuracy score between predictions and references.
 
         Args:
@@ -22,16 +22,17 @@ class Accuracy(MetricBase):
 
         Returns:
             The aggregate accuracy score for all items (correct predictions / total predictions).
-            The item scores for each output-label pair (true/false).
+            Per-item scores as dicts: [{"accuracy": True/False}, ...].
         """
         if not outputs:  # Handle empty lists
             return {"accuracy": 0.0}, []
 
         # Calculate item scores
-        item_scores = [output == label for output, label in zip(outputs, labels)]
+        matches = [output == label for output, label in zip(outputs, labels)]
+        item_scores = [{"accuracy": match} for match in matches]
 
         # Calculate aggregate score
-        correct_predictions = sum(item_scores)
+        correct_predictions = sum(matches)
         total_predictions = len(outputs)
         aggregate_scores = {"accuracy": correct_predictions / total_predictions}
 

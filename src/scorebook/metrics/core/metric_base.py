@@ -13,7 +13,9 @@ class MetricBase(ABC):
         return self.__class__.__name__.lower()
 
     @abstractmethod
-    def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+    def score(
+        self, outputs: List[Any], labels: List[Any]
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Calculate the metric score for a list of outputs and labels.
 
         Args:
@@ -22,6 +24,7 @@ class MetricBase(ABC):
 
         Returns:
             Aggregate metric scores for all items.
-            Individual scores for each item.
+            Per-item scores as a list of dicts, or an empty list for
+            aggregate-only metrics.
         """
         raise NotImplementedError("MetricBase is an abstract class")

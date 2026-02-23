@@ -10,7 +10,7 @@ def test_exact_match_perfect_score():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 1.0}
-    assert all(items)
+    assert all(item["exact_match"] for item in items)
     assert len(items) == len(outputs)
 
 
@@ -23,7 +23,7 @@ def test_exact_match_zero_score():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 0.0}
-    assert all(not x for x in items)
+    assert all(not item["exact_match"] for item in items)
     assert len(items) == len(outputs)
 
 
@@ -36,7 +36,7 @@ def test_exact_match_partial_score():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 2 / 3}
-    assert items == [True, True, False]
+    assert items == [{"exact_match": True}, {"exact_match": True}, {"exact_match": False}]
 
 
 def test_exact_match_empty_lists():
@@ -60,7 +60,7 @@ def test_exact_match_case_insensitive_default():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 1.0}
-    assert all(items)
+    assert all(item["exact_match"] for item in items)
 
 
 def test_exact_match_case_sensitive():
@@ -72,7 +72,7 @@ def test_exact_match_case_sensitive():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 1 / 3}
-    assert items == [False, True, False]
+    assert items == [{"exact_match": False}, {"exact_match": True}, {"exact_match": False}]
 
 
 def test_exact_match_strip_default():
@@ -84,7 +84,7 @@ def test_exact_match_strip_default():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 1.0}
-    assert all(items)
+    assert all(item["exact_match"] for item in items)
 
 
 def test_exact_match_no_strip():
@@ -96,7 +96,7 @@ def test_exact_match_no_strip():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 2 / 3}
-    assert items == [False, True, True]
+    assert items == [{"exact_match": False}, {"exact_match": True}, {"exact_match": True}]
 
 
 def test_exact_match_both_options_disabled():
@@ -108,7 +108,7 @@ def test_exact_match_both_options_disabled():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 2 / 3}
-    assert items == [False, True, True]
+    assert items == [{"exact_match": False}, {"exact_match": True}, {"exact_match": True}]
 
 
 def test_exact_match_non_string_values():
@@ -120,7 +120,7 @@ def test_exact_match_non_string_values():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 2 / 3}
-    assert items == [True, True, False]
+    assert items == [{"exact_match": True}, {"exact_match": True}, {"exact_match": False}]
 
 
 def test_exact_match_mixed_types():
@@ -132,7 +132,7 @@ def test_exact_match_mixed_types():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 1.0}
-    assert all(items)
+    assert all(item["exact_match"] for item in items)
 
 
 def test_exact_match_empty_strings():
@@ -144,7 +144,7 @@ def test_exact_match_empty_strings():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 2 / 3}
-    assert items == [True, True, False]
+    assert items == [{"exact_match": True}, {"exact_match": True}, {"exact_match": False}]
 
 
 def test_exact_match_whitespace_only():
@@ -156,7 +156,7 @@ def test_exact_match_whitespace_only():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 1.0}
-    assert all(items)
+    assert all(item["exact_match"] for item in items)
 
 
 def test_exact_match_strip_punctuation():
@@ -168,7 +168,7 @@ def test_exact_match_strip_punctuation():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 1.0}
-    assert all(items)
+    assert all(item["exact_match"] for item in items)
 
 
 def test_exact_match_strip_punctuation_disabled():
@@ -180,7 +180,7 @@ def test_exact_match_strip_punctuation_disabled():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 2 / 3}
-    assert items == [False, True, True]
+    assert items == [{"exact_match": False}, {"exact_match": True}, {"exact_match": True}]
 
 
 def test_exact_match_strip_punctuation_only_edges():
@@ -193,7 +193,7 @@ def test_exact_match_strip_punctuation_only_edges():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 1.0}
-    assert all(items)
+    assert all(item["exact_match"] for item in items)
 
 
 def test_exact_match_strip_punctuation_preserves_internal():
@@ -206,7 +206,7 @@ def test_exact_match_strip_punctuation_preserves_internal():
 
     # Should NOT match because comma is internal
     assert agg == {"exact_match": 0.0}
-    assert items == [False]
+    assert items == [{"exact_match": False}]
 
 
 def test_exact_match_strip_punctuation_multiple():
@@ -218,7 +218,7 @@ def test_exact_match_strip_punctuation_multiple():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 1.0}
-    assert all(items)
+    assert all(item["exact_match"] for item in items)
 
 
 def test_exact_match_all_preprocessing_options():
@@ -234,4 +234,4 @@ def test_exact_match_all_preprocessing_options():
     agg, items = metric.score(outputs, labels)
 
     assert agg == {"exact_match": 1.0}
-    assert all(items)
+    assert all(item["exact_match"] for item in items)

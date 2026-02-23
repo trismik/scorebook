@@ -54,7 +54,9 @@ class F1(MetricBase):
         self.average = average
         self.kwargs = kwargs
 
-    def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+    def score(
+        self, outputs: List[Any], labels: List[Any]
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Calculate F1 score between predictions and references using scikit-learn.
 
         Args:
@@ -66,8 +68,8 @@ class F1(MetricBase):
                 - aggregate_scores (Dict[str, float]): Dictionary with F1 scores
                   keyed by averaging method (e.g., {"F1 (macro)": 0.85} or
                   {"F1 (macro)": 0.85, "F1 (micro)": 0.82}).
-                - item_scores (List[bool]): True/False list indicating correct
-                  predictions.
+                - item_scores (List): Empty list. F1 is an aggregate-only metric;
+                  per-item F1 is not defined for classification.
 
         """
         # Normalize to list of methods to calculate
@@ -84,13 +86,10 @@ class F1(MetricBase):
         # Default zero_division=0 unless overridden in kwargs
         kwargs = {"zero_division": 0, **self.kwargs}
 
-        # Calculate item scores (correctness of each prediction)
-        item_scores = [output == label for output, label in zip(outputs, labels)]
-
         # Calculate F1 for each method
         aggregate_scores = {
             f"F1 ({method})": f1_score(labels, outputs, average=method, **kwargs)
             for method in methods
         }
 
-        return aggregate_scores, item_scores
+        return aggregate_scores, []
