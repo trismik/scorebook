@@ -47,7 +47,7 @@ class Rouge1(MetricBase):
             label_str = str(label) if label is not None else ""
 
             # Calculate ROUGE-1 score
-            scores = self.scorer.score(output_str, label_str)
+            scores = self.scorer.score(label_str, output_str)
 
             # Extract F1 score for rouge1
             item_score = {"rouge1": scores["rouge1"].fmeasure}

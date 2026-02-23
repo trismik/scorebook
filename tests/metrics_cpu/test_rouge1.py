@@ -56,6 +56,26 @@ def test_rouge1_multiple_items() -> None:
     assert agg["rouge1"] == 0.5
 
 
+def test_rouge1_argument_order() -> None:
+    """Test that scorer passes (reference, prediction) in the correct order.
+
+    When the output is a subset of the label, precision should be high
+    (all predicted words appear in reference) and recall should be low
+    (only a fraction of reference words were predicted). With swapped
+    arguments, these values would be inverted.
+    """
+    from unittest.mock import patch
+
+    rouge1 = Rouge1(use_stemmer=False)
+    outputs = ["the cat"]
+    labels = ["the cat sat on the mat"]
+
+    with patch.object(rouge1.scorer, "score", wraps=rouge1.scorer.score) as mock_score:
+        rouge1.score(outputs, labels)
+        # rouge_score expects score(target/reference, prediction)
+        mock_score.assert_called_once_with("the cat sat on the mat", "the cat")
+
+
 def test_rouge1_empty_lists() -> None:
     """Test Rouge1 with empty inputs."""
     rouge1 = Rouge1(use_stemmer=True)
