@@ -27,8 +27,10 @@ class BLEU(MetricBase):
         kwargs["effective_order"] = True
         self.sentence_bleu = sacrebleu.metrics.BLEU(**kwargs)
 
-    def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
-        """Calculate accuracy score between predictions and references.
+    def score(
+        self, outputs: List[Any], labels: List[Any]
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+        """Calculate BLEU score between predictions and references.
 
         Args:
             outputs: A list of inference outputs.

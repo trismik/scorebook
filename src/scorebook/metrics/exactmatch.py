@@ -67,7 +67,9 @@ class ExactMatch(MetricBase):
             result = result.lower()
         return result
 
-    def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+    def score(
+        self, outputs: List[Any], labels: List[Any]
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Calculate the exact match score between predictions and references.
 
         Args:
@@ -76,20 +78,21 @@ class ExactMatch(MetricBase):
 
         Returns:
             The aggregate exact match score for all items (matches / total).
-            The item scores for each output-label pair (true/false).
+            Per-item scores as dicts: [{"exact_match": True/False}, ...].
         """
         if not outputs:
             return {"exact_match": 0.0}, []
 
         # Calculate item scores with preprocessing
-        item_scores = [
+        matches = [
             self._preprocess(output) == self._preprocess(label)
             for output, label in zip(outputs, labels)
         ]
+        item_scores = [{"exact_match": match} for match in matches]
 
         # Calculate aggregate score
-        matches = sum(item_scores)
+        num_matches = sum(matches)
         total = len(outputs)
-        aggregate_scores = {"exact_match": matches / total}
+        aggregate_scores = {"exact_match": num_matches / total}
 
         return aggregate_scores, item_scores

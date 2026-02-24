@@ -33,7 +33,7 @@ Your metric must:
 The `score()` method returns a tuple of `(aggregate_scores, item_scores)`:
 
 - **aggregate_scores**: A `Dict[str, float]` with overall metric values (e.g., `{"accuracy": 0.85}`)
-- **item_scores**: A `List` of per-item scores. For metrics that produce a single value per item, use `int`, `float`, `bool`, or `str`. For metrics that produce multiple values per item, use a `Dict[str, Union[int, float, bool, str]]` where keys are metric names.
+- **item_scores**: A `List[Dict[str, Any]]` of per-item scores. Each dict maps metric names to values (e.g., `{"accuracy": True}` or `{"precision": 0.85, "recall": 0.72, "F1": 0.78}`). For aggregate-only metrics where per-item scores are not meaningful, return an empty list `[]`.
 
 ---
 
@@ -73,7 +73,7 @@ class YourMetric(MetricBase):
     Formula or explanation (e.g., Accuracy = correct / total).
     """
 
-    def score(outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+    def score(outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Calculate metric score between outputs and labels.
 
         Args:
@@ -83,7 +83,7 @@ class YourMetric(MetricBase):
         Returns:
             Tuple containing:
                 - Aggregate scores dict (e.g., {"your_metric": 0.85})
-                - List of per-item scores
+                - Per-item scores as list of dicts, or [] for aggregate-only metrics
 
         Raises:
             ValueError: If outputs and labels have different lengths.
@@ -96,10 +96,13 @@ class YourMetric(MetricBase):
             return {"your_metric": 0.0}, []
 
         # Calculate per-item scores
-        item_scores = [calculate_score(out, lab) for out, lab in zip(outputs, labels)]
+        item_scores = [
+            {"your_metric": calculate_score(out, lab)}
+            for out, lab in zip(outputs, labels)
+        ]
 
         # Calculate aggregate score
-        aggregate_score = sum(item_scores) / len(item_scores)
+        aggregate_score = sum(s["your_metric"] for s in item_scores) / len(item_scores)
 
         return {"your_metric": aggregate_score}, item_scores
 ```

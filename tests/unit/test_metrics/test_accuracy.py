@@ -9,7 +9,7 @@ def test_accuracy_perfect_score():
     agg, items = Accuracy.score(outputs, labels)
 
     assert agg == {"accuracy": 1.0}
-    assert all(items)
+    assert all(item["accuracy"] for item in items)
     assert len(items) == len(outputs)
 
 
@@ -21,7 +21,7 @@ def test_accuracy_zero_score():
     agg, items = Accuracy.score(outputs, labels)
 
     assert agg == {"accuracy": 0.0}
-    assert all(not x for x in items)
+    assert all(not item["accuracy"] for item in items)
     assert len(items) == len(outputs)
 
 
@@ -33,7 +33,7 @@ def test_accuracy_partial_score():
     agg, items = Accuracy.score(outputs, labels)
 
     assert agg == {"accuracy": 2 / 3}
-    assert items == [True, True, False]
+    assert items == [{"accuracy": True}, {"accuracy": True}, {"accuracy": False}]
 
 
 def test_accuracy_empty_lists():

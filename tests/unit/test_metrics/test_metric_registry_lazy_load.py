@@ -29,7 +29,7 @@ def test_lazy_load_accuracy():
 
     # Should return perfect accuracy
     assert scores["accuracy"] == 1.0
-    assert all(item_results)  # All items should be correct
+    assert all(item["accuracy"] for item in item_results)  # All items should be correct
 
 
 def test_lazy_load_case_variations():

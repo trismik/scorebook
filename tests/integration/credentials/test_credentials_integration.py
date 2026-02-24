@@ -52,8 +52,10 @@ def test_login_with_valid_key(test_api_key, temp_token_path, monkeypatch):
     assert get_token() == test_api_key
 
 
-def test_login_with_invalid_key(temp_token_path):
+def test_login_with_invalid_key(temp_token_path, monkeypatch):
     """Test that login fails with an invalid API key."""
+    monkeypatch.delenv("TRISMIK_API_KEY", raising=False)
+
     with pytest.raises(ValueError, match="Invalid API key"):
         login("invalid_key_12345")
 

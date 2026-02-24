@@ -51,7 +51,9 @@ class Recall(MetricBase):
         self.average = average
         self.kwargs = kwargs
 
-    def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+    def score(
+        self, outputs: List[Any], labels: List[Any]
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Calculate Recall score between predictions and references using scikit-learn.
 
         Args:
@@ -63,8 +65,8 @@ class Recall(MetricBase):
                 - aggregate_scores (Dict[str, float]): Dictionary with Recall scores
                   keyed by averaging method (e.g., {"Recall (macro)": 0.85} or
                   {"Recall (macro)": 0.85, "Recall (micro)": 0.82}).
-                - item_scores (List[bool]): True/False list indicating correct
-                  predictions.
+                - item_scores (List): Empty list. Recall is an aggregate-only
+                  metric; per-item recall is not defined for classification.
 
         """
 
@@ -82,13 +84,10 @@ class Recall(MetricBase):
         # Default zero_division=0 unless overridden in kwargs
         kwargs = {"zero_division": 0, **self.kwargs}
 
-        # Calculate item scores (correctness of each prediction)
-        item_scores = [output == label for output, label in zip(outputs, labels)]
-
         # Calculate Recall for each method
         aggregate_scores = {
             f"Recall ({method})": recall_score(labels, outputs, average=method, **kwargs)
             for method in methods
         }
 
-        return aggregate_scores, item_scores
+        return aggregate_scores, []

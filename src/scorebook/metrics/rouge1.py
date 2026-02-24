@@ -24,7 +24,9 @@ class Rouge1(MetricBase):
         """
         self.scorer = rouge_scorer.RougeScorer(["rouge1"], use_stemmer=use_stemmer, **kwargs)
 
-    def score(self, outputs: List[Any], labels: List[Any]) -> Tuple[Dict[str, Any], List[Any]]:
+    def score(
+        self, outputs: List[Any], labels: List[Any]
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Calculate ROUGE-1 scores between predictions and references.
 
         Args:

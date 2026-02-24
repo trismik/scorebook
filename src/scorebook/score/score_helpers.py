@@ -202,18 +202,17 @@ def format_results(
         if inputs is not None and inputs[idx] is not None:
             item_result["input"] = inputs[idx]
 
-        # Add item-level metric scores (flat, with suffix on collision)
+        # Add item-level metric scores (flat, with suffix on collision).
+        # Aggregate-only metrics (e.g. F1, Precision, Recall) return an empty
+        # item_scores list, so the length check skips them.
         for metric_score in metric_scores:
             if idx < len(metric_score.item_scores):
                 item_scores = metric_score.item_scores[idx]
-                if isinstance(item_scores, dict):
-                    for key, value in item_scores.items():
-                        score_key = (
-                            f"{key}_{metric_score.metric_name}" if key in colliding_keys else key
-                        )
-                        item_result[score_key] = value
-                else:
-                    item_result[metric_score.metric_name] = item_scores
+                for key, value in item_scores.items():
+                    score_key = (
+                        f"{key}_{metric_score.metric_name}" if key in colliding_keys else key
+                    )
+                    item_result[score_key] = value
 
         item_results.append(item_result)
 
