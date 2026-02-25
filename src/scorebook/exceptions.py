@@ -62,6 +62,18 @@ class EvaluationError(ScoreBookError):
     """Raised when there are errors during model evaluation."""
 
 
+class AllRunsFailedError(EvaluationError):
+    """Raised when all evaluation runs in a multi-run sweep fail."""
+
+    def __init__(self, errors: list[tuple[str, Exception]]):
+        """Initialize with a list of (run_description, exception) tuples."""
+        self.errors = errors
+        run_summaries = "\n".join(
+            f"  - {desc}: {type(exc).__name__}: {exc}" for desc, exc in errors
+        )
+        super().__init__(f"All {len(errors)} evaluation runs failed:\n{run_summaries}")
+
+
 class ParameterValidationError(ScoreBookError):
     """Raised when invalid parameters are provided to evaluation functions."""
 

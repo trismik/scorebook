@@ -1,5 +1,6 @@
 import csv
 import json
+import warnings
 from pathlib import Path
 from typing import Dict, List
 
@@ -7,7 +8,12 @@ import pandas as pd
 import pytest
 
 from scorebook import EvalDataset, evaluate
-from scorebook.exceptions import ParameterValidationError
+from scorebook.exceptions import (
+    AllRunsFailedError,
+    EvaluationError,
+    InferenceError,
+    ParameterValidationError,
+)
 from scorebook.inference.inference_pipeline import InferencePipeline
 from scorebook.metrics.accuracy import Accuracy
 from scorebook.types import ClassicEvalRunResult, EvalResult
@@ -128,23 +134,20 @@ def test_evaluate_with_multiple_metrics():
 
 
 def test_evaluate_with_none_predictions():
-    """Test evaluation handling of None predictions."""
+    """Test evaluation raises InferenceError when all predictions are None."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
-    results = evaluate(
-        create_simple_inference_pipeline(None), dataset, return_dict=False, upload_results=False
-    )
-
-    # Check that all accuracy scores are False (None predictions should be wrong)
-    item_scores = results.item_scores
-    assert all(item["accuracy"] is False for item in item_scores)
+    with pytest.raises(InferenceError, match="returned all None"):
+        evaluate(
+            create_simple_inference_pipeline(None), dataset, return_dict=False, upload_results=False
+        )
 
 
 def test_evaluate_invalid_inference_fn():
-    """Test evaluation with an invalid inference pipeline."""
+    """Test evaluation with an invalid inference pipeline raises InferenceError."""
     dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
     dataset = EvalDataset.from_csv(
         dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
@@ -160,11 +163,8 @@ def test_evaluate_invalid_inference_fn():
         postprocessor=lambda x, h=None: x,
     )
 
-    result = evaluate(bad_pipeline, dataset, return_dict=False, upload_results=False)
-
-    # Should return a failed run result instead of raising exception
-    assert len(result.run_results) == 1
-    assert not result.run_results[0].run_completed
+    with pytest.raises(InferenceError):
+        evaluate(bad_pipeline, dataset, return_dict=False, upload_results=False)
 
 
 def test_evaluate_return_type():
@@ -392,13 +392,15 @@ def test_evaluate_mixed_success_failure_runs():
         {"config_name": "success_3", "fail_on_param": False},
     ]
 
-    results = evaluate(
-        failing_pipeline,
-        dataset,
-        hyperparameters=hyperparams_configs,
-        return_dict=False,
-        upload_results=False,
-    )
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        results = evaluate(
+            failing_pipeline,
+            dataset,
+            hyperparameters=hyperparams_configs,
+            return_dict=False,
+            upload_results=False,
+        )
 
     # Should have 5 run results (one for each hyperparameter config)
     assert len(results.run_results) == 5
@@ -417,12 +419,14 @@ def test_evaluate_mixed_success_failure_runs():
         assert all(output == "1" for output in run.outputs)
         assert run.scores is not None
         assert "accuracy" in run.aggregate_scores
+        assert run.error is None
 
-    # Verify failed runs have None outputs and metrics
+    # Verify failed runs have error and None outputs/scores
     for run in failed_runs:
-        # Failed runs should have None outputs and scores
         assert run.outputs is None
         assert run.scores is None
+        assert run.error is not None
+        assert isinstance(run.error, InferenceError)
 
     # Check that hyperparameters are preserved correctly
     success_configs = [r.run_spec.hyperparameter_config["config_name"] for r in successful_runs]
@@ -430,6 +434,10 @@ def test_evaluate_mixed_success_failure_runs():
 
     assert set(success_configs) == {"success_1", "success_2", "success_3"}
     assert set(failure_configs) == {"failure_1", "failure_2"}
+
+    # Verify warnings were issued for failed runs
+    eval_warnings = [x for x in w if "Evaluation run failed" in str(x.message)]
+    assert len(eval_warnings) == 2
 
 
 def test_evaluate_mixed_success_failure_multiple_datasets():
@@ -464,13 +472,15 @@ def test_evaluate_mixed_success_failure_multiple_datasets():
         {"dataset_type": "json", "fail_this_run": False},  # JSON should succeed
     ]
 
-    results = evaluate(
-        failing_pipeline,
-        [csv_dataset, json_dataset],
-        hyperparameters=hyperparams_configs,
-        return_dict=False,
-        upload_results=False,
-    )
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        results = evaluate(
+            failing_pipeline,
+            [csv_dataset, json_dataset],
+            hyperparameters=hyperparams_configs,
+            return_dict=False,
+            upload_results=False,
+        )
 
     # Should have 4 run results (2 datasets × 2 hyperparameter configs)
     assert len(results.run_results) == 4
@@ -492,9 +502,289 @@ def test_evaluate_mixed_success_failure_multiple_datasets():
         assert run.scores is not None
         assert "accuracy" in run.aggregate_scores
         assert not run.run_spec.hyperparameter_config["fail_this_run"]
+        assert run.error is None
 
-    # Verify failed runs have None outputs and scores
+    # Verify failed runs have error and None outputs/scores
     for run in failed_runs:
         assert run.outputs is None
         assert run.scores is None
         assert run.run_spec.hyperparameter_config["fail_this_run"]
+        assert run.error is not None
+        assert isinstance(run.error, InferenceError)
+
+    # Verify warnings were issued for failed runs
+    eval_warnings = [x for x in w if "Evaluation run failed" in str(x.message)]
+    assert len(eval_warnings) == 2
+
+
+# ---------------------------------------------------------------------------
+# Single-run error propagation (3 tests)
+# ---------------------------------------------------------------------------
+
+
+def _create_failing_pipeline():
+    """Create a pipeline whose inference function raises ValueError."""
+
+    def bad_inference_function(inputs: List, **hyperparameters):
+        raise ValueError("original")
+
+    return InferencePipeline(
+        model="test_model",
+        preprocessor=lambda x, **h: x,
+        inference_function=bad_inference_function,
+        postprocessor=lambda x, **h: x,
+    )
+
+
+def _create_sample_dataset():
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
+    return EvalDataset.from_csv(
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
+    )
+
+
+def test_evaluate_single_run_no_warning_issued():
+    """Single-run failure raises without issuing warnings."""
+    dataset = _create_sample_dataset()
+    bad_pipeline = _create_failing_pipeline()
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        with pytest.raises(InferenceError):
+            evaluate(bad_pipeline, dataset, return_dict=False, upload_results=False)
+
+    eval_warnings = [x for x in w if "Evaluation run failed" in str(x.message)]
+    assert len(eval_warnings) == 0
+
+
+def test_evaluate_single_run_with_single_hyperparameter_config_raises():
+    """A list of one hyperparameter config is still a single run — should raise."""
+    dataset = _create_sample_dataset()
+    bad_pipeline = _create_failing_pipeline()
+
+    with pytest.raises(InferenceError):
+        evaluate(
+            bad_pipeline,
+            dataset,
+            hyperparameters=[{"temperature": 0.5}],
+            return_dict=False,
+            upload_results=False,
+        )
+
+
+def test_evaluate_single_run_exception_chain_preserved():
+    """The InferenceError wraps the original exception via __cause__."""
+    dataset = _create_sample_dataset()
+    bad_pipeline = _create_failing_pipeline()
+
+    with pytest.raises(InferenceError) as exc_info:
+        evaluate(bad_pipeline, dataset, return_dict=False, upload_results=False)
+
+    assert exc_info.value.__cause__ is not None
+    assert isinstance(exc_info.value.__cause__, ValueError)
+    assert "original" in str(exc_info.value.__cause__)
+
+
+# ---------------------------------------------------------------------------
+# Multi-run partial failure (3 tests)
+# ---------------------------------------------------------------------------
+
+
+def _create_conditional_pipeline():
+    """Create a pipeline that fails when fail_on_param=True."""
+
+    def conditional_inference(inputs: List, **hyperparameters) -> List[str]:
+        if hyperparameters.get("fail_on_param", False):
+            raise ValueError("conditional failure")
+        return ["1" for _ in inputs]
+
+    return InferencePipeline(
+        model="test_model",
+        preprocessor=lambda x, **h: x,
+        inference_function=conditional_inference,
+        postprocessor=lambda x, **h: x,
+    )
+
+
+def test_evaluate_multi_run_exactly_two_runs_one_fails():
+    """Smallest multi-run scenario: 2 configs, 1 fails, 1 succeeds."""
+    dataset = _create_sample_dataset()
+    pipeline = _create_conditional_pipeline()
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        results = evaluate(
+            pipeline,
+            dataset,
+            hyperparameters=[{"fail_on_param": False}, {"fail_on_param": True}],
+            return_dict=False,
+            upload_results=False,
+        )
+
+    assert len(results.run_results) == 2
+    failed = [r for r in results.run_results if not r.run_completed]
+    assert len(failed) == 1
+    assert failed[0].error is not None
+
+    eval_warnings = [x for x in w if "Evaluation run failed" in str(x.message)]
+    assert len(eval_warnings) == 1
+
+
+def test_evaluate_multi_run_error_chain_preserved_on_result():
+    """Failed run's error preserves the exception chain for debugging."""
+    dataset = _create_sample_dataset()
+    pipeline = _create_conditional_pipeline()
+
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        results = evaluate(
+            pipeline,
+            dataset,
+            hyperparameters=[{"fail_on_param": False}, {"fail_on_param": True}],
+            return_dict=False,
+            upload_results=False,
+        )
+
+    failed_runs = [r for r in results.run_results if not r.run_completed]
+    for run in failed_runs:
+        assert isinstance(run.error, InferenceError)
+        assert run.error.__cause__ is not None
+        assert isinstance(run.error.__cause__, ValueError)
+
+
+def test_evaluate_multi_run_return_dict_with_partial_failure():
+    """return_dict=True includes failed runs in aggregates."""
+    dataset = _create_sample_dataset()
+    pipeline = _create_conditional_pipeline()
+
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        results = evaluate(
+            pipeline,
+            dataset,
+            hyperparameters=[
+                {"fail_on_param": False},
+                {"fail_on_param": True},
+                {"fail_on_param": False},
+            ],
+            return_dict=True,
+            return_aggregates=True,
+            return_items=True,
+            upload_results=False,
+        )
+
+    # Aggregates include all runs
+    assert len(results["aggregate_results"]) == 3
+    failed_aggs = [r for r in results["aggregate_results"] if not r["run_completed"]]
+    assert len(failed_aggs) == 1
+    # error stays on dataclass, not in aggregate dict
+    assert "error" not in failed_aggs[0]
+
+    # Items only from successful runs (2 successful × 5 items)
+    assert len(results["item_results"]) == 2 * 5
+
+
+# ---------------------------------------------------------------------------
+# Multi-run all fail (3 tests)
+# ---------------------------------------------------------------------------
+
+
+def test_evaluate_all_runs_fail_raises_all_runs_failed_error():
+    """When ALL runs fail in a sweep, AllRunsFailedError is raised."""
+    dataset = _create_sample_dataset()
+    bad_pipeline = _create_failing_pipeline()
+
+    with pytest.raises(AllRunsFailedError) as exc_info:
+        evaluate(
+            bad_pipeline,
+            dataset,
+            hyperparameters=[{"a": 1}, {"a": 2}],
+            return_dict=False,
+            upload_results=False,
+        )
+
+    assert len(exc_info.value.errors) == 2
+    for desc, error in exc_info.value.errors:
+        assert isinstance(error, InferenceError)
+
+
+def test_evaluate_all_runs_fail_catchable_as_evaluation_error():
+    """Verify AllRunsFailedError is catchable via except EvaluationError."""
+    dataset = _create_sample_dataset()
+    bad_pipeline = _create_failing_pipeline()
+
+    try:
+        evaluate(
+            bad_pipeline,
+            dataset,
+            hyperparameters=[{"a": 1}, {"a": 2}],
+            return_dict=False,
+            upload_results=False,
+        )
+    except EvaluationError as e:
+        assert isinstance(e, AllRunsFailedError)
+        assert len(e.errors) == 2
+    else:
+        pytest.fail("Expected EvaluationError")
+
+
+def test_evaluate_all_runs_fail_warnings_issued_before_raise():
+    """Per-run warnings still fire even when AllRunsFailedError is raised."""
+    dataset = _create_sample_dataset()
+    bad_pipeline = _create_failing_pipeline()
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        with pytest.raises(AllRunsFailedError):
+            evaluate(
+                bad_pipeline,
+                dataset,
+                hyperparameters=[{"a": 1}, {"a": 2}, {"a": 3}],
+                return_dict=False,
+                upload_results=False,
+            )
+
+    eval_warnings = [x for x in w if "Evaluation run failed" in str(x.message)]
+    assert len(eval_warnings) == 3
+
+
+# ---------------------------------------------------------------------------
+# Backwards compatibility (2 tests)
+# ---------------------------------------------------------------------------
+
+
+def test_evaluate_successful_single_run_unchanged():
+    """Successful single-run produces same results, no warnings, no error."""
+    dataset = _create_sample_dataset()
+    pipeline = create_simple_inference_pipeline("1")
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        result = evaluate(pipeline, dataset, return_dict=False, upload_results=False)
+
+    assert result.run_results[0].run_completed
+    assert result.run_results[0].error is None
+    eval_warnings = [x for x in w if "Evaluation run failed" in str(x.message)]
+    assert len(eval_warnings) == 0
+
+
+def test_evaluate_successful_multi_run_unchanged():
+    """Successful multi-run produces same results, no warnings, no errors."""
+    dataset = _create_sample_dataset()
+    pipeline = create_simple_inference_pipeline("1")
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        results = evaluate(
+            pipeline,
+            dataset,
+            hyperparameters=[{"a": 1}, {"a": 2}],
+            return_dict=False,
+            upload_results=False,
+        )
+
+    for run in results.run_results:
+        assert run.run_completed
+        assert run.error is None
+    eval_warnings = [x for x in w if "Evaluation run failed" in str(x.message)]
+    assert len(eval_warnings) == 0
