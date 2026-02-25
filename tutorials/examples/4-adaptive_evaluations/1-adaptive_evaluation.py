@@ -31,7 +31,7 @@ async def main(project_id: str) -> Any:
 
     # Initialize OpenAI client
     client = AsyncOpenAI()
-    model_name = "gpt-4o-mini"
+    model_name = "gpt-4.1-nano"
 
     # Multiple-choice inference function
     async def mc_inference(inputs: List[Any], **hyperparameters: Any) -> List[Any]:
@@ -94,8 +94,7 @@ async def main(project_id: str) -> Any:
                 {
                     "role": "system",
                     "content": (
-                        "Answer the question. Place your final answer "
-                        "between <answer> and </answer> tags."
+                        "Answer the question with ONLY a number."
                     ),
                 },
                 {"role": "user", "content": prompt},
@@ -105,15 +104,9 @@ async def main(project_id: str) -> Any:
                 response = await client.chat.completions.create(
                     model=model_name,
                     messages=messages,
-                    temperature=0.7,
+                    temperature=0,
                 )
                 output = response.choices[0].message.content.strip()
-
-                # Extract from <answer> tags if present
-                start = output.rfind("<answer>")
-                end = output.rfind("</answer>")
-                if start != -1 and end > start:
-                    output = output[start + len("<answer>") : end].strip()
 
             except Exception as e:
                 output = f"Error: {str(e)}"
