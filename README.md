@@ -3,8 +3,8 @@
 <p align="center"><strong>A Python library for Model evaluation</strong></p>
 
 <p align="center">
-  <img alt="Dynamic TOML Badge" src="https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Ftrismik%2Fscorebook%2Frefs%2Fheads%2Fmain%2Fpyproject.toml&query=tool.poetry.version&style=flat&label=version">
-  <img alt="Python Version" src="https://img.shields.io/badge/python-3.9%2B-blue">
+  <img alt="PyPI - Version" src="https://img.shields.io/pypi/v/scorebook">
+  <img alt="Python Version" src="https://img.shields.io/badge/python-3.10%2B-blue">
   <a href="https://docs.trismik.com/scorebook/introduction-to-scorebook/" target="_blank" rel="noopener">
     <img alt="Documentation" src="https://img.shields.io/badge/docs-Scorebook-blue?style=flat">
   </a>
