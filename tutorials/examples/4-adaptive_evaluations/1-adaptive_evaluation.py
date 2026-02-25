@@ -1,7 +1,7 @@
 """Tutorials - Adaptive Evaluations - Example 1 - Adaptive Evaluation."""
 
+import argparse
 import asyncio
-import string
 from pathlib import Path
 from pprint import pprint
 from typing import Any, List
@@ -14,17 +14,14 @@ from tutorials.utils import save_results_to_json, setup_logging
 from scorebook import evaluate_async, login
 
 
-async def main() -> Any:
-    """Run an adaptive evaluation using Trismik's adaptive testing.
+async def main(project_id: str) -> Any:
+    """Run adaptive evaluations using Trismik's adaptive testing.
 
-    This example demonstrates how to use Trismik's adaptive evaluation feature.
+    This example demonstrates how to use Trismik's adaptive evaluation feature
+    with both multiple-choice and open-ended datasets.
+
     Adaptive evaluations use Item Response Theory (IRT) to efficiently estimate
     model capabilities by selecting questions based on previous responses.
-
-    Benefits of adaptive evaluation:
-        - More efficient: Fewer questions needed to assess capability
-        - Precise measurement: Better statistical confidence intervals
-        - Optimal difficulty: Questions adapt to model's skill level
 
     Prerequisites:
         - Valid Trismik API key set in TRISMIK_API_KEY environment variable
@@ -36,41 +33,34 @@ async def main() -> Any:
     client = AsyncOpenAI()
     model_name = "gpt-4o-mini"
 
-    # Define an async inference function
-    async def inference(inputs: List[Any], **hyperparameters: Any) -> List[Any]:
-        """Process inputs through OpenAI's API.
+    # Multiple-choice inference function
+    async def mc_inference(inputs: List[Any], **hyperparameters: Any) -> List[Any]:
+        """Process multiple-choice inputs through OpenAI's API.
 
         Args:
-            inputs: Input values from an EvalDataset. For adaptive MMLU-Pro,
-                   each input is a dict with 'question' and 'options' keys.
+            inputs: Each input is a dict with 'question' and 'choices' keys.
             hyperparameters: Model hyperparameters.
 
         Returns:
-            List of model outputs for all inputs.
+            List of model outputs (single letter answers).
         """
         outputs = []
         for input_val in inputs:
-            # Handle dict input from adaptive dataset
-            if isinstance(input_val, dict):
-                prompt = input_val.get("question", "")
-                if "options" in input_val:
-                    prompt += "\nOptions:\n" + "\n".join(
-                        f"{letter}: {choice}"
-                        for letter, choice in zip(string.ascii_uppercase, input_val["options"])
-                    )
-            else:
-                prompt = str(input_val)
+            choices = input_val.get("choices", [])
+            prompt = (
+                str(input_val.get("question", ""))
+                + "\nOptions:\n"
+                + "\n".join(f"{choice['id']}: {choice['text']}" for choice in choices)
+            )
 
-            # Build messages for OpenAI API
             messages = [
                 {
                     "role": "system",
-                    "content": "Answer the question with a single letter representing the correct answer from the list of choices. Do not provide any additional explanation or output beyond the single letter.",
+                    "content": "Answer with only the letter of the correct option.",
                 },
                 {"role": "user", "content": prompt},
             ]
 
-            # Call OpenAI API
             try:
                 response = await client.chat.completions.create(
                     model=model_name,
@@ -85,30 +75,96 @@ async def main() -> Any:
 
         return outputs
 
+    # Open-ended inference function
+    async def open_ended_inference(inputs: List[Any], **hyperparameters: Any) -> List[Any]:
+        """Process open-ended inputs through OpenAI's API.
+
+        Args:
+            inputs: Each input is a dict with a 'question' key.
+            hyperparameters: Model hyperparameters.
+
+        Returns:
+            List of model outputs (free-text answers).
+        """
+        outputs = []
+        for input_val in inputs:
+            prompt = str(input_val.get("question", ""))
+
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "Answer the question. Place your final answer "
+                        "between <answer> and </answer> tags."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ]
+
+            try:
+                response = await client.chat.completions.create(
+                    model=model_name,
+                    messages=messages,
+                    temperature=0.7,
+                )
+                output = response.choices[0].message.content.strip()
+
+                # Extract from <answer> tags if present
+                start = output.rfind("<answer>")
+                end = output.rfind("</answer>")
+                if start != -1 and end > start:
+                    output = output[start + len("<answer>") : end].strip()
+
+            except Exception as e:
+                output = f"Error: {str(e)}"
+
+            outputs.append(output)
+
+        return outputs
+
     # Step 1: Log in with your Trismik API key
-    # login() reads TRISMIK_API_KEY from environment variables or .env file
     login()
 
-    # Step 2: Run adaptive evaluation
-    results = await evaluate_async(
-        inference,
-        datasets="trismik/headQA:adaptive",  # Adaptive datasets have the ":adaptive" suffix
-        experiment_id="Adaptive-Head-QA-Evaluation",
-        project_id='TRISMIK-PROJECT-ID',
+    # Step 2: Run multiple-choice adaptive evaluation
+    print("=== Multiple-Choice Adaptive Evaluation ===")
+    mc_results = await evaluate_async(
+        mc_inference,
+        datasets="trismik/headQA:adaptive",
+        split="test",
+        experiment_id="Adaptive Evaluation Tutorial",
+        project_id=project_id,
         return_dict=True,
         return_aggregates=True,
         return_items=True,
         return_output=True,
     )
+    pprint(mc_results)
 
-    pprint(results)
-    return results
+    # Step 3: Run open-ended adaptive evaluation
+    print("\n=== Open-Ended Adaptive Evaluation ===")
+    oe_results = await evaluate_async(
+        open_ended_inference,
+        datasets="trismik/fingpt_convfinqa_test:adaptive",
+        experiment_id="Adaptive Evaluation Tutorial",
+        project_id=project_id,
+        return_dict=True,
+        return_aggregates=True,
+        return_items=True,
+        return_output=True,
+    )
+    pprint(oe_results)
+
+    return {"multiple_choice": mc_results, "open_ended": oe_results}
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run adaptive evaluation tutorial")
+    parser.add_argument("--project-id", required=True, help="Trismik project ID")
+    args = parser.parse_args()
+
     load_dotenv()
     log_file = setup_logging(experiment_id="1-adaptive_evaluation", base_dir=Path(__file__).parent)
     output_dir = Path(__file__).parent / "results"
     output_dir.mkdir(exist_ok=True)
-    results_dict = asyncio.run(main())
+    results_dict = asyncio.run(main(args.project_id))
     save_results_to_json(results_dict, output_dir, "1-adaptive_evaluation_output.json")
