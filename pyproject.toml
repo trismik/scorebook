@@ -19,11 +19,11 @@ dependencies = [
 scorebook = "scorebook.cli.main:main"
 
 [tool.poetry]
-version = "0.0.18"  # base version
 packages = [
     { include = "scorebook", from = "src" },
     { include = "tutorials" }
 ]
+version = "0.0.0" # managed by poetry-dynamic-versioning
 
 [tool.poetry.dependencies]
 python = ">=3.10"
@@ -43,7 +43,6 @@ Flake8-pyproject = "^1.2.3"
 flake8 = "^7.0.0"
 mypy = "^1.15.0"
 autoflake = "^2.3.1"
-toml = "^0.10.2"
 types-pyyaml = "^6.0.12.20250822"
 unasync = {version = "^0.5.0", python = ">=3.10,<4"}
 tomlkit = "^0.13.2"
@@ -55,9 +54,17 @@ providers = ["openai", "portkey-ai", "boto3==1.40.0", "google-genai", "pandas", 
 examples = ["transformers", "torch", "torchvision", "torchaudio", "accelerate", "notebook", "ipywidgets"]
 metrics = ["sacrebleu", "rouge-score", "scikit-learn>=1.0.0", "bert-score"]
 
+[tool.poetry.requires-plugins]
+poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
+
+[tool.poetry-dynamic-versioning]
+# Expected Git tags: vX.Y.Z, vX.Y.Z-alphaN, vX.Y.Z-betaN, vX.Y.Z-rcN
+enable = true
+vcs = "git"
+
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "class"
