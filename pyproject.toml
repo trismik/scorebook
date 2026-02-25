@@ -43,7 +43,6 @@ Flake8-pyproject = "^1.2.3"
 flake8 = "^7.0.0"
 mypy = "^1.15.0"
 autoflake = "^2.3.1"
-toml = "^0.10.2"
 types-pyyaml = "^6.0.12.20250822"
 unasync = {version = "^0.5.0", python = ">=3.10,<4"}
 tomlkit = "^0.13.2"
