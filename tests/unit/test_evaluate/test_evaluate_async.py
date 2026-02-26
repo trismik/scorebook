@@ -1,11 +1,13 @@
 import asyncio
 import time
+import warnings
 from pathlib import Path
 from typing import Dict, List
 
 import pytest
 
 from scorebook import EvalDataset, evaluate, evaluate_async
+from scorebook.exceptions import AllRunsFailedError, InferenceError
 from scorebook.inference.inference_pipeline import InferencePipeline
 from scorebook.metrics.accuracy import Accuracy
 from scorebook.types import ClassicEvalRunResult, EvalResult
@@ -238,7 +240,7 @@ async def test_async_inference_function_directly():
 
 
 def test_evaluate_with_failing_async_function(sample_dataset):
-    """Test evaluation handles async pipelines that raise exceptions."""
+    """Test evaluation with failing async pipeline raises InferenceError."""
 
     async def failing_async_inference_function(inputs: List, **hyperparameters) -> List[str]:
         await asyncio.sleep(0.001)
@@ -251,10 +253,145 @@ def test_evaluate_with_failing_async_function(sample_dataset):
         postprocessor=lambda x, h=None: x,
     )
 
-    result = asyncio.run(
-        evaluate_async(failing_pipeline, sample_dataset, return_dict=False, upload_results=False)
+    with pytest.raises(InferenceError):
+        asyncio.run(
+            evaluate_async(
+                failing_pipeline, sample_dataset, return_dict=False, upload_results=False
+            )
+        )
+
+
+# ---------------------------------------------------------------------------
+# Error propagation tests (4 tests)
+# ---------------------------------------------------------------------------
+
+
+def _create_async_sample_dataset():
+    dataset_path = str(Path(__file__).parent.parent / "data" / "Dataset.csv")
+    return EvalDataset.from_csv(
+        dataset_path, metrics=[Accuracy], input="input", label="label", name="test_dataset"
     )
 
-    # Should return a failed run result instead of raising exception
-    assert len(result.run_results) == 1
-    assert not result.run_results[0].run_completed
+
+def test_evaluate_async_single_run_no_warning(sample_dataset):
+    """Async single-run failure raises without issuing warnings."""
+
+    async def failing_inference(inputs: List, **hyperparameters) -> List[str]:
+        raise ValueError("boom")
+
+    pipeline = InferencePipeline(
+        model="test_model",
+        preprocessor=lambda x, **h: x,
+        inference_function=failing_inference,
+        postprocessor=lambda x, **h: x,
+    )
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        with pytest.raises(InferenceError):
+            asyncio.run(
+                evaluate_async(pipeline, sample_dataset, return_dict=False, upload_results=False)
+            )
+
+    eval_warnings = [x for x in w if "Evaluation run failed" in str(x.message)]
+    assert len(eval_warnings) == 0
+
+
+def test_evaluate_async_multi_run_partial_failure(sample_dataset):
+    """Async partial failure: one run fails, others succeed, warning issued."""
+
+    async def conditional_inference(inputs: List, **hyperparameters) -> List[str]:
+        if hyperparameters.get("fail"):
+            raise ValueError("conditional fail")
+        await asyncio.sleep(0.001)
+        return ["1" for _ in inputs]
+
+    pipeline = InferencePipeline(
+        model="test_model",
+        preprocessor=lambda x, **h: x,
+        inference_function=conditional_inference,
+        postprocessor=lambda x, **h: x,
+    )
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        results = asyncio.run(
+            evaluate_async(
+                pipeline,
+                sample_dataset,
+                hyperparameters=[{"fail": False}, {"fail": True}],
+                return_dict=False,
+                upload_results=False,
+            )
+        )
+
+    assert len(results.run_results) == 2
+    successful = [r for r in results.run_results if r.run_completed]
+    failed = [r for r in results.run_results if not r.run_completed]
+    assert len(successful) == 1
+    assert len(failed) == 1
+    assert failed[0].error is not None
+
+    eval_warnings = [x for x in w if "Evaluation run failed" in str(x.message)]
+    assert len(eval_warnings) == 1
+
+
+def test_evaluate_async_all_runs_fail_raises(sample_dataset):
+    """Async all-fail raises AllRunsFailedError."""
+
+    async def always_failing(inputs: List, **hyperparameters) -> List[str]:
+        raise ValueError("always fail")
+
+    pipeline = InferencePipeline(
+        model="test_model",
+        preprocessor=lambda x, **h: x,
+        inference_function=always_failing,
+        postprocessor=lambda x, **h: x,
+    )
+
+    with pytest.raises(AllRunsFailedError) as exc_info:
+        asyncio.run(
+            evaluate_async(
+                pipeline,
+                sample_dataset,
+                hyperparameters=[{"a": 1}, {"a": 2}],
+                return_dict=False,
+                upload_results=False,
+            )
+        )
+
+    assert len(exc_info.value.errors) == 2
+
+
+def test_evaluate_async_gather_doesnt_cancel_siblings(sample_dataset):
+    """A fast-failing run doesn't cancel slow-succeeding runs via asyncio.gather."""
+
+    async def conditional_slow_inference(inputs: List, **hyperparameters) -> List[str]:
+        if hyperparameters.get("fail"):
+            raise ValueError("fast fail")
+        await asyncio.sleep(0.1)  # slow but succeeds
+        return ["1" for _ in inputs]
+
+    pipeline = InferencePipeline(
+        model="test_model",
+        preprocessor=lambda x, **h: x,
+        inference_function=conditional_slow_inference,
+        postprocessor=lambda x, **h: x,
+    )
+
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        results = asyncio.run(
+            evaluate_async(
+                pipeline,
+                sample_dataset,
+                hyperparameters=[{"fail": True}, {"fail": False}],
+                return_dict=False,
+                upload_results=False,
+            )
+        )
+
+    successful = [r for r in results.run_results if r.run_completed]
+    failed = [r for r in results.run_results if not r.run_completed]
+    assert len(successful) == 1  # slow run was NOT cancelled
+    assert len(failed) == 1

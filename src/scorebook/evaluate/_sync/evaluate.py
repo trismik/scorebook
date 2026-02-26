@@ -1,4 +1,5 @@
 import logging
+import warnings
 from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
 
 from trismik import TrismikAsyncClient, TrismikClient
@@ -17,7 +18,7 @@ from scorebook.evaluate.evaluate_helpers import (
     resolve_adaptive_split,
     validate_parameters,
 )
-from scorebook.exceptions import InferenceError, ScoreBookError
+from scorebook.exceptions import AllRunsFailedError, InferenceError, ScoreBookError
 from scorebook.inference.inference_pipeline import InferencePipeline
 from scorebook.score._sync.score import score
 from scorebook.types import (
@@ -132,6 +133,14 @@ def evaluate(
         )
 
 
+def _describe_run(run: Union[EvalRunSpec, AdaptiveEvalRunSpec]) -> str:
+    """Return a human-readable description of a run for error messages."""
+    if isinstance(run, EvalRunSpec):
+        return f"dataset='{run.dataset.name}', hyperparameters={run.hyperparameter_config}"
+    else:
+        return f"dataset='{run.dataset}', hyperparameters={run.hyperparameter_config}"
+
+
 def execute_runs(
     inference: Callable,
     runs: List[Union[EvalRunSpec, AdaptiveEvalRunSpec]],
@@ -143,6 +152,8 @@ def execute_runs(
     trismik_client: Optional[Union[TrismikClient, TrismikAsyncClient]] = None,
 ) -> EvalResult:
     """Run evaluation sequentially."""
+
+    is_multi_run = len(runs) > 1
 
     # Worker function to execute individual runs and handle uploads
     def worker(
@@ -157,17 +168,44 @@ def execute_runs(
 
             on_progress = _on_progress
 
-        # Execute run (score_async handles upload internally for classic evals)
-        run_result = execute_run(
-            inference,
-            run,
-            upload_results,
-            experiment_id,
-            project_id,
-            metadata,
-            trismik_client,
-            on_progress,
-        )
+        # Execute run with error handling based on single vs multi-run
+        try:
+            run_result = execute_run(
+                inference,
+                run,
+                upload_results,
+                experiment_id,
+                project_id,
+                metadata,
+                trismik_client,
+                on_progress,
+            )
+        except Exception as e:
+            if not is_multi_run:
+                raise  # Single run: let exception propagate naturally
+
+            # Multi-run: warn and continue with remaining runs
+            run_desc = _describe_run(run)
+            warnings.warn(
+                f"Evaluation run failed ({run_desc}): {type(e).__name__}: {e}",
+            )
+
+            if isinstance(run, EvalRunSpec):
+                run_result = ClassicEvalRunResult(
+                    run_spec=run,
+                    run_completed=False,
+                    outputs=None,
+                    scores=None,
+                    run_id=None,
+                    error=e,
+                )
+            else:
+                run_result = AdaptiveEvalRunResult(
+                    run_spec=run,
+                    run_completed=False,
+                    scores={},
+                    error=e,
+                )
 
         # Update progress bars with items processed and success status
         if progress_bars is not None:
@@ -196,6 +234,11 @@ def execute_runs(
     run_results.sort(
         key=lambda result: (result.run_spec.dataset_index, result.run_spec.hyperparameters_index)
     )
+
+    # If all runs failed in a multi-run sweep, raise AllRunsFailedError
+    if is_multi_run and all(not r.run_completed for r in run_results):
+        errors = [(_describe_run(r.run_spec), r.error) for r in run_results if r.error is not None]
+        raise AllRunsFailedError(errors)
 
     # Return EvalResult
     return EvalResult(run_results)
@@ -246,68 +289,54 @@ def execute_classic_eval_run(
     """Execute a classic evaluation run using score_async() for scoring and uploading."""
     logger.debug("Executing classic eval run for %s", run)
 
-    inference_outputs = None
-    scores = None
+    # 1. Run inference
+    inference_outputs = run_inference_callable(
+        inference, run.inputs, run.hyperparameter_config
+    )
 
-    try:
-        # 1. Run inference
-        inference_outputs = run_inference_callable(
-            inference, run.inputs, run.hyperparameter_config
-        )
+    # 2. Build items for score_async
+    items = [
+        {
+            "input": run.inputs[i] if i < len(run.inputs) else None,
+            "output": inference_outputs[i],
+            "label": run.labels[i] if i < len(run.labels) else "",
+        }
+        for i in range(len(inference_outputs))
+    ]
 
-        # 2. Build items for score_async
-        items = [
-            {
-                "input": run.inputs[i] if i < len(run.inputs) else None,
-                "output": inference_outputs[i],
-                "label": run.labels[i] if i < len(run.labels) else "",
-            }
-            for i in range(len(inference_outputs))
-        ]
+    # 3. Get the model name for upload
+    model_name = get_model_name(inference, metadata)
 
-        # 3. Get the model name for upload
-        model_name = get_model_name(inference, metadata)
+    # 4. Call score_async
+    scores = score(
+        items=items,
+        metrics=run.dataset.metrics,
+        output_column="output",  # Explicit parameter
+        label_column="label",  # Explicit parameter
+        input_column="input",  # Explicit parameter
+        hyperparameters=run.hyperparameter_config,
+        dataset_name=run.dataset.name,
+        model_name=model_name,
+        metadata=metadata,
+        experiment_id=experiment_id,
+        project_id=project_id,
+        upload_results=upload_results,
+        show_progress=False,
+    )
 
-        # 4. Call score_async
-        scores = score(
-            items=items,
-            metrics=run.dataset.metrics,
-            output_column="output",  # Explicit parameter
-            label_column="label",  # Explicit parameter
-            input_column="input",  # Explicit parameter
-            hyperparameters=run.hyperparameter_config,
-            dataset_name=run.dataset.name,
-            model_name=model_name,
-            metadata=metadata,
-            experiment_id=experiment_id,
-            project_id=project_id,
-            upload_results=upload_results,
-            show_progress=False,
-        )
+    # 5. Extract run_id if upload succeeded
+    run_id = None
+    if scores.get("aggregate_results") and len(scores["aggregate_results"]) > 0:
+        run_id = scores["aggregate_results"][0].get("run_id")
 
-        # 5. Extract run_id if upload succeeded
-        run_id = None
-        if scores.get("aggregate_results") and len(scores["aggregate_results"]) > 0:
-            run_id = scores["aggregate_results"][0].get("run_id")
-
-        logger.debug("Classic evaluation completed for run %s (run_id: %s)", run, run_id)
-        return ClassicEvalRunResult(
-            run_spec=run,
-            run_completed=True,
-            outputs=inference_outputs,
-            scores=scores,
-            run_id=run_id,
-        )
-
-    except Exception as e:
-        logger.warning("Failed to complete classic eval run for %s: %s", run, str(e))
-        return ClassicEvalRunResult(
-            run_spec=run,
-            run_completed=False,
-            outputs=inference_outputs,
-            scores=scores,
-            run_id=None,
-        )
+    logger.debug("Classic evaluation completed for run %s (run_id: %s)", run, run_id)
+    return ClassicEvalRunResult(
+        run_spec=run,
+        run_completed=True,
+        outputs=inference_outputs,
+        scores=scores,
+        run_id=run_id,
+    )
 
 
 def run_inference_callable(
@@ -354,20 +383,15 @@ def execute_adaptive_eval_run(
     """Execute an adaptive evaluation run."""
     logger.debug("Executing adaptive run for %s", run)
 
-    try:
-        if trismik_client is None:
-            raise ScoreBookError("Trismik client is required for adaptive evaluation")
+    if trismik_client is None:
+        raise ScoreBookError("Trismik client is required for adaptive evaluation")
 
-        adaptive_eval_run_result = run_adaptive_evaluation(
-            inference, run, experiment_id, project_id, metadata, trismik_client, on_progress
-        )
-        logger.debug("Adaptive evaluation completed for run %s", adaptive_eval_run_result)
+    adaptive_eval_run_result = run_adaptive_evaluation(
+        inference, run, experiment_id, project_id, metadata, trismik_client, on_progress
+    )
+    logger.debug("Adaptive evaluation completed for run %s", adaptive_eval_run_result)
 
-        return adaptive_eval_run_result
-
-    except Exception as e:
-        logger.warning("Failed to complete adaptive eval run for %s: %s", run, str(e))
-        return AdaptiveEvalRunResult(run, False, {})
+    return adaptive_eval_run_result
 
 
 def run_adaptive_evaluation(

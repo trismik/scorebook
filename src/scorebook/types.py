@@ -64,6 +64,7 @@ class ClassicEvalRunResult:
     outputs: Optional[List[Any]]
     scores: Optional[Dict[str, List[Dict[str, Any]]]]  # score_async format
     run_id: Optional[str] = None
+    error: Optional[Exception] = None
 
     @property
     def item_scores(self) -> List[Dict[str, Any]]:
@@ -101,6 +102,7 @@ class AdaptiveEvalRunResult:
     run_spec: AdaptiveEvalRunSpec
     run_completed: bool
     scores: Dict[str, Any]
+    error: Optional[Exception] = None
 
     @property
     def aggregate_scores(self) -> Dict[str, Any]:
