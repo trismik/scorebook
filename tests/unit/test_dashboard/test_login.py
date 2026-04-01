@@ -21,6 +21,7 @@ from scorebook.dashboard.credentials import (
     validate_token,
     whoami,
 )
+from scorebook.settings import TRISMIK_API_KEY_ENV_VAR
 
 login_module = importlib.import_module("scorebook.dashboard.credentials")
 
@@ -38,7 +39,12 @@ def clean_env():
     """Clean environment variables for testing."""
     original_env = os.environ.copy()
     # Remove any trismik-related env vars
-    for key in ["TRISMIK_API_KEY", "TRISMIK_TOKEN_PATH", "TRISMIK_HOME"]:
+    for key in [
+        "TRISMIK_API_KEY",
+        "TRISMIK_API_KEY_STAGE",
+        "TRISMIK_TOKEN_PATH",
+        "TRISMIK_HOME",
+    ]:
         os.environ.pop(key, None)
     yield
     # Restore original environment
@@ -116,7 +122,7 @@ class TestTokenRetrieval:
         save_token("stored-token")
 
         # Set environment variable
-        os.environ["TRISMIK_API_KEY"] = "env-token"  # pragma: allowlist secret
+        os.environ[TRISMIK_API_KEY_ENV_VAR] = "env-token"  # pragma: allowlist secret
 
         # Environment variable should take priority
         assert get_token() == "env-token"
@@ -132,7 +138,7 @@ class TestTokenRetrieval:
 
     def test_get_token_env_var_with_whitespace(self, clean_env):
         """Test environment variable token is stripped."""
-        os.environ["TRISMIK_API_KEY"] = "  env-token-with-spaces  "  # pragma: allowlist secret
+        os.environ[TRISMIK_API_KEY_ENV_VAR] = "  env-token-with-spaces  "
         assert get_token() == "env-token-with-spaces"
 
 
@@ -204,7 +210,7 @@ class TestLogin:
     def test_login_without_parameter_uses_env_var(self, temp_config_dir, clean_env):
         """Test login without parameter reads from environment variable."""
         test_token = "env-var-token"
-        os.environ["TRISMIK_API_KEY"] = test_token  # pragma: allowlist secret
+        os.environ[TRISMIK_API_KEY_ENV_VAR] = test_token
 
         with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
             mock_instance = mock_client.return_value
@@ -227,7 +233,7 @@ class TestLogin:
             with patch("scorebook.dashboard.credentials.load_dotenv") as mock_load_dotenv:
 
                 def set_env_var() -> bool:
-                    os.environ["TRISMIK_API_KEY"] = test_token  # pragma: allowlist secret
+                    os.environ[TRISMIK_API_KEY_ENV_VAR] = test_token
                     return True
 
                 mock_load_dotenv.side_effect = set_env_var
@@ -247,13 +253,13 @@ class TestLogin:
     def test_login_warns_when_env_var_and_explicit_key(self, temp_config_dir, clean_env):
         """Test login warns when env var is set but explicit key is passed."""
         explicit_token = "explicit-token"
-        os.environ["TRISMIK_API_KEY"] = "env-token"  # pragma: allowlist secret
+        os.environ[TRISMIK_API_KEY_ENV_VAR] = "env-token"  # pragma: allowlist secret
 
         with patch("scorebook.dashboard.credentials.TrismikClient") as mock_client:
             mock_instance = mock_client.return_value
             mock_instance.me.return_value = {"user": "test"}
 
-            with pytest.warns(UserWarning, match="TRISMIK_API_KEY environment variable"):
+            with pytest.warns(UserWarning, match=f"{TRISMIK_API_KEY_ENV_VAR} environment"):
                 login(explicit_token)
 
             # Token should still be saved
@@ -331,13 +337,13 @@ class TestIntegration:
         save_token("stored-token")
 
         # Set environment variable
-        os.environ["TRISMIK_API_KEY"] = "env-token"  # pragma: allowlist secret
+        os.environ[TRISMIK_API_KEY_ENV_VAR] = "env-token"  # pragma: allowlist secret
 
         # Environment variable should win
         assert get_token() == "env-token"
 
         # Remove env var
-        del os.environ["TRISMIK_API_KEY"]
+        del os.environ[TRISMIK_API_KEY_ENV_VAR]
 
         # Should fallback to stored token
         assert get_token() == "stored-token"

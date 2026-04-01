@@ -9,7 +9,7 @@ from typing import Optional
 from dotenv import load_dotenv
 from trismik import TrismikClient
 
-from scorebook.settings import TRISMIK_SERVICE_URL
+from scorebook.settings import TRISMIK_API_KEY_ENV_VAR, TRISMIK_SERVICE_URL, USE_TRISMIK_STAGE
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +59,11 @@ def get_token() -> Optional[str]:
     """Get the trismik API token in order of priority.
 
     Priority order:
-    1. TRISMIK_API_KEY environment variable
+    1. Environment variable (TRISMIK_API_KEY or TRISMIK_API_KEY_STAGE based on USE_TRISMIK_STAGE)
     2. Stored token file
     """
     # Check environment variable first
-    env_token = os.environ.get("TRISMIK_API_KEY")
+    env_token = os.environ.get(TRISMIK_API_KEY_ENV_VAR)
     if env_token:
         return env_token.strip()
 
@@ -98,7 +98,7 @@ def login(trismik_api_key: Optional[str] = None) -> None:
     """Login to trismik by saving API key locally.
 
     If no API key is provided, the function will attempt to read it from the
-    TRISMIK_API_KEY environment variable or .env file (using python-dotenv).
+    environment variable or .env file (using python-dotenv).
     Environment variables take precedence over .env file values.
 
     Args:
@@ -108,34 +108,36 @@ def login(trismik_api_key: Optional[str] = None) -> None:
         ValueError: If API key is empty, not found, or invalid.
 
     Warns:
-        UserWarning: If an explicit API key is passed but TRISMIK_API_KEY
+        UserWarning: If an explicit API key is passed but the API key
             environment variable is also set.
     """
     # Warn if user passes explicit key but env var is also set
-    if trismik_api_key is not None and os.environ.get("TRISMIK_API_KEY"):
+    if trismik_api_key is not None and os.environ.get(TRISMIK_API_KEY_ENV_VAR):
         warnings.warn(
-            "TRISMIK_API_KEY environment variable is set. The environment variable "
-            "takes precedence over the stored token when calling evaluate(). "
-            "To use the explicitly provided key, unset the TRISMIK_API_KEY "
+            f"{TRISMIK_API_KEY_ENV_VAR} environment variable is set. The environment "
+            "variable takes precedence over the stored token when calling evaluate(). "
+            f"To use the explicitly provided key, unset the {TRISMIK_API_KEY_ENV_VAR} "
             "environment variable.",
             UserWarning,
             stacklevel=2,
         )
 
     if trismik_api_key is None:
-        # Load from .env file if TRISMIK_API_KEY is not already set in environment
         load_dotenv()
-        trismik_api_key = os.environ.get("TRISMIK_API_KEY")
+        trismik_api_key = os.environ.get(TRISMIK_API_KEY_ENV_VAR)
 
     if not trismik_api_key:
         raise ValueError(
-            "API key cannot be empty. Either pass it as a parameter or "
-            "set the TRISMIK_API_KEY environment variable or .env file."
+            f"API key cannot be empty. Either pass it as a parameter or "
+            f"set the {TRISMIK_API_KEY_ENV_VAR} environment variable or .env file."
         )
 
     # Validate token
     if not validate_token(trismik_api_key):
         raise ValueError("Invalid API key provided")
+
+    if USE_TRISMIK_STAGE:
+        warnings.warn("Using Trismik staging environment", UserWarning, stacklevel=2)
 
     # Save token
     save_token(trismik_api_key)

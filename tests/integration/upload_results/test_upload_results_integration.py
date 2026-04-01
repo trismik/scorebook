@@ -18,7 +18,7 @@ from scorebook.dashboard.upload_results import upload_result, upload_result_asyn
 load_dotenv()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def test_api_key() -> str:
     """Get test API key from environment or .env file."""
     api_key = os.environ.get("TRISMIK_API_KEY")
@@ -35,12 +35,23 @@ def ensure_logged_in(test_api_key, monkeypatch):
     monkeypatch.setenv("TRISMIK_API_KEY", test_api_key)
 
 
-@pytest.fixture
-def test_project():
-    """Create a test project for uploads."""
-    project_name = f"test-upload-project-{uuid.uuid4().hex[:8]}"
-    project = create_project(name=project_name, description="Integration test project")
-    return project
+@pytest.fixture(scope="module")
+def test_project(test_api_key):
+    """Create a single test project shared across all tests in this module."""
+    # Temporarily set API key for project creation
+    # (module-scoped fixtures run before function-scoped)
+    original_key = os.environ.get("TRISMIK_API_KEY")
+    os.environ["TRISMIK_API_KEY"] = test_api_key
+    try:
+        project_name = f"test-upload-project-{uuid.uuid4().hex[:8]}"
+        project = create_project(name=project_name, description="Integration test project")
+        return project
+    finally:
+        # Restore original state (will be overwritten by ensure_logged_in anyway)
+        if original_key is None:
+            os.environ.pop("TRISMIK_API_KEY", None)
+        else:
+            os.environ["TRISMIK_API_KEY"] = original_key
 
 
 @pytest.fixture
